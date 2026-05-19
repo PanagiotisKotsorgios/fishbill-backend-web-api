@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Πύλη Λογιστών</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F3F4F6; color: #111827; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    .header { background: #1E3A5F; border-bottom: 2px solid #163058; position: sticky; top: 0; z-index: 200; }
+    .header-inner { max-width: 1400px; margin: 0 auto; padding: 0 28px; height: 62px; display: flex; align-items: center; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand-name { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+    .brand-sep { width: 1px; height: 26px; background: rgba(255,255,255,.25); margin: 0 8px; }
+    .brand-role { font-size: 12px; font-weight: 600; color: #93C5FD; letter-spacing: .08em; text-transform: uppercase; }
+    .header-nav { display: flex; align-items: center; gap: 2px; margin-left: 20px; flex: 1; }
+    .nav-link { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; color: rgba(255,255,255,.72); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .15s; white-space: nowrap; }
+    .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-link.active { background: rgba(147,197,253,.18); color: #93C5FD; }
+    .header-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    .hdr-user { display: flex; align-items: center; gap: 8px; }
+    .hdr-avatar { width: 34px; height: 34px; border-radius: 8px; background: #2563EB; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+    .hdr-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .btn-logout { display: flex; align-items: center; gap: 6px; padding: 7px 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 8px; color: rgba(255,255,255,.85); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .btn-logout:hover { background: rgba(255,255,255,.18); color: #fff; }
+    @media(max-width:900px) { .header-nav { display: none; } .hdr-name { display: none; } }
+
+    /* ── PAGE ── */
+    .page { max-width: 1400px; margin: 0 auto; padding: 28px 28px 64px; }
+    @media(max-width:768px) { .page { padding: 16px 14px 48px; } }
+
+    /* ── STATS ── */
+    .stats-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 24px; }
+    @media(max-width:1100px) { .stats-row { grid-template-columns: repeat(3,1fr); } }
+    @media(max-width:640px)  { .stats-row { grid-template-columns: repeat(2,1fr); } }
+    .stat-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+    .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .stat-icon.blue { background: #EFF6FF; color: #2563EB; }
+    .stat-icon.green { background: #F0FDF4; color: #16A34A; }
+    .stat-icon.teal { background: #F0FDFA; color: #0D9488; }
+    .stat-icon.amber { background: #FFFBEB; color: #D97706; }
+    .stat-icon.purple { background: #F5F3FF; color: #7C3AED; }
+    .stat-value { font-size: 28px; font-weight: 800; color: #111827; line-height: 1; }
+    .stat-label { font-size: 12px; font-weight: 500; color: #6B7280; margin-top: 3px; }
+
+    /* ── SECTION HEADER ── */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    .section-title { font-size: 17px; font-weight: 700; color: #111827; }
+    .section-title small { font-size: 13px; font-weight: 500; color: #9CA3AF; margin-left: 6px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .search-wrap { position: relative; }
+    .search-input { height: 38px; padding: 0 12px 0 36px; border: 1px solid #D1D5DB; border-radius: 8px; background: #fff; font-size: 14px; font-family: inherit; color: #111827; outline: none; width: 260px; transition: border-color .15s; }
+    .search-input:focus { border-color: #2563EB; }
+    .search-input::placeholder { color: #9CA3AF; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9CA3AF; font-size: 14px; pointer-events: none; }
+    .btn-primary { display: flex; align-items: center; gap: 7px; padding: 8px 18px; background: #1E3A5F; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; white-space: nowrap; }
+    .btn-primary:hover { background: #163058; }
+    .btn-secondary { padding: 7px 14px; background: #fff; border: 1px solid #D1D5DB; border-radius: 8px; color: #374151; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-secondary:hover { background: #F9FAFB; border-color: #9CA3AF; }
+
+    /* ── TABLE ── */
+    .table-wrap { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #F9FAFB; border-bottom: 2px solid #E5E7EB; }
+    th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #F3F4F6; transition: background .1s; cursor: pointer; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #F0F7FF; }
+    td { padding: 11px 16px; font-size: 14px; color: #374151; vertical-align: middle; }
+    td.name { font-weight: 600; color: #111827; }
+    td.afm { font-family: 'Courier New', monospace; font-size: 13px; color: #4B5563; }
+    td.muted { color: #9CA3AF; }
+    .td-action { display: flex; gap: 6px; justify-content: flex-end; }
+    .btn-tbl { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all .15s; font-family: inherit; }
+    .btn-tbl.open { background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
+    .btn-tbl.open:hover { background: #DBEAFE; }
+    .btn-tbl.remove { background: #FEF2F2; border-color: #FECACA; color: #B91C1C; }
+    .btn-tbl.remove:hover { background: #FEE2E2; }
+
+    /* ── BADGES ── */
+    .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .badge-active   { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+    .badge-inactive { background: #F9FAFB; color: #6B7280; border: 1px solid #E5E7EB; }
+    .badge-mydata   { background: #F0FDFA; color: #0F766E; border: 1px solid #99F6E4; }
+    .badge-gsis     { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+    /* ── EMPTY / SPINNER ── */
+    .state-row td { text-align: center; padding: 48px 16px; color: #9CA3AF; }
+    .spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid #E5E7EB; border-top-color: #2563EB; border-radius: 50%; animation: spin .65s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── PAGINATION ── */
+    .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
+    .pg-btn { min-width: 34px; height: 34px; padding: 0 10px; border-radius: 7px; border: 1px solid #D1D5DB; background: #fff; color: #374151; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .pg-btn:hover:not(:disabled) { border-color: #2563EB; color: #2563EB; background: #EFF6FF; }
+    .pg-btn.active { background: #1E3A5F; color: #fff; border-color: #1E3A5F; }
+    .pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 400; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 100%; max-width: 480px; padding: 32px; max-height: 92vh; overflow-y: auto; }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .modal-title { font-size: 20px; font-weight: 800; color: #111827; }
+    .modal-sub { font-size: 14px; color: #6B7280; margin-top: 4px; }
+    .modal-close { width: 34px; height: 34px; border-radius: 8px; background: #F3F4F6; border: 1px solid #E5E7EB; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #6B7280; transition: all .15s; flex-shrink: 0; }
+    .modal-close:hover { background: #E5E7EB; color: #111827; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; }
+    .field input, .field textarea, .field select { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #D1D5DB; background: #F9FAFB; font-size: 15px; font-family: inherit; color: #111827; outline: none; transition: border-color .15s, background .15s; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: #2563EB; background: #fff; }
+    .field input::placeholder, .field textarea::placeholder { color: #9CA3AF; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-note { font-size: 12px; color: #9CA3AF; margin-top: 6px; line-height: 1.5; }
+    .info-box { padding: 12px 16px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; font-size: 13px; color: #1D4ED8; margin-bottom: 18px; line-height: 1.55; }
+    .error-box { display: none; padding: 11px 15px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; font-size: 14px; color: #B91C1C; margin-bottom: 16px; }
+    .error-box.show { display: block; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .btn-cancel { flex: 1; height: 46px; background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 8px; color: #374151; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-cancel:hover { background: #E5E7EB; }
+    .btn-confirm { flex: 1; height: 46px; background: #1E3A5F; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .btn-confirm:hover { background: #163058; }
+    .btn-confirm:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* ── VERIFICATION GATE ── */
+    .verify-overlay { display: none; position: fixed; inset: 0; background: #F3F4F6; z-index: 500; align-items: flex-start; justify-content: center; padding: 32px 12px 40px; overflow-y: auto; }
+    .verify-overlay.open { display: flex; }
+    .vgate-card { background: #fff; border-radius: 16px; border: 1px solid #E5E7EB; width: 100%; max-width: 720px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.1); margin: auto; }
+    .vgate-card-header { background: #1E3A5F; padding: 28px 36px; display: flex; align-items: center; gap: 18px; }
+    .vgate-header-icon { width: 52px; height: 52px; border-radius: 12px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0; }
+    .vgate-header-title { font-size: 20px; font-weight: 800; color: #fff; }
+    .vgate-header-sub { font-size: 14px; color: rgba(255,255,255,.72); margin-top: 5px; }
+    .vgate-body { padding: 32px 36px; }
+    @media(max-width:600px) { .vgate-body { padding: 20px 16px; } .vgate-card-header { padding: 20px 16px; } }
+    .vsep { display: flex; align-items: center; gap: 10px; margin: 24px 0 16px; }
+    .vsep-label { font-size: 11px; font-weight: 800; color: #1E3A5F; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+    .vsep-line { flex: 1; height: 1px; background: #E5E7EB; }
+    .vf-label { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+    .vf-req { color: #DC2626; }
+    .vgate-body input[type=text], .vgate-body input[type=tel], .vgate-body input[type=email], .vgate-body textarea { width: 100%; background: #F9FAFB; border: 1.5px solid #D1D5DB; border-radius: 8px; padding: 10px 14px; font-size: 15px; font-family: inherit; color: #111827; outline: none; transition: border-color .15s, background .15s; }
+    .vgate-body input:focus, .vgate-body textarea:focus { border-color: #2563EB; background: #fff; }
+    .vgate-body textarea { resize: vertical; min-height: 90px; }
+    .vgrid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .vgrid-1 { margin-bottom: 16px; }
+    .vgrid-city { display: grid; grid-template-columns: 1fr 100px; gap: 16px; margin-bottom: 16px; }
+    @media(max-width:520px) { .vgrid-2 { grid-template-columns: 1fr; } .vgrid-city { grid-template-columns: 1fr 80px; } }
+    .vf-error { display: none; font-size: 12px; color: #B91C1C; margin-top: 5px; }
+    .vf-error.show { display: block; }
+    .vgate-err { display: none; padding: 12px 16px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; font-size: 14px; color: #B91C1C; margin-bottom: 18px; }
+    .vgate-err.show { display: block; }
+    .vgate-submit { width: 100%; padding: 14px 24px; background: #1E3A5F; border: none; border-radius: 10px; color: #fff; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background .15s; margin-top: 8px; }
+    .vgate-submit:hover { background: #163058; }
+    .vgate-submit:disabled { opacity: .6; cursor: not-allowed; }
+    .vgate-footer { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .vgate-footer-note { font-size: 13px; color: #9CA3AF; display: flex; align-items: center; gap: 6px; }
+    .vgate-logout-btn { background: none; border: none; font-size: 13px; color: #9CA3AF; cursor: pointer; font-family: inherit; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: color .15s; }
+    .vgate-logout-btn:hover { color: #1E3A5F; }
+    .vgate-pending-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 16px; padding: 48px 32px; max-width: 520px; width: 100%; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,.1); margin: auto; }
+    .vupload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 0; }
+    @media(max-width:520px) { .vupload-grid { grid-template-columns: 1fr; } }
+    .vupload-lbl { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; display: block; }
+    .vdrop { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; border: 2px dashed #D1D5DB; background: #F9FAFB; cursor: pointer; transition: all .2s; position: relative; overflow: hidden; min-height: 64px; }
+    .vdrop:hover { border-color: #2563EB; background: #EFF6FF; }
+    .vdrop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .vdrop-icon { width: 40px; height: 40px; border-radius: 10px; background: #E5E7EB; display: flex; align-items: center; justify-content: center; color: #6B7280; font-size: 16px; flex-shrink: 0; }
+    .vdrop-text { flex: 1; min-width: 0; }
+    .vdrop-name { font-size: 13px; color: #4B5563; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vdrop-sub { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+    .vdrop.done { border-color: #16A34A; border-style: solid; background: #F0FDF4; }
+    .vdrop.done .vdrop-icon { background: #16A34A; color: #fff; }
+    .vdrop.done .vdrop-name { color: #15803D; }
+    .vdrop-remove { width: 26px; height: 26px; border-radius: 6px; background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; position: relative; }
+    .verify-steps { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: left; }
+    .verify-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .verify-step:last-child { margin-bottom: 0; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: #1E3A5F; color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-text { font-size: 14px; color: #374151; line-height: 1.6; }
+    .vf-invalid { border-color: #DC2626 !important; background: #FFF5F5 !important; }
+    .vin-wrap { position: relative; }
+
+    /* ── Profile modal content ── */
+    .profile-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 14px; }
+    .profile-key { font-size: 11px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: .08em; }
+    .profile-val { font-size: 15px; font-weight: 600; color: #111827; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     VERIFICATION GATE
+════════════════════════════════════════════════════════ -->
+<div class="verify-overlay" id="verify-overlay">
+
+  <!-- STATE: form -->
+  <div class="vgate-card" id="vgate-form">
+    <div class="vgate-card-header">
+      <div class="vgate-header-icon"><i class="fa-solid fa-file-contract"></i></div>
+      <div>
+        <div class="vgate-header-title">Αίτηση Επαλήθευσης Λογιστή</div>
+        <div class="vgate-header-sub">Συμπληρώστε τη φόρμα και επισυνάψτε τα απαραίτητα έγγραφα. Θα σας ειδοποιήσουμε εντός 1-2 εργάσιμων ημερών.</div>
+      </div>
+    </div>
+    <div class="vgate-body">
+      <div class="vgate-err" id="vgate-error"><span id="vgate-error-text"></span></div>
+
+      <div class="vsep">
+        <div class="vsep-label">Επαγγελματικά Στοιχεία</div>
+        <div class="vsep-line"></div>
+      </div>
+
+      <div class="vgrid-2">
+        <div>
+          <div class="vf-label">Αριθμός Άδειας <span class="vf-req">*</span></div>
+          <div class="vin-wrap" id="wrap-license">
+            <input id="vf-license" type="text" placeholder="π.χ. ΛΓ-12345" oninput="clearVfError(this,'err-license','wrap-license')">
+          </div>
+          <div class="vf-error" id="err-license"></div>
+        </div>
+        <div>
+          <div class="vf-label">Μητρώο ΟΕΕ</div>
+          <input id="vf-oee" type="text" placeholder="π.χ. ΟΕΕ-456789">
+        </div>
+      </div>
+
+      <div class="vgrid-1">
+        <div class="vf-label">Διεύθυνση Επαγγελματικής Έδρας</div>
+        <input id="vf-address" type="text" placeholder="Οδός, Αριθμός">
+      </div>
+
+      <div class="vgrid-city">
+        <div>
+          <div class="vf-label">Πόλη</div>
+          <input id="vf-city" type="text" placeholder="Αθήνα">
+        </div>
+        <div>
+          <div class="vf-label">Τ.Κ.</div>
+          <input id="vf-tk" type="text" placeholder="10431" maxlength="5">
+        </div>
+      </div>
+
+      <div class="vgrid-1">
+        <div class="vf-label">Σχόλια / Πρόσθετες Πληροφορίες</div>
+        <textarea id="vf-notes" placeholder="Προαιρετικά σχόλια…"></textarea>
+      </div>
+
+      <div class="vsep">
+        <div class="vsep-label">Επισυναπτόμενα Έγγραφα</div>
+        <div class="vsep-line"></div>
+      </div>
+
+      <div class="vupload-grid">
+        <div>
+          <label class="vupload-lbl"><i class="fa-solid fa-award" style="color:#1E3A5F;margin-right:4px"></i>Άδεια Ασκήσεως</label>
+          <div class="vdrop" id="vdrop-license">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(this,'vdrop-license','vdrop-lic-name','attach-license')">
+            <div class="vdrop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="vdrop-text">
+              <div class="vdrop-name" id="vdrop-lic-name">Επιλογή αρχείου</div>
+              <div class="vdrop-sub">PDF · JPG · PNG · έως 4MB</div>
+            </div>
+            <div class="vdrop-progress" id="vdrop-progress-license" style="display:none"><div class="vdrop-progress-bar"></div></div>
+          </div>
+          <input type="hidden" id="attach-license-data"><input type="hidden" id="attach-license-name">
+        </div>
+        <div>
+          <label class="vupload-lbl"><i class="fa-solid fa-id-card" style="color:#1E3A5F;margin-right:4px"></i>Ταυτότητα / Διαβατήριο</label>
+          <div class="vdrop" id="vdrop-id">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(this,'vdrop-id','vdrop-id-name','attach-id')">
+            <div class="vdrop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="vdrop-text">
+              <div class="vdrop-name" id="vdrop-id-name">Επιλογή αρχείου</div>
+              <div class="vdrop-sub">PDF · JPG · PNG · έως 4MB</div>
+            </div>
+            <div class="vdrop-progress" id="vdrop-progress-id" style="display:none"><div class="vdrop-progress-bar"></div></div>
+          </div>
+          <input type="hidden" id="attach-id-data"><input type="hidden" id="attach-id-name">
+        </div>
+        <div>
+          <label class="vupload-lbl"><i class="fa-solid fa-paperclip" style="color:#1E3A5F;margin-right:4px"></i>Πρόσθετο Έγγραφο</label>
+          <div class="vdrop" id="vdrop-extra">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(this,'vdrop-extra','vdrop-extra-name','attach-extra')">
+            <div class="vdrop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="vdrop-text">
+              <div class="vdrop-name" id="vdrop-extra-name">Επιλογή αρχείου</div>
+              <div class="vdrop-sub">PDF · JPG · PNG · έως 4MB</div>
+            </div>
+            <div class="vdrop-progress" id="vdrop-progress-extra" style="display:none"><div class="vdrop-progress-bar"></div></div>
+          </div>
+          <input type="hidden" id="attach-extra-data"><input type="hidden" id="attach-extra-name">
+        </div>
+      </div>
+
+      <div style="margin-top:24px">
+        <button class="vgate-submit" id="vgate-submit-btn" onclick="submitVerificationRequest()">
+          <i class="fa-solid fa-circle-check"></i> Υποβολή Αίτησης Επαλήθευσης
+        </button>
+      </div>
+
+      <div class="vgate-footer">
+        <div class="vgate-footer-note"><i class="fa-solid fa-lock"></i> Τα στοιχεία σας μεταδίδονται κρυπτογραφημένα</div>
+        <button class="vgate-logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Αποσύνδεση</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE: pending -->
+  <div class="vgate-pending-card" id="vgate-pending" style="display:none">
+    <div style="width:64px;height:64px;border-radius:50%;background:#EFF6FF;border:2px solid #BFDBFE;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;color:#1D4ED8">
+      <i class="fa-solid fa-clock"></i>
+    </div>
+    <h2 style="font-size:20px;font-weight:800;color:#111827;margin-bottom:10px">Η αίτησή σας υποβλήθηκε</h2>
+    <p style="font-size:14px;color:#6B7280;line-height:1.7;margin-bottom:24px">Η ομάδα μας θα ελέγξει τα στοιχεία σας εντός <strong>1-2 εργάσιμων ημερών</strong> και θα σας ειδοποιήσει μέσω email.</p>
+    <div class="verify-steps">
+      <div class="verify-step"><div class="step-num">1</div><div class="step-text">Λάβαμε την αίτησή σας και τα επισυναπτόμενα έγγραφα.</div></div>
+      <div class="verify-step"><div class="step-num">2</div><div class="step-text">Η ομάδα FishBill ελέγχει τα στοιχεία σας.</div></div>
+      <div class="verify-step"><div class="step-num">3</div><div class="step-text">Θα λάβετε email επιβεβαίωσης μόλις η επαλήθευση ολοκληρωθεί.</div></div>
+    </div>
+    <button class="vgate-logout-btn" style="margin:0 auto;font-size:14px" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Αποσύνδεση</button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-name">FishBill</span>
+      <span class="brand-sep"></span>
+      <span class="brand-role">Πύλη Λογιστών</span>
+    </a>
+    <nav class="header-nav">
+      <a href="dashboard.html" class="nav-link active"><i class="fa-solid fa-users" style="font-size:13px"></i> Πελάτες</a>
+      <a href="analytics.html" class="nav-link"><i class="fa-solid fa-chart-bar" style="font-size:13px"></i> Αναλυτικά</a>
+      <a href="settings.html"  class="nav-link"><i class="fa-solid fa-gear" style="font-size:13px"></i> Ρυθμίσεις</a>
+    </nav>
+    <div class="header-right">
+      <div class="hdr-user">
+        <div class="hdr-avatar" id="hdr-avatar">?</div>
+        <span class="hdr-name" id="hdr-name">—</span>
+      </div>
+      <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Έξοδος</button>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════════════════ -->
+<main class="page">
+
+  <!-- Stats -->
+  <div class="stats-row" style="margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+      <div><div class="stat-value" id="s-clients">—</div><div class="stat-label">Πελάτες σύνολο</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+      <div><div class="stat-value" id="s-active">—</div><div class="stat-label">Ενεργοί</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon teal"><i class="fa-solid fa-file-invoice"></i></div>
+      <div><div class="stat-value" id="s-invoices">—</div><div class="stat-label">Παραστατικά</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="fa-solid fa-wifi"></i></div>
+      <div><div class="stat-value" id="s-mydata">—</div><div class="stat-label">Συνδεδεμένοι myDATA</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fa-solid fa-paper-plane"></i></div>
+      <div><div class="stat-value" id="s-transmitted">—</div><div class="stat-label">Μεταδοθέντα</div></div>
+    </div>
+  </div>
+
+  <!-- Client list -->
+  <div class="section-head">
+    <div class="section-title">
+      Πελάτες μου
+      <small id="client-count-badge"></small>
+    </div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input class="search-input" id="search-input" type="text" placeholder="Αναζήτηση (επωνυμία, ΑΦΜ)…" oninput="onSearch(this.value)" />
+      </div>
+      <button class="btn-primary" onclick="openAddModal()">
+        <i class="fa-solid fa-plus"></i> Νέος Πελάτης
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Επωνυμία</th>
+          <th>ΑΦΜ</th>
+          <th>Πόλη</th>
+          <th>Κατάσταση</th>
+          <th>myDATA</th>
+          <th>Παραστ.</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="client-tbody">
+        <tr class="state-row"><td colspan="7"><div class="spinner"></div><br><span style="font-size:13px;color:#9CA3AF">Φόρτωση πελατών…</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="pagination" class="pagination"></div>
+
+</main>
+
+<!-- ADD CLIENT MODAL -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-head">
+      <div><div class="modal-title">Νέος Πελάτης</div><div class="modal-sub">Σύνδεση αλιέα-επιχείρησης</div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="info-box">Ζητήστε από τον αλιέα το <strong>ΑΦΜ</strong> του και τον <strong>Κωδικό Σύνδεσης</strong> (6 ψηφία) από το Προφίλ της εφαρμογής FishBill.</div>
+    <div class="error-box" id="add-error"></div>
+    <div class="field">
+      <label>ΑΦΜ Επιχείρησης *</label>
+      <input id="add-afm" type="text" maxlength="9" placeholder="123456789" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')document.getElementById('add-code').focus()" />
+    </div>
+    <div class="field">
+      <label>Κωδικός Σύνδεσης (6 ψηφία) *</label>
+      <input id="add-code" type="text" maxlength="6" placeholder="123456" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')doAddClient()" />
+      <div class="field-note">Ο αλιέας βλέπει αυτόν τον κωδικό: <strong>Εφαρμογή → Προφίλ → Κωδικός Σύνδεσης Λογιστή</strong></div>
+    </div>
+    <div class="field">
+      <label>Σημειώσεις (προαιρετικό)</label>
+      <textarea id="add-notes" placeholder="Εσωτερικές σημειώσεις για αυτόν τον πελάτη…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Άκυρο</button>
+      <button class="btn-confirm" id="add-btn" onclick="doAddClient()">Προσθήκη Πελάτη</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal">
+    <div class="modal-head">
+      <div><div class="modal-title">Προφίλ μου</div><div class="modal-sub">Στοιχεία λογαριασμού λογιστή</div></div>
+      <button class="modal-close" onclick="closeProfileModal()">✕</button>
+    </div>
+    <div id="profile-content"><div style="text-align:center;padding:24px"><div class="spinner"></div></div></div>
+    <button class="btn-cancel" style="width:100%;margin-top:20px" onclick="closeProfileModal()">Κλείσιμο</button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-head">
+      <div><div class="modal-title">Ρυθμίσεις</div><div class="modal-sub">Ειδοποιήσεις & προτιμήσεις</div></div>
+      <button class="modal-close" onclick="closeSettingsModal()">✕</button>
+    </div>
+    <div id="settings-content"><div style="text-align:center;padding:24px"><div class="spinner"></div></div></div>
+    <div class="modal-actions" style="margin-top:24px">
+      <button class="btn-cancel" onclick="closeSettingsModal()">Άκυρο</button>
+      <button class="btn-confirm" onclick="saveSettings()">Αποθήκευση</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  requireAuth();
+  let allClients=[], currentPage=1, totalClients=0, searchTimer=null, meData={};
+  const LIMIT=25;
+
+  /* ── Validation helpers ── */
+  function markVfError(inputId, errId, message, wrapId) {
+    const inp = document.getElementById(inputId);
+    const err = document.getElementById(errId);
+    if (inp) inp.classList.add('vf-invalid');
+    if (err) { err.textContent = message; err.classList.add('show'); }
+    return inp;
+  }
+  function clearVfError(inp, errId) {
+    if (inp) inp.classList.remove('vf-invalid');
+    const err = document.getElementById(errId);
+    if (err) { err.textContent = ''; err.classList.remove('show'); }
+  }
+  function clearAllVfErrors() {
+    ['name','afm','phone','license'].forEach(f => {
+      const inp = document.getElementById('vf-' + f);
+      const err = document.getElementById('err-' + f);
+      if (inp) inp.classList.remove('vf-invalid');
+      if (err) { err.textContent = ''; err.classList.remove('show'); }
+    });
+    document.getElementById('vgate-error').classList.remove('show');
+  }
+
+  /* ── File upload helpers ── */
+  function handleFileSelect(input, dropId, labelId, prefix) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const drop = document.getElementById(dropId);
+    const label = document.getElementById(labelId);
+    drop.querySelector('.vdrop-remove')?.remove();
+    drop.classList.add('done');
+    drop.querySelector('.vdrop-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
+    const shortName = file.name.length > 24 ? file.name.slice(0,22)+'…' : file.name;
+    label.textContent = shortName;
+    const d = document.getElementById(prefix+'-data');
+    const nm = document.getElementById(prefix+'-name');
+    const reader = new FileReader();
+    reader.onload = e => { if (d) d.value = e.target.result; if (nm) nm.value = file.name; };
+    reader.readAsDataURL(file);
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'vdrop-remove'; removeBtn.innerHTML = '✕'; removeBtn.type = 'button';
+    removeBtn.onclick = ev => { ev.stopPropagation(); ev.preventDefault(); resetDrop(drop, dropId, labelId, prefix); };
+    drop.appendChild(removeBtn);
+    const fileInput = drop.querySelector('input[type=file]');
+    if (fileInput) fileInput.style.pointerEvents = 'none';
+  }
+  function resetDrop(drop, dropId, labelId, prefix) {
+    drop.classList.remove('done');
+    drop.querySelector('.vdrop-icon').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+    document.getElementById(labelId).textContent = 'Επιλογή αρχείου';
+    const d = document.getElementById(prefix+'-data'); const nm = document.getElementById(prefix+'-name');
+    if (d) d.value=''; if (nm) nm.value='';
+    drop.querySelector('.vdrop-remove')?.remove();
+    const fi = drop.querySelector('input[type=file]');
+    if (fi) { fi.style.pointerEvents=''; fi.value=''; }
+  }
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', async () => {
+    const u    = getCurrentUser();
+    const name = u?.name || u?.full_name || 'Λογιστής';
+    document.getElementById('hdr-name').textContent   = name;
+    document.getElementById('hdr-avatar').textContent = name.charAt(0).toUpperCase();
+    try {
+      const res = await api.get('/accountant/me');
+      meData = res?.data || {};
+      if (meData.is_verified === false || meData.is_verified === 0) {
+        if (meData.verification_submitted) {
+          document.getElementById('vgate-form').style.display    = 'none';
+          document.getElementById('vgate-pending').style.display = 'block';
+        }
+        document.getElementById('verify-overlay').classList.add('open');
+        return;
+      }
+    } catch(e) {}
+    await loadClients();
+    await loadMe();
+  });
+
+  /* ── Verification ── */
+  async function submitVerificationRequest() {
+    clearAllVfErrors();
+    const license = document.getElementById('vf-license').value.trim();
+    const btn = document.getElementById('vgate-submit-btn');
+    if (!license) {
+      markVfError('vf-license','err-license','Παρακαλώ εισάγετε τον Αριθμό Άδειας Ασκήσεως Επαγγέλματος.','wrap-license');
+      document.getElementById('vf-license').focus(); return;
+    }
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Αποστολή…';
+    try {
+      await api.post('/accountant/verify-request', {
+        license_number: license,
+        oee_number:   document.getElementById('vf-oee').value.trim()     || undefined,
+        address:      document.getElementById('vf-address').value.trim() || undefined,
+        city:         document.getElementById('vf-city').value.trim()    || undefined,
+        postal_code:  document.getElementById('vf-tk').value.trim()      || undefined,
+        notes:        document.getElementById('vf-notes').value.trim()   || undefined,
+        attach_license_name: document.getElementById('attach-license-name').value || undefined,
+        attach_license_data: document.getElementById('attach-license-data').value || undefined,
+        attach_id_name:      document.getElementById('attach-id-name').value      || undefined,
+        attach_id_data:      document.getElementById('attach-id-data').value      || undefined,
+        attach_extra_name:   document.getElementById('attach-extra-name').value   || undefined,
+        attach_extra_data:   document.getElementById('attach-extra-data').value   || undefined,
+      });
+      document.getElementById('vgate-form').style.display    = 'none';
+      document.getElementById('vgate-pending').style.display = 'block';
+    } catch(e) {
+      const errEl = document.getElementById('vgate-error');
+      document.getElementById('vgate-error-text').textContent = e.message || 'Σφάλμα κατά την αποστολή. Δοκιμάστε ξανά.';
+      errEl.classList.add('show');
+      document.getElementById('verify-overlay').scrollTo({ top: 0, behavior: 'smooth' });
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Υποβολή Αίτησης Επαλήθευσης';
+    }
+  }
+
+  /* ── Load stats ── */
+  async function loadMe() {
+    try {
+      const res = await api.get('/accountant/me');
+      meData = res?.data || {};
+      const cnt = meData.client_count || 0;
+      document.getElementById('client-count-badge').textContent = `(${cnt})`;
+    } catch(e){}
+  }
+
+  /* ── Clients ── */
+  async function loadClients(page=1, search='') {
+    currentPage = page;
+    const tbody = document.getElementById('client-tbody');
+    tbody.innerHTML = '<tr class="state-row"><td colspan="7"><div class="spinner"></div></td></tr>';
+    try {
+      const res = await api.get('/accountant/clients', {page, limit:LIMIT, search:search||undefined});
+      allClients = res.data || []; totalClients = res.total || 0;
+      renderStats(allClients); renderTable(allClients); renderPagination(page, totalClients, LIMIT, search);
+    } catch(e) {
+      tbody.innerHTML = `<tr class="state-row"><td colspan="7" style="color:#B91C1C">${e.message}</td></tr>`;
+    }
+  }
+
+  function renderStats(c) {
+    document.getElementById('s-clients').textContent     = totalClients;
+    document.getElementById('s-active').textContent      = c.filter(x => x.is_active && !x.is_suspended).length;
+    document.getElementById('s-invoices').textContent    = c.reduce((s,x) => s+(x.invoice_count||0), 0);
+    document.getElementById('s-mydata').textContent      = c.filter(x => x.mydata_user_id).length;
+    document.getElementById('s-transmitted').textContent = c.reduce((s,x) => s+(x.transmitted_count||0), 0);
+  }
+
+  function renderTable(clients) {
+    const tbody = document.getElementById('client-tbody');
+    if (!clients.length) {
+      tbody.innerHTML = `<tr class="state-row"><td colspan="7">
+        <i class="fa-solid fa-users" style="font-size:28px;color:#D1D5DB;margin-bottom:8px;display:block"></i>
+        <div>Δεν έχετε πελάτες ακόμα.</div>
+        <button onclick="openAddModal()" style="margin-top:14px;padding:9px 20px;background:#1E3A5F;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+          <i class="fa-solid fa-plus"></i> Νέος Πελάτης
+        </button>
+      </td></tr>`;
+      return;
+    }
+    tbody.innerHTML = clients.map(c => {
+      const isActive = c.is_active && !c.is_suspended;
+      const statusBadge = c.is_suspended
+        ? `<span class="badge badge-inactive"><span class="dot" style="background:#EF4444"></span>Ανεσταλμένο</span>`
+        : isActive
+          ? `<span class="badge badge-active"><span class="dot" style="background:#16A34A"></span>Ενεργό</span>`
+          : `<span class="badge badge-inactive"><span class="dot" style="background:#9CA3AF"></span>Ανενεργό</span>`;
+      const mydataBadge = c.mydata_user_id
+        ? `<span class="badge badge-mydata">myDATA</span>`
+        : `<span style="font-size:12px;color:#9CA3AF">—</span>`;
+      return `<tr onclick="openClient('${c.id}')">
+        <td class="name">${c.name}</td>
+        <td class="afm">${c.afm || '—'}</td>
+        <td class="muted">${c.city || '—'}</td>
+        <td>${statusBadge}</td>
+        <td>${mydataBadge}${c.gsis_username ? ' <span class="badge badge-gsis">ΓΓΠΣ</span>' : ''}</td>
+        <td style="font-weight:600">${c.invoice_count||0}</td>
+        <td>
+          <div class="td-action">
+            <button class="btn-tbl open" onclick="event.stopPropagation();openClient('${c.id}')">Διαχείριση</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderPagination(page, total, limit, search) {
+    const tp = Math.ceil(total / limit);
+    const pg = document.getElementById('pagination');
+    if (tp <= 1) { pg.innerHTML = ''; return; }
+    const btn = (label, p, active, disabled) =>
+      `<button ${disabled ? 'disabled' : `onclick="loadClients(${p},'${search}')"`} class="pg-btn${active?' active':''}">${label}</button>`;
+    pg.innerHTML = btn('‹', page-1, false, page<=1)
+      + Array.from({length:tp}, (_,i) => btn(i+1, i+1, i+1===page, false)).join('')
+      + btn('›', page+1, false, page>=tp);
+  }
+
+  function onSearch(v) { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadClients(1, v.trim()), 350); }
+  function openClient(id) { window.location.href = `client.html?id=${id}`; }
+
+  /* ── Add client modal ── */
+  function openAddModal() {
+    document.getElementById('add-afm').value   = '';
+    document.getElementById('add-code').value  = '';
+    document.getElementById('add-notes').value = '';
+    document.getElementById('add-error').classList.remove('show');
+    document.getElementById('modal-add').classList.add('open');
+    setTimeout(() => document.getElementById('add-afm').focus(), 80);
+  }
+  function closeModal() { document.getElementById('modal-add').classList.remove('open'); }
+  document.getElementById('modal-add').addEventListener('click', e => { if (e.target === document.getElementById('modal-add')) closeModal(); });
+
+  async function doAddClient() {
+    const afm   = document.getElementById('add-afm').value.trim();
+    const code  = document.getElementById('add-code').value.trim();
+    const notes = document.getElementById('add-notes').value.trim();
+    const errEl = document.getElementById('add-error');
+    const btn   = document.getElementById('add-btn');
+    errEl.classList.remove('show');
+    if (afm.length !== 9) { errEl.textContent='Εισάγετε έγκυρο ΑΦΜ 9 ψηφίων.'; errEl.classList.add('show'); document.getElementById('add-afm').focus(); return; }
+    if (code.length !== 6) { errEl.textContent='Εισάγετε τον 6ψήφιο Κωδικό Σύνδεσης του αλιέα.'; errEl.classList.add('show'); document.getElementById('add-code').focus(); return; }
+    btn.disabled = true; btn.textContent = 'Αναζήτηση…';
+    try {
+      const res = await api.post('/accountant/clients', {afm, fisherman_code:code, notes:notes||undefined});
+      const biz = res?.data?.business;
+      toast(biz ? `Ο πελάτης "${biz.name}" προστέθηκε!` : 'Ο πελάτης προστέθηκε!', 'success');
+      closeModal(); loadClients(1,''); loadMe();
+    } catch(e) { errEl.textContent = e.message; errEl.classList.add('show'); }
+    finally    { btn.disabled = false; btn.textContent = 'Προσθήκη Πελάτη'; }
+  }
+
+  /* ── Profile modal ── */
+  function openProfileModal() { document.getElementById('modal-profile').classList.add('open'); loadProfile(); }
+  function closeProfileModal() { document.getElementById('modal-profile').classList.remove('open'); }
+  document.getElementById('modal-profile').addEventListener('click', e => { if (e.target === document.getElementById('modal-profile')) closeProfileModal(); });
+
+  async function loadProfile() {
+    const el = document.getElementById('profile-content');
+    el.innerHTML = '<div style="text-align:center;padding:16px"><div class="spinner"></div></div>';
+    try {
+      const res = await api.get('/accountant/me'); const d = res?.data || {};
+      const u = getCurrentUser(); const name = d.full_name || u?.name || u?.full_name || '—';
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding:16px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px">
+          <div style="width:52px;height:52px;border-radius:12px;background:#1E3A5F;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0">${name.charAt(0).toUpperCase()}</div>
+          <div><div style="font-size:18px;font-weight:800;color:#111827">${name}</div><div style="font-size:13px;color:#6B7280;margin-top:2px">${d.email||'—'}</div></div>
+        </div>
+        <div class="profile-row"><span class="profile-key">Τηλέφωνο</span><span class="profile-val">${d.phone||'—'}</span></div>
+        <div class="profile-row"><span class="profile-key">Πελάτες</span><span class="profile-val">${d.client_count??'—'} επιχειρήσεις</span></div>
+        <div class="profile-row"><span class="profile-key">Επαλήθευση</span><span class="profile-val" style="color:${d.is_verified?'#16A34A':'#D97706'}">${d.is_verified?'Επαληθευμένος':'Εκκρεμεί επαλήθευση'}</span></div>
+        <div class="profile-row"><span class="profile-key">Ρόλος</span><span class="profile-val">Λογιστής – FishBill</span></div>
+        <div class="profile-row"><span class="profile-key">Εγγραφή</span><span class="profile-val">${d.created_at ? new Date(d.created_at).toLocaleDateString('el-GR') : '—'}</span></div>`;
+    } catch(e) { el.innerHTML = `<p style="color:#B91C1C;font-size:14px">${e.message}</p>`; }
+  }
+
+  /* ── Settings modal ── */
+  function openSettingsModal() { document.getElementById('modal-settings').classList.add('open'); loadSettings(); }
+  function closeSettingsModal() { document.getElementById('modal-settings').classList.remove('open'); }
+  document.getElementById('modal-settings').addEventListener('click', e => { if (e.target === document.getElementById('modal-settings')) closeSettingsModal(); });
+
+  async function loadSettings() {
+    const el = document.getElementById('settings-content');
+    el.innerHTML = '<div style="text-align:center;padding:16px"><div class="spinner"></div></div>';
+    try {
+      const res = await api.get('/accountant/me'); const d = res?.data || {};
+      const toggle = (id, label, val, desc) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F3F4F6">
+          <div><div style="font-size:14px;font-weight:600;color:#111827">${label}</div><div style="font-size:12px;color:#9CA3AF;margin-top:2px">${desc}</div></div>
+          <label style="position:relative;width:46px;height:24px;flex-shrink:0;cursor:pointer">
+            <input type="checkbox" id="${id}" ${val?'checked':''} style="opacity:0;width:0;height:0;position:absolute">
+            <span onclick="const cb=document.getElementById('${id}');cb.checked=!cb.checked;this.style.background=cb.checked?'#1E3A5F':'#D1D5DB';this.querySelector('span').style.left=cb.checked?'25px':'3px'" style="position:absolute;inset:0;background:${val?'#1E3A5F':'#D1D5DB'};border-radius:12px;transition:background .2s;display:flex;align-items:center">
+              <span style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;left:${val?'25':'3'}px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>
+            </span>
+          </label>
+        </div>`;
+      el.innerHTML =
+        toggle('s-notif-invoice','Νέο παραστατικό',  d.notif_new_invoice, 'Email όταν πελάτης εκδίδει παραστατικό')
+        + toggle('s-notif-mydata', 'myDATA αποτυχία',  d.notif_mydata_fail, 'Ειδοποίηση για αποτυχία μετάδοσης')
+        + toggle('s-notif-client', 'Νέος πελάτης',     d.notif_client_new,  'Ειδοποίηση όταν νέος πελάτης σας επιλέξει')
+        + toggle('s-notif-sub',    'Συνδρομές',         d.notif_subscription,'Ειδοποιήσεις για ανανέωση/λήξη συνδρομών');
+    } catch(e) { el.innerHTML = `<p style="color:#B91C1C;font-size:14px">${e.message}</p>`; }
+  }
+
+  async function saveSettings() {
+    try {
+      await api.patch('/accountant/me/notifications', {
+        notif_new_invoice:  document.getElementById('s-notif-invoice')?.checked ? 1 : 0,
+        notif_mydata_fail:  document.getElementById('s-notif-mydata')?.checked  ? 1 : 0,
+        notif_client_new:   document.getElementById('s-notif-client')?.checked  ? 1 : 0,
+        notif_subscription: document.getElementById('s-notif-sub')?.checked     ? 1 : 0,
+      });
+      toast('Ρυθμίσεις αποθηκεύτηκαν!', 'success');
+      closeSettingsModal();
+    } catch(e) { toast('Σφάλμα: ' + e.message, 'error'); }
+  }
+
+  /* ── Keyboard ── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeModal();
+      closeProfileModal();
+      closeSettingsModal();
+    }
+  });
+</script>
+
+<!-- ── COMING SOON OVERLAY ────────────────────────────────────────────── -->
+<div id="coming-soon-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0a3042 0%,#0d4a60 45%,#092b36 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+  <div style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);border-radius:28px;padding:40px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="font-size:52px;margin-bottom:16px">🚧</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:.5px">Σύντομα Κοντά Σας</div>
+    <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px">Η <strong style="color:#38BEC9">Πύλη Λογιστών</strong> βρίσκεται σε ανάπτυξη.<br>Θα είναι διαθέσιμη σε επόμενη έκδοση της εφαρμογής.<br><br>Για υποστήριξη επικοινωνήστε με τον διαχειριστή.</div>
+    <a href="/fishbill/" style="display:inline-flex;align-items:center;gap:8px;background:rgba(56,190,201,.18);border:1.5px solid rgba(56,190,201,.5);color:#38BEC9;font-size:15px;font-weight:700;padding:12px 28px;border-radius:14px;text-decoration:none;" onmouseover="this.style.background='rgba(56,190,201,.28)'" onmouseout="this.style.background='rgba(56,190,201,.18)'">← Επιστροφή στην Αρχική</a>
+  </div>
+</div>
+</body>
+</html>

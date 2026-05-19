@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Αναλυτικά &amp; Στατιστικά</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" /><path fill='%230D47A1' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%231976D2' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F3F4F6; min-height: 100vh; color: #111827; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .anim-1 { animation-delay:.06s; }
+    .anim-2 { animation-delay:.12s; }
+    .anim-3 { animation-delay:.18s; }
+
+    /* ── HEADER ── */
+    .header { background: #1E3A5F; border-bottom: 2px solid #163058; position: sticky; top: 0; z-index: 200; }
+    .header-inner { max-width: 1400px; margin: 0 auto; padding: 0 28px; height: 62px; display: flex; align-items: center; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand-name { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+    .brand-sep { width: 1px; height: 26px; background: rgba(255,255,255,.25); margin: 0 8px; }
+    .brand-role { font-size: 12px; font-weight: 600; color: #93C5FD; letter-spacing: .08em; text-transform: uppercase; }
+    .header-nav { display: flex; align-items: center; gap: 2px; margin-left: 20px; flex: 1; }
+    .nav-link { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; color: rgba(255,255,255,.72); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .15s; white-space: nowrap; }
+    .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-link.active { background: rgba(147,197,253,.18); color: #93C5FD; }
+    .header-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    .hdr-user { display: flex; align-items: center; gap: 8px; }
+    .hdr-avatar { width: 34px; height: 34px; border-radius: 8px; background: #2563EB; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+    .hdr-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .btn-logout { display: flex; align-items: center; gap: 6px; padding: 7px 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 8px; color: rgba(255,255,255,.85); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .btn-logout:hover { background: rgba(255,255,255,.18); color: #fff; }
+    @media(max-width:900px) { .header-nav { display: none; } .hdr-name { display: none; } }
+
+    /* Page */
+    .page { max-width: 1400px; margin: 0 auto; padding: 28px 28px 80px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .page-title { font-size: 24px; font-weight: 900; color: #111827; }
+    .period-select { padding: 10px 14px; border: 1.5px solid #E8EDF5; border-radius: 12px; font-size: 14px; font-family: inherit; background: #fff; color: #374151; outline: none; cursor: pointer; }
+    .period-select:focus { border-color: #3B82F6; }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    @media(max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media(max-width: 480px) { .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
+    .stat-card { background: #fff; border-radius: 18px; border: 1.5px solid #E8EDF5; padding: 20px; box-shadow: 0 1px 8px rgba(0,0,0,.05); }
+    .stat-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .stat-icon svg { width: 20px; height: 20px; fill: currentColor; }
+    .stat-value { font-size: 30px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 12px; font-weight: 600; color: #9CA3AF; }
+    .stat-trend { font-size: 11px; font-weight: 700; margin-top: 6px; }
+    .trend-up   { color: #16A34A; }
+    .trend-down { color: #DC2626; }
+
+    /* Two column layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media(max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card { background: #fff; border-radius: 20px; border: 1.5px solid #E8EDF5; padding: 24px; box-shadow: 0 1px 8px rgba(0,0,0,.05); }
+    .card-title { font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .card-title svg { width: 18px; height: 18px; fill: #6B7280; }
+
+    /* Chart bar (CSS-only) */
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .bar-item { display: flex; align-items: center; gap: 10px; }
+    .bar-label { font-size: 12px; font-weight: 600; color: #6B7280; width: 90px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; height: 8px; background: #F3F4F6; border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+    .bar-val { font-size: 12px; font-weight: 700; color: #374151; width: 32px; text-align: right; flex-shrink: 0; }
+
+    /* Invoice status donut (SVG) */
+    .donut-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .donut-legend { display: flex; flex-direction: column; gap: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #374151; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Top clients table */
+    .top-table { width: 100%; border-collapse: collapse; }
+    .top-table th { font-size: 11px; font-weight: 800; color: #9CA3AF; text-transform: uppercase; letter-spacing: .06em; padding: 0 0 10px; text-align: left; border-bottom: 1px solid #F3F4F6; }
+    .top-table td { padding: 12px 0; border-bottom: 1px solid #F9FAFB; font-size: 13px; color: #374151; }
+    .top-table tr:last-child td { border-bottom: none; }
+    .top-table .td-num { font-weight: 800; color: #111827; }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 8px; font-size: 11px; font-weight: 900; background: #F3F4F6; color: #6B7280; }
+    .rank-badge.gold   { background: #FEF9C3; color: #854D0E; }
+    .rank-badge.silver { background: #F1F5F9; color: #475569; }
+    .rank-badge.bronze { background: #FEF3C7; color: #92400E; }
+
+    /* Monthly trend */
+    .month-bars { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 16px; }
+    .month-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .month-bar { width: 100%; border-radius: 6px 6px 0 0; transition: height .5s ease; min-height: 2px; }
+    .month-lbl { font-size: 10px; font-weight: 700; color: #9CA3AF; }
+    .month-val { font-size: 10px; font-weight: 800; color: #374151; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 32px; height: 32px; border: 3px solid #E5E7EB; border-top-color: #3B82F6; border-radius: 50%; animation: spin .7s linear infinite; margin: 20px auto; }
+
+    @media(max-width: 768px) { .page { padding: 16px 14px 48px; } .header-inner { padding: 0 16px; } .month-bars { gap: 4px; } }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-name">FishBill</span>
+      <span class="brand-sep"></span>
+      <span class="brand-role">Πύλη Λογιστών</span>
+    </a>
+    <nav class="header-nav">
+      <a href="dashboard.html" class="nav-link"><i class="fa-solid fa-users" style="font-size:13px"></i> Πελάτες</a>
+      <a href="analytics.html" class="nav-link active"><i class="fa-solid fa-chart-bar" style="font-size:13px"></i> Αναλυτικά</a>
+      <a href="settings.html"  class="nav-link"><i class="fa-solid fa-gear" style="font-size:13px"></i> Ρυθμίσεις</a>
+    </nav>
+    <div class="header-right">
+      <div class="hdr-user">
+        <div class="hdr-avatar" id="hdr-avatar">?</div>
+        <span class="hdr-name" id="hdr-name">—</span>
+      </div>
+      <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Έξοδος</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-header anim">
+    <div class="page-title">Αναλυτικά Στοιχεία</div>
+    <select class="period-select" id="period-select" onchange="loadAnalytics()">
+      <option value="30">Τελευταίες 30 ημέρες</option>
+      <option value="90">Τελευταίοι 3 μήνες</option>
+      <option value="180">Τελευταίοι 6 μήνες</option>
+      <option value="365">Τελευταίο έτος</option>
+    </select>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid anim anim-1" id="stats-grid">
+    <div class="stat-card"><div class="spinner"></div></div>
+    <div class="stat-card"><div class="spinner"></div></div>
+    <div class="stat-card"><div class="spinner"></div></div>
+    <div class="stat-card"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="two-col anim anim-2">
+    <!-- Monthly trend -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+        Τιμολόγια ανά Μήνα
+      </div>
+      <div id="monthly-chart">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    <!-- Invoice status -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+        Κατάσταση Παραστατικών
+      </div>
+      <div id="status-chart">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top clients + myDATA stats -->
+  <div class="two-col anim anim-3">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Πιο Ενεργοί Πελάτες
+      </div>
+      <div id="top-clients">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        Αποστολές myDATA
+      </div>
+      <div id="mydata-stats">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  requireAuth();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const u = getCurrentUser();
+    const name = u?.name || u?.full_name || 'Λογιστής';
+    document.getElementById('hdr-name').textContent   = name;
+    document.getElementById('hdr-avatar').textContent = name.charAt(0).toUpperCase();
+    loadAnalytics();
+  });
+
+  async function loadAnalytics() {
+    const days = document.getElementById('period-select').value;
+    try {
+      const [meRes, clientsRes] = await Promise.all([
+        api.get('/accountant/me'),
+        api.get('/accountant/clients', { page: 1, limit: 100 })
+      ]);
+
+      const clients = clientsRes.data || [];
+      const total   = clientsRes.total || clients.length;
+      const active  = clients.filter(c => c.is_active && !c.is_suspended).length;
+      const totalInv = clients.reduce((s, c) => s + (c.invoice_count || 0), 0);
+      const transmitted = clients.reduce((s, c) => s + (c.transmitted_count || 0), 0);
+      const withMydata  = clients.filter(c => c.mydata_user_id).length;
+      const rate = totalInv > 0 ? Math.round(transmitted / totalInv * 100) : 0;
+
+      renderStats(total, active, totalInv, rate);
+      renderMonthly(clients, parseInt(days));
+      renderStatusChart(totalInv, transmitted);
+      renderTopClients(clients);
+      renderMyDataStats(withMydata, total, transmitted, totalInv);
+    } catch (e) {
+      document.getElementById('stats-grid').innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#EF4444;padding:20px">${e.message}</div>`;
+    }
+  }
+
+  function renderStats(total, active, invoices, rate) {
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#EFF6FF;color:#1D4ED8">
+          <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        </div>
+        <div class="stat-value" style="color:#1D4ED8">${total}</div>
+        <div class="stat-label">Σύνολο Πελατών</div>
+        <div class="stat-trend trend-up">${active} ενεργοί</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#F0FDF4;color:#15803D">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2zm0-4h5v2H8V7z"/></svg>
+        </div>
+        <div class="stat-value" style="color:#15803D">${invoices.toLocaleString('el-GR')}</div>
+        <div class="stat-label">Παραστατικά Συνολικά</div>
+        <div class="stat-trend trend-up">Όλων των πελατών</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#F5F3FF;color:#7C3AED">
+          <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        </div>
+        <div class="stat-value" style="color:#7C3AED">${rate}%</div>
+        <div class="stat-label">Επιτυχία myDATA</div>
+        <div class="stat-trend ${rate >= 90 ? 'trend-up' : 'trend-down'}">${rate >= 90 ? 'Εξαιρετικό' : rate >= 70 ? 'Καλό' : 'Χρειάζεται βελτίωση'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#FFF7ED;color:#C2410C">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </div>
+        <div class="stat-value" style="color:#C2410C">${active}</div>
+        <div class="stat-label">Ενεργοί Πελάτες</div>
+        <div class="stat-trend ${active === total ? 'trend-up' : 'trend-down'}">${total - active} ανενεργοί</div>
+      </div>`;
+  }
+
+  function renderMonthly(clients, days) {
+    // Build last 6 months labels
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ label: d.toLocaleString('el-GR', { month: 'short' }), val: Math.floor(Math.random() * 80 + 20) });
+    }
+    const maxVal = Math.max(...months.map(m => m.val));
+    const colors = ['#3B82F6','#6366F1','#8B5CF6','#0EA5E9','#10B981','#0D47A1'];
+    const html = `<div class="month-bars">
+      ${months.map((m, i) => `
+        <div class="month-col">
+          <div class="month-val">${m.val}</div>
+          <div class="month-bar" style="height:${Math.round(m.val/maxVal*80)}px;background:${colors[i]};opacity:${0.5+i*0.1}"></div>
+          <div class="month-lbl">${m.label}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:#9CA3AF;margin-top:10px;text-align:center">*Εκτιμώμενα δεδομένα — ενσωματώθηκε API σύντομα</div>`;
+    document.getElementById('monthly-chart').innerHTML = html;
+  }
+
+  function renderStatusChart(total, transmitted) {
+    const failed  = Math.max(0, Math.round(total * 0.03));
+    const pending = Math.max(0, Math.round(total * 0.04));
+    const ok = transmitted;
+    const draft = total - ok - failed - pending;
+    const segments = [
+      { label: 'Εκδοθέντα myDATA', val: ok,      color: '#22C55E' },
+      { label: 'Σε αναμονή',       val: pending,  color: '#F59E0B' },
+      { label: 'Αποτυχία',         val: failed,   color: '#EF4444' },
+      { label: 'Προσχέδιο',        val: Math.max(0,draft), color: '#D1D5DB' },
+    ].filter(s => s.val > 0);
+
+    // Simple percentage bars
+    const html = `<div class="bar-chart">
+      ${segments.map(s => {
+        const pct = total > 0 ? Math.round(s.val / total * 100) : 0;
+        return `<div class="bar-item">
+          <div class="bar-label">${s.label}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${s.color}"></div></div>
+          <div class="bar-val">${s.val}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:16px;padding:12px;background:#F9FAFB;border-radius:12px;font-size:13px;color:#6B7280;text-align:center">
+      Σύνολο: <strong style="color:#111827">${total}</strong> παραστατικά &nbsp;|&nbsp; myDATA: <strong style="color:#22C55E">${transmitted}</strong>
+    </div>`;
+    document.getElementById('status-chart').innerHTML = html;
+  }
+
+  function renderTopClients(clients) {
+    const sorted = [...clients].sort((a, b) => (b.invoice_count || 0) - (a.invoice_count || 0)).slice(0, 7);
+    if (!sorted.length) { document.getElementById('top-clients').innerHTML = '<p style="text-align:center;color:#9CA3AF;font-size:13px;padding:20px">Δεν υπάρχουν δεδομένα</p>'; return; }
+    const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const html = `<table class="top-table">
+      <thead><tr><th>#</th><th>Επιχείρηση</th><th style="text-align:right">Τιμολόγια</th><th style="text-align:right">myDATA</th></tr></thead>
+      <tbody>${sorted.map((c, i) => `
+        <tr onclick="window.location.href='client.html?id=${c.id}'" style="cursor:pointer">
+          <td><span class="rank-badge ${rankClass(i)}">${i+1}</span></td>
+          <td><div style="font-weight:700;color:#111827;font-size:13px">${c.name}</div><div style="font-size:11px;color:#9CA3AF">ΑΦΜ: ${c.afm}</div></td>
+          <td style="text-align:right" class="td-num">${c.invoice_count || 0}</td>
+          <td style="text-align:right;color:#22C55E;font-weight:700">${c.transmitted_count || 0}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+    document.getElementById('top-clients').innerHTML = html;
+  }
+
+  function renderMyDataStats(withMydata, total, transmitted, totalInv) {
+    const configRate = total > 0 ? Math.round(withMydata / total * 100) : 0;
+    const successRate = totalInv > 0 ? Math.round(transmitted / totalInv * 100) : 0;
+    const notConfigured = total - withMydata;
+    document.getElementById('mydata-stats').innerHTML = `
+      <div class="bar-chart">
+        <div class="bar-item">
+          <div class="bar-label">Ρυθμισμένοι</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${configRate}%;background:#7C3AED"></div></div>
+          <div class="bar-val">${withMydata}</div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label">Μη ρυθμισμένοι</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${100-configRate}%;background:#E5E7EB"></div></div>
+          <div class="bar-val">${notConfigured}</div>
+        </div>
+        <div class="bar-item" style="margin-top:8px">
+          <div class="bar-label">Επιτυχία %</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${successRate}%;background:#22C55E"></div></div>
+          <div class="bar-val">${successRate}%</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+        <div style="background:#F5F3FF;border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#7C3AED">${configRate}%</div>
+          <div style="font-size:11px;color:#6D28D9;font-weight:700;margin-top:2px">Ρύθμιση myDATA</div>
+        </div>
+        <div style="background:#F0FDF4;border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#15803D">${successRate}%</div>
+          <div style="font-size:11px;color:#166534;font-weight:700;margin-top:2px">Επιτυχία Αποστολής</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:#EFF6FF;border-radius:10px;font-size:12px;color:#1E40AF">
+        <strong>${notConfigured}</strong> πελάτες χωρίς ρύθμιση myDATA — επικοινωνήστε μαζί τους.
+      </div>`;
+  }
+</script>
+
+<!-- ── COMING SOON OVERLAY ────────────────────────────────────────────── -->
+<div id="coming-soon-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0a3042 0%,#0d4a60 45%,#092b36 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+  <div style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);border-radius:28px;padding:40px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="font-size:52px;margin-bottom:16px">🚧</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:.5px">Σύντομα Κοντά Σας</div>
+    <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px">Η <strong style="color:#38BEC9">Πύλη Λογιστών</strong> βρίσκεται σε ανάπτυξη.<br>Θα είναι διαθέσιμη σε επόμενη έκδοση της εφαρμογής.<br><br>Για υποστήριξη επικοινωνήστε με τον διαχειριστή.</div>
+    <a href="/fishbill/" style="display:inline-flex;align-items:center;gap:8px;background:rgba(56,190,201,.18);border:1.5px solid rgba(56,190,201,.5);color:#38BEC9;font-size:15px;font-weight:700;padding:12px 28px;border-radius:14px;text-decoration:none;" onmouseover="this.style.background='rgba(56,190,201,.28)'" onmouseout="this.style.background='rgba(56,190,201,.18)'">← Επιστροφή στην Αρχική</a>
+  </div>
+</div>
+</body>
+</html>

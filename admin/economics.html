@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Οικονομικά Πλατφόρμας</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .35s ease-out both; }
+    .kpi-card { transition: transform .15s, box-shadow .15s; }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 12px; }
+    .tab-btn { padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; border: 1px solid transparent; }
+    .tab-btn.active { background: #1d4ed8; color: #fff; }
+    .tab-btn:not(.active) { background: #f3f4f6; color: #374151; }
+    .tab-btn:not(.active):hover { background: #e5e7eb; }
+    .exp-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+    .exp-row:last-child { border-bottom: none; }
+    .cycle-bar { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; margin-top: 4px; }
+    .cycle-bar-fill { height: 100%; border-radius: 999px; transition: width .6s ease; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed top-4 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold max-w-xs pointer-events-none"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-4 lg:p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim">
+      <div class="flex items-center gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-chart-pie text-blue-600"></i> Οικονομικά Πλατφόρμας
+          </h1>
+          <p class="text-sm text-gray-500 mt-0.5">MRR, ARR, ΦΠΑ, προμήθειες και καθαρό κέρδος</p>
+        </div>
+        <!-- Health badge -->
+        <span id="health-badge" class="hidden ml-2 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="period-select" onchange="loadEconomics()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500 cursor-pointer">
+          <option value="month">Τρέχων Μήνας</option>
+          <option value="quarter">Τελευταίο Τρίμηνο</option>
+          <option value="year" selected>Τρέχον Έτος</option>
+          <option value="all">Όλη η Περίοδος</option>
+        </select>
+        <button onclick="loadEconomics()" class="flex items-center gap-2 bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">
+          <i class="fas fa-arrows-rotate"></i> Ανανέωση
+        </button>
+      </div>
+    </div>
+
+    <!-- ── KPI Row 1: Revenue ── -->
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-4 anim">
+      <!-- MRR -->
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">MRR</p>
+          <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+            <i class="fas fa-arrow-trend-up text-blue-600 text-sm"></i>
+          </div>
+        </div>
+        <p id="kpi-mrr" class="text-3xl font-extrabold text-gray-900">—</p>
+        <p class="text-xs text-gray-400 mt-1">Μηνιαία επαναλαμβ. έσοδα</p>
+      </div>
+
+      <!-- ARR -->
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ARR</p>
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-sm"></i>
+          </div>
+        </div>
+        <p id="kpi-arr" class="text-3xl font-extrabold text-gray-900">—</p>
+        <p class="text-xs text-gray-400 mt-1">Ετήσια προβολή εσόδων</p>
+      </div>
+
+      <!-- VAT -->
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ΦΠΑ 24%</p>
+          <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+            <i class="fas fa-percent text-amber-500 text-sm"></i>
+          </div>
+        </div>
+        <p id="kpi-vat" class="text-3xl font-extrabold text-gray-900">—</p>
+        <p class="text-xs text-gray-400 mt-1">ΦΠΑ αποδοτέο/μήνα</p>
+      </div>
+
+      <!-- Net Profit -->
+      <div id="kpi-net-card" class="kpi-card bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-sm p-5 text-white">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-green-100 uppercase tracking-wider">Καθαρό Κέρδος</p>
+          <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <i class="fas fa-wallet text-white text-sm"></i>
+          </div>
+        </div>
+        <p id="kpi-net" class="text-3xl font-extrabold">—</p>
+        <p class="text-xs text-green-100 mt-1">Μετά ΦΠΑ &amp; όλα τα έξοδα</p>
+      </div>
+    </div>
+
+    <!-- ── KPI Row 2: Subscriptions ── -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.04s">
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Ενεργές Συνδρομές</p>
+        <p id="kpi-subs" class="text-2xl font-extrabold text-gray-900">—</p>
+        <div id="kpi-subs-plans" class="mt-1 space-y-0.5 text-xs text-gray-400"></div>
+      </div>
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Έξοδα Παρόχου</p>
+        <p id="kpi-provider" class="text-2xl font-extrabold text-red-600">—</p>
+        <p class="text-xs text-gray-400 mt-1">Προμήθεια e-τιμολόγησης</p>
+      </div>
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Λοιπά Έξοδα/μήνα</p>
+        <p id="kpi-other-exp" class="text-2xl font-extrabold text-red-600">—</p>
+        <p class="text-xs text-gray-400 mt-1">Hosting, email, λοιπά</p>
+      </div>
+      <div class="kpi-card bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Παραστατικά Μεταδοθέντα</p>
+        <p id="kpi-invoices-tx" class="text-2xl font-extrabold text-gray-900">—</p>
+        <p class="text-xs text-gray-400 mt-1">Στη myDATA (περίοδος)</p>
+      </div>
+    </div>
+
+    <!-- ── Billing Cycle Breakdown ── -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6 anim" style="animation-delay:.06s">
+      <p class="section-title"><i class="fas fa-layer-group mr-1 text-gray-400"></i>Ανάλυση ανά Κύκλο Χρέωσης</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="cycle-breakdown">
+        <div class="text-center py-6 text-gray-300 col-span-3">
+          <i class="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
+          <p class="text-sm">Φόρτωση...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Revenue chart + Expense breakdown ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 anim" style="animation-delay:.08s">
+
+      <!-- Revenue chart -->
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <p class="section-title mb-0">Έσοδα ανά Μήνα (τελευταίοι 12μ.)</p>
+          <div class="flex gap-1">
+            <button class="tab-btn active text-xs py-1 px-3" onclick="setChartMode('revenue', this)">MRR equiv.</button>
+            <button class="tab-btn text-xs py-1 px-3" onclick="setChartMode('subscriptions', this)">Αρ. συνδρ.</button>
+          </div>
+        </div>
+        <div style="position:relative;height:220px;overflow:hidden;">
+          <canvas id="revenue-chart" style="max-height:220px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Expense breakdown -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <p class="section-title">Κατανομή Εξόδων/μήνα</p>
+        <div style="position:relative;height:220px;overflow:hidden;">
+          <canvas id="expense-chart" style="max-height:220px;"></canvas>
+        </div>
+        <div id="expense-legend" class="mt-3 space-y-1.5 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- ── Plans Breakdown + Expenses List ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 anim" style="animation-delay:.1s">
+
+      <!-- Plans breakdown -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <p class="section-title">Ανάλυση Πλάνων (MRR/πλάνο)</p>
+        <div id="plans-breakdown" class="space-y-4">
+          <div class="text-center py-8 text-gray-300">
+            <i class="fas fa-layer-group text-4xl mb-2 block"></i>
+            <p class="text-sm">Φόρτωση...</p>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+          <div>
+            <p class="section-title mb-1">MRR</p>
+            <p id="mrr-display" class="text-2xl font-extrabold text-blue-700">—</p>
+            <p class="text-xs text-gray-400">Μηνιαίο (καθαρό)</p>
+          </div>
+          <div>
+            <p class="section-title mb-1">ARR</p>
+            <p id="arr-display" class="text-2xl font-extrabold text-indigo-700">—</p>
+            <p class="text-xs text-gray-400">Ετήσια προβολή</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual expenses -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <p class="section-title mb-0">Καταγεγραμμένα Έξοδα</p>
+          <button onclick="openAddExpense()" class="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-plus"></i> Προσθήκη
+          </button>
+        </div>
+        <div id="expenses-list">
+          <div class="text-center py-8 text-gray-300">
+            <i class="fas fa-receipt text-4xl mb-2 block"></i>
+            <p class="text-sm">Φόρτωση εξόδων...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── P&L Summary ── -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6 anim" style="animation-delay:.12s">
+      <p class="section-title"><i class="fas fa-scale-balanced mr-1 text-gray-400"></i>Κατάσταση Αποτελεσμάτων (Μηνιαία)</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <tbody id="pl-table">
+            <tr><td colspan="3" class="py-4 text-center text-gray-300 text-xs">Φόρτωση...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Provider cost calculator ── -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6 anim" style="animation-delay:.14s">
+      <p class="section-title"><i class="fas fa-calculator mr-1"></i>Αριθμομηχανή Κόστους Παρόχου</p>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Αρ. Παραστατικών/μήνα</label>
+          <input id="calc-invoices" type="number" value="500" min="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" oninput="calcProviderCost()" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Κόστος/Παραστατικό (€)</label>
+          <input id="calc-cost-per" type="number" value="0.10" min="0" step="0.01" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" oninput="calcProviderCost()" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">ΦΠΑ (%)</label>
+          <input id="calc-vat" type="number" value="24" min="0" max="100" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" oninput="calcProviderCost()" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Μηνιαίο Κόστος Παρόχου</label>
+          <div id="calc-result" class="text-xl font-extrabold text-red-600 pt-2">—</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-600">
+        <div id="calc-detail-net" class="bg-gray-50 rounded-xl p-3"></div>
+        <div id="calc-detail-vat" class="bg-amber-50 rounded-xl p-3"></div>
+        <div id="calc-detail-total" class="bg-red-50 rounded-xl p-3"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Add Expense Modal -->
+<div id="modal-expense" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="text-lg font-bold text-gray-900"><i class="fas fa-receipt mr-2 text-blue-600"></i>Προσθήκη Εξόδου</h2>
+      <button onclick="closeModal('modal-expense')" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Περιγραφή *</label>
+        <input type="text" id="exp-description" placeholder="π.χ. Hosting DigitalOcean" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ποσό (€) *</label>
+          <input type="number" id="exp-amount" min="0" step="0.01" placeholder="0.00" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Κατηγορία</label>
+          <select id="exp-category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+            <option value="hosting">Hosting / Server</option>
+            <option value="provider">Πάροχος Τιμολόγησης</option>
+            <option value="email">Email Service (Brevo κ.λπ.)</option>
+            <option value="sms">SMS Service</option>
+            <option value="domain">Domain / SSL</option>
+            <option value="software">Λογισμικό / SaaS</option>
+            <option value="other">Άλλο</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ημερομηνία</label>
+          <input type="date" id="exp-date" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Τύπος</label>
+          <select id="exp-type" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+            <option value="one_time">Εφάπαξ</option>
+            <option value="monthly">Μηνιαίο</option>
+            <option value="annual">Ετήσιο</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Σημειώσεις</label>
+        <textarea id="exp-notes" rows="2" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 resize-none" placeholder="Προαιρετικές σημειώσεις..."></textarea>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex gap-3">
+      <button onclick="saveExpense()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+        <i class="fas fa-floppy-disk"></i> Αποθήκευση
+      </button>
+      <button onclick="closeModal('modal-expense')" class="px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Άκυρο</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/page.js"></script>
+<script>
+  initPage({ requireRole: ['super_admin'] });
+
+  let _revenueChart = null;
+  let _expenseChart = null;
+  let _chartMode    = 'revenue';
+  let _lastEcon     = null;
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.className = `fixed top-4 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold max-w-xs transition-all`;
+    t.classList.add(type === 'success' ? 'bg-emerald-600' : 'bg-red-600', 'text-white');
+    t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'triangle-exclamation'}"></i>${msg}`;
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 3500);
+  }
+  function closeModal(id) { const el=document.getElementById(id); if(el){el.classList.remove('flex');el.classList.add('hidden');} }
+  function openModal(id)  { const el=document.getElementById(id); if(el){el.classList.remove('hidden');el.classList.add('flex');} }
+  function fmt(n,d=2) { return (n||0).toLocaleString('el-GR',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function fmtEur(n)  { return '€'+fmt(n); }
+
+  // ── Load economics data ───────────────────────────────────────────────────────
+  async function loadEconomics() {
+    const period = document.getElementById('period-select').value;
+    try {
+      const subsResp = await api.get('/platform/stats');
+      const subs = subsResp.data || {};
+
+      let econ = {};
+      try { econ = (await api.get('/platform/economics?period=' + period)).data || {}; } catch(_){}
+
+      _lastEcon = { subs, econ };
+
+      const mrr          = econ.mrr            || 0;
+      const arr          = econ.arr            || mrr * 12;
+      const vatAmount    = econ.vat_amount     || mrr * 0.24;
+      const providerFees = econ.provider_fees  || 0;
+      const otherExp     = econ.monthly_expenses || 0;
+      const netProfit    = econ.net_profit     ?? (mrr - vatAmount - providerFees - otherExp);
+
+      // ── KPI Row 1 ─────────────────────────────────────────────────────────────
+      document.getElementById('kpi-mrr').textContent      = fmtEur(mrr);
+      document.getElementById('kpi-arr').textContent      = fmtEur(arr);
+      document.getElementById('kpi-vat').textContent      = fmtEur(vatAmount);
+      document.getElementById('kpi-net').textContent      = fmtEur(netProfit);
+      document.getElementById('mrr-display').textContent  = fmtEur(mrr);
+      document.getElementById('arr-display').textContent  = fmtEur(arr);
+
+      // Net profit card color
+      const netCard = document.getElementById('kpi-net-card');
+      netCard.className = netCard.className.replace(/from-\w+-\d+ to-\w+-\d+/g, '');
+      if (netProfit >= 0) {
+        netCard.classList.add('from-green-500','to-emerald-600');
+        netCard.querySelector('p.text-xs').className = 'text-xs text-green-100 mt-1';
+      } else {
+        netCard.classList.add('from-red-500','to-red-700');
+        netCard.querySelector('p.text-xs').className = 'text-xs text-red-100 mt-1';
+      }
+
+      // ── Health badge ──────────────────────────────────────────────────────────
+      const badge = document.getElementById('health-badge');
+      const health = econ.health || (netProfit > 0 ? 'good' : netProfit > -50 ? 'warning' : 'bad');
+      badge.classList.remove('hidden');
+      if (health === 'good') {
+        badge.className = 'ml-2 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700';
+        badge.innerHTML = '<i class="fas fa-circle-check"></i> Κερδοφόρο';
+      } else if (health === 'warning') {
+        badge.className = 'ml-2 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-100 text-amber-700';
+        badge.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Οριακό';
+      } else {
+        badge.className = 'ml-2 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-red-100 text-red-700';
+        badge.innerHTML = '<i class="fas fa-circle-xmark"></i> Ζημιογόνο';
+      }
+
+      // ── KPI Row 2 ─────────────────────────────────────────────────────────────
+      const activeSubs = subs.active_subscriptions || 0;
+      document.getElementById('kpi-subs').textContent       = activeSubs;
+      document.getElementById('kpi-provider').textContent   = fmtEur(providerFees);
+      document.getElementById('kpi-other-exp').textContent  = fmtEur(otherExp);
+      document.getElementById('kpi-invoices-tx').textContent = econ.invoices_transmitted ?? subs.total_invoices_transmitted ?? '—';
+
+      // Plan sub-counts
+      const pb = econ.plan_breakdown || [];
+      document.getElementById('kpi-subs-plans').innerHTML = pb.map(p =>
+        `<span style="color:${p.color}" class="font-semibold">${p.name}: ${p.count}</span>`).join(' · ');
+
+      // ── Billing cycle breakdown ───────────────────────────────────────────────
+      renderCycleBreakdown(econ);
+
+      // ── Plans breakdown ───────────────────────────────────────────────────────
+      renderPlansBreakdown(econ.plan_breakdown || []);
+
+      // ── P&L table ─────────────────────────────────────────────────────────────
+      renderPL({ mrr, arr, vatAmount, providerFees, otherExp, netProfit });
+
+      // ── Revenue chart ─────────────────────────────────────────────────────────
+      renderRevenueChart(econ.monthly_revenue || []);
+
+      // ── Expense chart ─────────────────────────────────────────────────────────
+      renderExpenseChart({
+        'ΦΠΑ (24%)':              vatAmount,
+        'Πάροχος e-Τιμολόγησης': providerFees,
+        'Brevo Email':            econ.brevo_cost  || 0,
+        'Hosting':                econ.hosting_cost || 0,
+        'Λοιπά Έξοδα':           Math.max(0, otherExp - (econ.brevo_cost||0) - (econ.hosting_cost||0)),
+      });
+
+      // ── Expenses list ─────────────────────────────────────────────────────────
+      loadExpenses();
+
+    } catch(e) {
+      console.warn('Economics load error:', e.message);
+    }
+  }
+
+  // ── Billing Cycle Breakdown ───────────────────────────────────────────────────
+  function renderCycleBreakdown(econ) {
+    const ct = econ.cycle_totals || {};
+    const cycles = [
+      { key:'annual',     label:'Ετήσιο',  icon:'fa-calendar', color:'#8b5cf6', months:12,
+        rev: ct.annual?.revenue || 0,    count: ct.annual?.count || 0 },
+      { key:'semi_annual', label:'Εξάμηνο', icon:'fa-calendar-half', color:'#3b82f6', months:6,
+        rev: ct.semi_annual?.revenue || 0, count: ct.semi_annual?.count || 0 },
+      { key:'monthly',    label:'Μηνιαίο', icon:'fa-calendar-day', color:'#10b981', months:1,
+        rev: ct.monthly?.revenue || 0,   count: ct.monthly?.count || 0 },
+    ];
+
+    const totalRev = cycles.reduce((a, c) => a + c.rev, 0);
+    const totalCount = cycles.reduce((a, c) => a + c.count, 0);
+
+    document.getElementById('cycle-breakdown').innerHTML = cycles.map(c => {
+      const pct = totalRev > 0 ? Math.round(c.rev / totalRev * 100) : 0;
+      const cntPct = totalCount > 0 ? Math.round(c.count / totalCount * 100) : 0;
+      const mrrEquiv = c.months > 0 ? c.rev / c.months : 0;
+      return `
+        <div class="border border-gray-100 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:${c.color}18">
+              <i class="fas ${c.icon} text-sm" style="color:${c.color}"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-gray-800">${c.label}</p>
+              <p class="text-xs text-gray-400">${c.count} συνδρομητές (${cntPct}%)</p>
+            </div>
+          </div>
+          <p class="text-xl font-extrabold text-gray-900 mb-1">${fmtEur(c.rev)}</p>
+          <p class="text-xs text-gray-400 mb-2">Συγκεντρωμένα ανά κύκλο · MRR equiv: <strong>${fmtEur(mrrEquiv)}</strong></p>
+          <div class="cycle-bar">
+            <div class="cycle-bar-fill" style="background:${c.color};width:${pct}%"></div>
+          </div>
+          <p class="text-right text-xs text-gray-400 mt-1">${pct}% των εσόδων</p>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Revenue Chart ─────────────────────────────────────────────────────────────
+  function renderRevenueChart(data) {
+    const ctx = document.getElementById('revenue-chart').getContext('2d');
+    if (_revenueChart) _revenueChart.destroy();
+    const labels  = data.map(d => d.month);
+    const values  = _chartMode === 'revenue' ? data.map(d => d.revenue || 0) : data.map(d => d.subscriptions || 0);
+    const label   = _chartMode === 'revenue' ? 'MRR Equiv. (€)' : 'Αρ. Ενεργοποιήσεων';
+    _revenueChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label, data: values,
+        backgroundColor:'rgba(37,99,235,.12)', borderColor:'#2563eb', borderWidth:2, borderRadius:6 }] },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ grid:{color:'#f3f4f6'}, ticks:{callback:v=>_chartMode==='revenue'?'€'+v:v} }, x:{grid:{display:false}} }
+      }
+    });
+  }
+
+  function setChartMode(mode, btn) {
+    _chartMode = mode;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if (_lastEcon) renderRevenueChart(_lastEcon.econ.monthly_revenue || []);
+  }
+
+  // ── Expense Doughnut Chart ────────────────────────────────────────────────────
+  function renderExpenseChart(data) {
+    const labels = Object.keys(data).filter(k => (data[k]||0) > 0);
+    const values = labels.map(k => data[k]);
+    if (!values.length) { labels.push('Κανένα'); values.push(1); }
+    const colors = ['#ef4444','#f59e0b','#8b5cf6','#3b82f6','#6b7280'];
+    const ctx = document.getElementById('expense-chart').getContext('2d');
+    if (_expenseChart) _expenseChart.destroy();
+    _expenseChart = new Chart(ctx, {
+      type:'doughnut',
+      data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderWidth:0, hoverOffset:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, cutout:'68%' }
+    });
+    const total = values.reduce((a,b)=>a+b,0);
+    document.getElementById('expense-legend').innerHTML = labels.map((l,i)=>`
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${colors[i]}"></div>
+          <span class="text-gray-600">${l}</span>
+        </div>
+        <span class="font-semibold text-gray-800">${fmtEur(values[i])} <span class="text-gray-400 font-normal">(${total>0?Math.round(values[i]/total*100):0}%)</span></span>
+      </div>`).join('');
+  }
+
+  // ── Plans Breakdown ───────────────────────────────────────────────────────────
+  function renderPlansBreakdown(plans) {
+    if (!plans.length) {
+      document.getElementById('plans-breakdown').innerHTML =
+        `<div class="text-center py-8 text-gray-300"><i class="fas fa-layer-group text-3xl mb-2 block"></i><p class="text-sm">Δεν υπάρχουν ενεργές συνδρομές</p></div>`;
+      return;
+    }
+    const totalMrr = plans.reduce((a,p)=>a+p.monthly_mrr,0);
+    document.getElementById('plans-breakdown').innerHTML = plans.map(p => {
+      const pct = totalMrr>0 ? Math.round(p.monthly_mrr/totalMrr*100) : 0;
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${p.color}"></div>
+              <span class="text-sm font-semibold text-gray-800">${p.name}</span>
+              <span class="text-xs text-gray-400">${p.count} χρ.</span>
+            </div>
+            <div class="text-right">
+              <span class="text-sm font-bold text-gray-700">${fmtEur(p.monthly_mrr)}<span class="text-xs text-gray-400">/μήνα</span></span>
+              <span class="text-xs text-gray-400 ml-1">${pct}%</span>
+            </div>
+          </div>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-2 rounded-full" style="background:${p.color};width:${pct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── P&L Table ─────────────────────────────────────────────────────────────────
+  function renderPL({ mrr, arr, vatAmount, providerFees, otherExp, netProfit }) {
+    const rows = [
+      ['', 'ΈΣΟΔΑ', '', true],
+      ['(+)', 'Μηνιαία Επαναλαμβανόμενα Έσοδα (MRR)', fmtEur(mrr), false, 'text-blue-700'],
+      ['(+)', 'Ετήσια Προβολή (ARR)', fmtEur(arr), false, 'text-indigo-700'],
+      ['', 'ΕΞΟΔΑ', '', true],
+      ['(−)', 'ΦΠΑ 24% (αποδοτέο στο Δημόσιο)', fmtEur(vatAmount), false, 'text-amber-700'],
+      ['(−)', 'Προμήθεια Παρόχου e-Τιμολόγησης', fmtEur(providerFees), false, 'text-red-600'],
+      ['(−)', 'Λοιπά Λειτουργικά Έξοδα/μήνα', fmtEur(otherExp), false, 'text-red-600'],
+      ['', 'ΑΠΟΤΕΛΕΣΜΑ', '', true],
+      ['(=)', 'Καθαρό Κέρδος / Ζημία / μήνα', fmtEur(netProfit), false, netProfit>=0?'text-emerald-700 font-extrabold':'text-red-700 font-extrabold'],
+    ];
+    document.getElementById('pl-table').innerHTML = rows.map(([sign, label, val, isHeader, cls='']) => {
+      if (isHeader) return `<tr><td colspan="3" class="pt-4 pb-1 text-xs font-extrabold text-gray-400 uppercase tracking-widest">${label}</td></tr>`;
+      return `<tr class="border-b border-gray-50">
+        <td class="py-2.5 w-10 text-xs text-gray-400 font-mono pr-2">${sign}</td>
+        <td class="py-2.5 text-sm text-gray-700 flex-1">${label}</td>
+        <td class="py-2.5 text-sm font-bold text-right ${cls}">${val}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Expenses List ─────────────────────────────────────────────────────────────
+  async function loadExpenses() {
+    const el = document.getElementById('expenses-list');
+    try {
+      const resp = await api.get('/platform/expenses');
+      const expenses = resp.data || [];
+      if (!expenses.length) {
+        el.innerHTML=`<div class="text-center py-8 text-gray-300"><i class="fas fa-receipt text-4xl mb-2 block"></i><p class="text-sm">Δεν υπάρχουν καταγεγραμμένα έξοδα</p></div>`;
+        return;
+      }
+      el.innerHTML = expenses.map(e => `
+        <div class="exp-row">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${catColor(e.category)}20">
+            <i class="fas ${catIcon(e.category)}" style="color:${catColor(e.category)};font-size:14px"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 truncate">${e.description}</p>
+            <p class="text-xs text-gray-400">${e.date?new Date(e.date).toLocaleDateString('el-GR'):'—'} · ${catLabel(e.category)} · ${e.type==='monthly'?'Μηνιαίο':e.type==='annual'?'Ετήσιο':'Εφάπαξ'}</p>
+          </div>
+          <p class="text-sm font-bold text-red-600 flex-shrink-0">${fmtEur(e.amount)}</p>
+          <button onclick="deleteExpense('${e.id}')" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </div>`).join('');
+    } catch(_) {
+      el.innerHTML=`<div class="text-center py-8 text-gray-300"><i class="fas fa-receipt text-4xl mb-2 block"></i><p class="text-sm">Σφάλμα φόρτωσης εξόδων</p></div>`;
+    }
+  }
+
+  function catIcon(c)  { return {hosting:'fa-server',provider:'fa-file-invoice-dollar',email:'fa-envelope',sms:'fa-comment-sms',domain:'fa-globe',software:'fa-cube',other:'fa-ellipsis'}[c]||'fa-ellipsis'; }
+  function catColor(c) { return {hosting:'#3b82f6',provider:'#ef4444',email:'#8b5cf6',sms:'#f59e0b',domain:'#10b981',software:'#06b6d4',other:'#6b7280'}[c]||'#6b7280'; }
+  function catLabel(c) { return {hosting:'Hosting',provider:'Πάροχος',email:'Email',sms:'SMS',domain:'Domain',software:'Λογισμικό',other:'Άλλο'}[c]||c; }
+
+  function openAddExpense() {
+    document.getElementById('exp-description').value='';
+    document.getElementById('exp-amount').value='';
+    document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
+    openModal('modal-expense');
+  }
+
+  async function saveExpense() {
+    const desc=document.getElementById('exp-description').value.trim();
+    const amount=parseFloat(document.getElementById('exp-amount').value);
+    if(!desc||isNaN(amount)||amount<=0){showToast('Συμπληρώστε περιγραφή και ποσό.','error');return;}
+    try {
+      await api.post('/platform/expenses',{
+        description:desc, amount,
+        category:document.getElementById('exp-category').value,
+        type:document.getElementById('exp-type').value,
+        date:document.getElementById('exp-date').value,
+        notes:document.getElementById('exp-notes').value
+      });
+      closeModal('modal-expense');
+      showToast('Έξοδο αποθηκεύτηκε!','success');
+      loadEconomics();
+    } catch(e){showToast('Σφάλμα: '+e.message,'error');}
+  }
+
+  async function deleteExpense(id) {
+    if(!confirm('Διαγραφή αυτού του εξόδου;'))return;
+    try{
+      await api.delete('/platform/expenses/'+id);
+      showToast('Διαγράφηκε.','success');
+      loadEconomics();
+    }catch(e){showToast('Σφάλμα: '+e.message,'error');}
+  }
+
+  // ── Cost calculator ───────────────────────────────────────────────────────────
+  function calcProviderCost() {
+    const inv=parseFloat(document.getElementById('calc-invoices').value)||0;
+    const cost=parseFloat(document.getElementById('calc-cost-per').value)||0;
+    const vat=parseFloat(document.getElementById('calc-vat').value)||24;
+    const net=inv*cost;
+    const vatAmt=net*(vat/100);
+    const total=net+vatAmt;
+    document.getElementById('calc-result').textContent=fmtEur(total);
+    document.getElementById('calc-detail-net').innerHTML=`<p class="font-semibold text-gray-700">Καθαρό κόστος</p><p class="text-lg font-bold text-gray-900">${fmtEur(net)}</p><p class="text-gray-500">${inv} παρ. × €${cost}</p>`;
+    document.getElementById('calc-detail-vat').innerHTML=`<p class="font-semibold text-amber-700">ΦΠΑ ${vat}%</p><p class="text-lg font-bold text-amber-800">${fmtEur(vatAmt)}</p>`;
+    document.getElementById('calc-detail-total').innerHTML=`<p class="font-semibold text-red-700">Σύνολο με ΦΠΑ</p><p class="text-lg font-bold text-red-800">${fmtEur(total)}</p>`;
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    loadEconomics();
+    calcProviderCost();
+  });
+</script>
+</body>
+</html>

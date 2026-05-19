@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Όροι Χρήσης / Terms of Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(180deg, #0D47A1 0%, #1565C0 50%, #1976D2 100%);
+      padding: 40px 0 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 32px;
+      background: #f0f4f8;
+      border-radius: 32px 32px 0 0;
+    }
+    .header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── LOGO ── */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      margin-bottom: 28px;
+    }
+    .logo-svg { flex-shrink: 0; }
+    .logo-name {
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 99px;
+      padding: 5px 14px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,.9);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .page-title {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .page-sub {
+      color: rgba(255,255,255,.65);
+      font-size: 0.88rem;
+    }
+
+    /* ── LANG TOGGLE ── */
+    .lang-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .lang-btn {
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 99px;
+      padding: 6px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: background .2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .lang-btn.active, .lang-btn:hover {
+      background: rgba(255,255,255,.35);
+    }
+
+    /* ── CONTAINER ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+
+    /* ── LEGAL CARD ── */
+    .legal-card {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 40px rgba(13,71,161,.08), 0 1px 4px rgba(0,0,0,.04);
+      padding: clamp(24px, 5vw, 52px);
+      margin-bottom: 32px;
+    }
+
+    /* ── LANG SECTION LABEL ── */
+    .lang-section-label {
+      display: inline-block;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1E40AF;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    /* ── DIVIDER ── */
+    .lang-divider {
+      border: none;
+      border-top: 2px dashed #BFDBFE;
+      margin: 48px 0;
+    }
+
+    /* ── HEADINGS ── */
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #0D47A1;
+      margin-top: 36px;
+      margin-bottom: 12px;
+      padding-left: 14px;
+      border-left: 4px solid #1976D2;
+      line-height: 1.3;
+    }
+    h2:first-of-type { margin-top: 0; }
+    h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #374151;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+
+    /* ── BODY TEXT ── */
+    p {
+      margin-bottom: 14px;
+      font-size: 0.96rem;
+      color: #374151;
+      line-height: 1.8;
+    }
+    ul, ol { margin: 0 0 14px 22px; }
+    li {
+      margin-bottom: 7px;
+      font-size: 0.96rem;
+      color: #374151;
+      line-height: 1.7;
+    }
+    strong { color: #111827; }
+    a { color: #1976D2; }
+
+    /* ── TOC ── */
+    .toc {
+      background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+      border: 1px solid #BFDBFE;
+      border-radius: 16px;
+      padding: 22px 26px;
+      margin-bottom: 36px;
+    }
+    .toc-title {
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: #1E40AF;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 12px;
+    }
+    .toc ol { margin-left: 18px; margin-bottom: 0; }
+    .toc li { font-size: 0.875rem; color: #1D4ED8; margin-bottom: 5px; }
+    .toc a { color: #1D4ED8; text-decoration: none; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── INFO BOX ── */
+    .info-box {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: #92400E;
+      line-height: 1.6;
+    }
+
+    /* ── WARNING BOX ── */
+    .warning-box {
+      background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+      border: 2px solid #F59E0B;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 20px;
+      font-size: 0.93rem;
+      color: #78350F;
+      line-height: 1.65;
+    }
+    .warning-box strong { color: #78350F; }
+
+    /* ── UPDATE DATE ── */
+    .update-date {
+      font-size: 0.82rem;
+      color: #9CA3AF;
+      text-align: right;
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid #F3F4F6;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      padding: 28px 24px 40px;
+      font-size: 0.82rem;
+      color: #9CA3AF;
+    }
+    .footer a {
+      color: #6B7280;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color .15s;
+    }
+    .footer a:hover { color: #1976D2; }
+    .footer .sep { margin: 0 8px; opacity: .4; }
+    .footer .copy { margin-top: 10px; font-size: 0.78rem; }
+
+    /* ── LANGUAGE VISIBILITY ── */
+    .el-content, .en-content { display: block; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .legal-card { border-radius: 18px; }
+      h2 { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a href="../index.html" class="logo">
+      <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="64" height="43">
+        <path fill="#0D47A1" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <path fill="#1976D2" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <path fill="#42A5F5" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <path stroke="#1565C0" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+        <path stroke="#1565C0" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+        <path fill="#0D47A1" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+        <path fill="#0D47A1" d="M80,88 C88,108 102,108 110,86 Z"/>
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <circle cx="138" cy="60" r="5" fill="#1A237E"/>
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+        <path stroke="#0D47A1" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+      </svg>
+      <span class="logo-name">FishBill</span>
+    </a>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-el" onclick="setLang('el')">Ελληνικά</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">English</button>
+    </div>
+    <h1 class="page-title" id="page-title-el">Όροι Χρήσης</h1>
+    <h1 class="page-title" id="page-title-en" style="display:none">Terms of Service</h1>
+    <p class="page-sub" id="page-sub-el">Ισχύουν από: 1 Ιανουαρίου 2026 · Τελευταία ενημέρωση: Μάιος 2026</p>
+    <p class="page-sub" id="page-sub-en" style="display:none">Effective: 1 January 2026 · Last updated: May 2026</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════════
+       GREEK SECTION
+  ══════════════════════════════════════════ -->
+  <div class="legal-card el-content" id="section-el">
+    <div class="lang-section-label">Ελληνική Έκδοση</div>
+
+    <div class="toc">
+      <div class="toc-title">Περιεχόμενα</div>
+      <ol>
+        <li><a href="#el-s1">Αποδοχή Όρων</a></li>
+        <li><a href="#el-s2">Περιγραφή Υπηρεσίας</a></li>
+        <li><a href="#el-s3">Δημιουργία Λογαριασμού</a></li>
+        <li><a href="#el-s4">Συνδρομές &amp; Πληρωμές</a></li>
+        <li><a href="#el-s5">Νομική Συμμόρφωση – myDATA &amp; ΑΑΔΕ</a></li>
+        <li><a href="#el-s6">Υποχρεώσεις Χρήστη</a></li>
+        <li><a href="#el-s7">Περιορισμός Ευθύνης</a></li>
+        <li><a href="#el-s8">Πνευματική Ιδιοκτησία</a></li>
+        <li><a href="#el-s9">Καταγγελία Λογαριασμού</a></li>
+        <li><a href="#el-s10">Τροποποίηση Όρων</a></li>
+        <li><a href="#el-s11">Εφαρμοστέο Δίκαιο &amp; Επίλυση Διαφορών</a></li>
+        <li><a href="#el-s12">Επικοινωνία</a></li>
+      </ol>
+    </div>
+
+    <div class="info-box">Οι παρόντες Όροι αποτελούν νομικά δεσμευτική συμφωνία μεταξύ εσάς («Χρήστης») και της <strong>FishBill</strong>, εταιρείας που λειτουργεί βάσει ελληνικού δικαίου. Παρακαλούμε διαβάστε τους προσεκτικά προτού χρησιμοποιήσετε την Υπηρεσία.</div>
+
+    <h2 id="el-s1">1. Αποδοχή Όρων</h2>
+    <p>Η πρόσβαση ή η χρήση της πλατφόρμας FishBill (εφεξής «Υπηρεσία» ή «Πλατφόρμα») συνεπάγεται την ανεπιφύλακτη αποδοχή των παρόντων Όρων Χρήσης, της Πολιτικής Απορρήτου, της Πολιτικής Cookies και κάθε άλλης πολιτικής που ενσωματώνεται στους παρόντες Όρους με παραπομπή. Εάν διαφωνείτε με οποιονδήποτε από τους παρόντες Όρους, δεν επιτρέπεται να χρησιμοποιείτε την Υπηρεσία.</p>
+    <p>Για εταιρείες ή νομικές οντότητες που εγγράφονται, το φυσικό πρόσωπο που αποδέχεται τους παρόντες Όρους δηλώνει και εγγυάται ότι έχει την απαιτούμενη εξουσία να δεσμεύσει νομικά την οντότητα αυτή. Η χρήση της Υπηρεσίας από εκπρόσωπο νομικής οντότητας συνεπάγεται ταυτόχρονα αποδοχή από την ίδια την οντότητα.</p>
+    <p>Η FishBill διατηρεί το δικαίωμα να τροποποιεί τους παρόντες Όρους οποτεδήποτε. Σε περίπτωση ουσιωδών τροποποιήσεων, οι χρήστες ειδοποιούνται με εύλογη προθεσμία (τουλάχιστον 14 ημερών) πριν από την έναρξη ισχύος τους. Η συνέχιση χρήσης της Υπηρεσίας μετά την έναρξη ισχύος των τροποποιημένων Όρων συνιστά ανεπιφύλακτη αποδοχή τους.</p>
+
+    <h2 id="el-s2">2. Περιγραφή Υπηρεσίας</h2>
+    <p>Το FishBill είναι λογισμικό ηλεκτρονικής τιμολόγησης τύπου SaaS (Software as a Service), σχεδιασμένο αποκλειστικά για επαγγελματίες αλιείς και επιχειρήσεις αλιείας που δραστηριοποιούνται στην Ελλάδα. Η Υπηρεσία παρέχει:</p>
+    <ul>
+      <li>Έκδοση παραστατικών (Τιμολόγια Πώλησης, Αποδείξεις Λιανικής Πώλησης, Δελτία Αποστολής) σύμφωνα με την ισχύουσα ελληνική νομοθεσία (Ν. 4308/2014 ΕΛΠ)</li>
+      <li>Άμεση ηλεκτρονική διαβίβαση παραστατικών στην ΑΑΔΕ μέσω myDATA (myAADE API), με λήψη αριθμού ΜΑΡΚ</li>
+      <li>Έκδοση και ηλεκτρονική αποστολή Δελτίων Αποστολής (ΔΑ) στο myDATA, σύμφωνα με τις ισχύουσες απαιτήσεις ΑΑΔΕ</li>
+      <li>Διαχείριση πελατολογίου, προϊόντων και τιμολογιακής ιστορίας</li>
+      <li>Αποστολή παραστατικών μέσω email στους αντισυμβαλλόμενους</li>
+      <li>Αναφορές, στατιστικά και εξαγωγή δεδομένων για λογιστική χρήση</li>
+      <li>Διαχείριση αποστολής και παρακολούθηση κατάστασης ΜΑΡΚ</li>
+    </ul>
+    <p>Η Υπηρεσία παρέχεται «ως έχει» (as-is) και «ως διατίθεται» (as-available). Η FishBill διατηρεί το δικαίωμα να τροποποιεί, αναστέλλει ή διακόπτει μέρος ή το σύνολο της Υπηρεσίας οποτεδήποτε, με ή χωρίς προηγούμενη ειδοποίηση, χωρίς να φέρει ευθύνη έναντι του Χρήστη ή οποιουδήποτε τρίτου για τέτοια τροποποίηση, αναστολή ή διακοπή.</p>
+    <p><strong>Η FishBill δεν αποτελεί αδειοδοτημένο Πάροχο Ηλεκτρονικής Τιμολόγησης (ΠΗΤ)</strong> κατά την έννοια της ελληνικής φορολογικής νομοθεσίας. Η διαβίβαση των παραστατικών στην ΑΑΔΕ γίνεται μέσω των επίσημων myDATA API της ΑΑΔΕ, σύμφωνα με τις τεχνικές προδιαγραφές της Αρχής.</p>
+
+    <h2 id="el-s3">3. Δημιουργία Λογαριασμού</h2>
+    <p>Για τη χρήση του FishBill απαιτείται δημιουργία λογαριασμού με έγκυρη διεύθυνση email και κωδικό πρόσβασης. Ο Χρήστης αναλαμβάνει ανεπιφύλακτα:</p>
+    <ul>
+      <li>Να παρέχει πλήρη, ακριβή και επίκαιρα στοιχεία εγγραφής, συμπεριλαμβανομένων ΑΦΜ, επωνυμίας, ΔΟΥ και διεύθυνσης</li>
+      <li>Να ενημερώνει άμεσα τα στοιχεία εγγραφής σε περίπτωση αλλαγής</li>
+      <li>Να διατηρεί την εμπιστευτικότητα των διαπιστευτηρίων πρόσβασής του και να μην τα γνωστοποιεί σε μη εξουσιοδοτημένα τρίτα πρόσωπα</li>
+      <li>Να ειδοποιεί άμεσα τη FishBill μέσω <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> σε περίπτωση υποψίας ή διαπίστωσης μη εξουσιοδοτημένης πρόσβασης στον λογαριασμό του</li>
+      <li>Να φέρει αποκλειστική ευθύνη για όλες τις ενέργειες που πραγματοποιούνται μέσω του λογαριασμού του</li>
+    </ul>
+    <p>Απαγορεύεται η δημιουργία λογαριασμού για λογαριασμό τρίτου προσώπου χωρίς ρητή εξουσιοδότηση. Κάθε φυσικό ή νομικό πρόσωπο δικαιούται να διατηρεί έναν μόνο λογαριασμό, εκτός αν υπάρχει ειδική γραπτή συμφωνία με τη FishBill. Η FishBill διατηρεί το δικαίωμα να αρνηθεί εγγραφή ή να διαγράψει λογαριασμό κατά την κρίση της, χωρίς υποχρέωση αιτιολόγησης.</p>
+
+    <h2 id="el-s4">4. Συνδρομές &amp; Πληρωμές</h2>
+    <p><strong>Δωρεάν δοκιμαστική περίοδος:</strong> Κάθε νέος λογαριασμός δικαιούται δωρεάν δοκιμαστική περίοδο, η διάρκεια της οποίας ορίζεται στη σελίδα τιμολόγησης. Κατά τη διάρκεια της δοκιμαστικής περιόδου παρέχεται πρόσβαση στις κύριες λειτουργίες της Υπηρεσίας.</p>
+    <p><strong>Πλάνα συνδρομής:</strong> Μετά τη λήξη της δοκιμαστικής περιόδου, για τη συνέχιση χρήσης απαιτείται ενεργός συνδρομή. Τα διαθέσιμα πλάνα, τα χαρακτηριστικά και οι τιμές τους αναφέρονται στη σελίδα τιμολόγησης της Πλατφόρμας και ενδέχεται να τροποποιούνται με προηγούμενη ειδοποίηση τουλάχιστον 30 ημερών.</p>
+    <p><strong>Τρόπος πληρωμής:</strong> Οι πληρωμές πραγματοποιούνται <strong>αποκλειστικά μέσω τραπεζικής κατάθεσης (εμβάσματος)</strong> στον τραπεζικό λογαριασμό που αναγράφεται στο εκδοθέν τιμολόγιο. Δεν γίνονται δεκτές πιστωτικές ή χρεωστικές κάρτες. Ο Χρήστης οφείλει να αναγράφει στην αιτιολογία του εμβάσματος τον αριθμό του τιμολογίου ή/και τον αριθμό λογαριασμού του. Η ενεργοποίηση ή ανανέωση της συνδρομής πραγματοποιείται εντός εύλογου χρονικού διαστήματος από την πίστωση του εμβάσματος.</p>
+    <p><strong>Τιμολόγηση:</strong> Τιμολόγια εκδίδονται στα στοιχεία (ΑΦΜ, επωνυμία, διεύθυνση) που δηλώνει ο Χρήστης κατά την εγγραφή ή στις ρυθμίσεις. Ο Χρήστης φέρει αποκλειστική ευθύνη για την ακρίβεια αυτών των στοιχείων. Εκδοθέντα τιμολόγια δεν ακυρώνονται για λόγους εσφαλμένων στοιχείων που παρείχε ο Χρήστης.</p>
+    <p><strong>Καθυστερημένη πληρωμή:</strong> Σε περίπτωση μη έγκαιρης εξόφλησης, η FishBill διατηρεί το δικαίωμα να αναστείλει ή να περιορίσει την πρόσβαση του Χρήστη στην Υπηρεσία, χωρίς να φέρει ευθύνη για τυχόν απώλειες που προκύπτουν από την αναστολή αυτή.</p>
+    <p><strong>Επιστροφή χρημάτων:</strong> Δεν χορηγούνται επιστροφές για αχρησιμοποίητο χρόνο συνδρομής εκτός εάν τούτο επιβάλλεται ρητώς από αναγκαστικές διατάξεις ελληνικής νομοθεσίας. Σε κάθε περίπτωση, τυχόν απαίτηση επιστροφής υποβάλλεται εγγράφως στο <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> εντός 14 ημερών από την ημερομηνία πληρωμής.</p>
+    <p><strong>ΦΠΑ:</strong> Οι αναφερόμενες τιμές δεν περιλαμβάνουν ΦΠΑ. Ο εκάστοτε ισχύων συντελεστής ΦΠΑ προστίθεται στο τελικό ποσό του τιμολογίου σύμφωνα με την κείμενη ελληνική νομοθεσία.</p>
+
+    <h2 id="el-s5">5. Νομική Συμμόρφωση – myDATA &amp; ΑΑΔΕ</h2>
+    <p>Η Υπηρεσία FishBill υποστηρίζει την ηλεκτρονική διαβίβαση παραστατικών (τιμολόγια και Δελτία Αποστολής) στο myDATA της Ανεξάρτητης Αρχής Δημοσίων Εσόδων (ΑΑΔΕ) μέσω των επίσημων myAADE API. Κάθε παραστατικό που διαβιβάζεται λαμβάνει μοναδικό αριθμό ΜΑΡΚ από την ΑΑΔΕ.</p>
+    <p><strong>Σαφής οριοθέτηση ευθύνης:</strong> Η FishBill παρέχει τεχνικό εργαλείο έκδοσης και διαβίβασης παραστατικών. Η νομική και φορολογική ευθύνη για την ορθότητα, πληρότητα και νομιμότητα των παραστατικών βαρύνει <strong>αποκλειστικά τον Χρήστη</strong>. Ο Χρήστης φέρει αποκλειστική ευθύνη για:</p>
+    <ul>
+      <li>Την ακρίβεια και πληρότητα των δεδομένων που εισάγει (ΑΦΜ πελατών, ποσά, συντελεστές ΦΠΑ, είδος παραστατικού, ποσότητες, τιμές)</li>
+      <li>Την επιλογή του ορθού τύπου παραστατικού (Τιμολόγιο Πώλησης, ΑΛΠ, Δελτίο Αποστολής κ.λπ.) σύμφωνα με τις εκάστοτε ισχύουσες φορολογικές διατάξεις</li>
+      <li>Την τήρηση των φορολογικών υποχρεώσεών του έναντι της ΑΑΔΕ</li>
+      <li>Τη διαχείριση και ασφαλή φύλαξη των διαπιστευτηρίων ΑΑΔΕ που χρησιμοποιεί για τη διασύνδεση</li>
+      <li>Την επαλήθευση της επιτυχούς διαβίβασης παραστατικών μέσω του επίσημου portal myDATA της ΑΑΔΕ</li>
+      <li>Οποιεσδήποτε φορολογικές κυρώσεις, πρόστιμα ή συνέπειες προκύψουν από εσφαλμένη έκδοση ή μη διαβίβαση παραστατικών</li>
+    </ul>
+    <p>Η FishBill <strong>δεν παρέχει φορολογικές, λογιστικές ή νομικές συμβουλές</strong>. Το περιεχόμενο της Πλατφόρμας έχει αποκλειστικά ενημερωτικό χαρακτήρα. Για φορολογικά ή νομικά ζητήματα ο Χρήστης οφείλει να συμβουλεύεται αδειοδοτημένο λογιστή ή νομικό σύμβουλο.</p>
+    <p>Η FishBill δεν φέρει καμία ευθύνη για αποτυχίες διαβίβασης που οφείλονται σε μη διαθεσιμότητα ή βλάβη των συστημάτων ΑΑΔΕ/myDATA, τα οποία δεν ελέγχονται από τη FishBill.</p>
+
+    <h2 id="el-s6">6. Υποχρεώσεις Χρήστη</h2>
+    <p>Ο Χρήστης αναλαμβάνει να χρησιμοποιεί την Υπηρεσία αποκλειστικά σύμφωνα με τους παρόντες Όρους, την ισχύουσα νομοθεσία και τα χρηστά ήθη. Ρητώς απαγορεύεται:</p>
+    <ul>
+      <li>Η έκδοση ψευδών, πλαστών ή εικονικών παραστατικών</li>
+      <li>Η χρήση της Υπηρεσίας για σκοπούς φοροδιαφυγής, φορολογικής απάτης ή οποιασδήποτε παράνομης δραστηριότητας</li>
+      <li>Η εισαγωγή ψευδών, ανακριβών ή παραπλανητικών δεδομένων στην Πλατφόρμα</li>
+      <li>Η μεταβίβαση, εκχώρηση ή πώληση δικαιωμάτων πρόσβασης σε τρίτους</li>
+      <li>Οποιαδήποτε ενέργεια που θα μπορούσε να υπερφορτώσει ή να βλάψει την υποδομή της Υπηρεσίας</li>
+      <li>Η αντίστροφη μηχανική (reverse engineering), αποσυμπίληση ή οποιαδήποτε άλλη προσπάθεια εξαγωγής του πηγαίου κώδικα της Πλατφόρμας</li>
+      <li>Η χρήση αυτοματοποιημένων εργαλείων (bots, scrapers) για πρόσβαση στην Υπηρεσία χωρίς ρητή γραπτή άδεια</li>
+      <li>Η γνωστοποίηση ή κοινοποίηση κακόβουλου λογισμικού ή επιχείρηση επίθεσης στα συστήματα της FishBill ή τρίτων</li>
+    </ul>
+    <p>Παράβαση οποιασδήποτε από τις ανωτέρω απαγορεύσεις δύναται να οδηγήσει σε άμεση αναστολή ή οριστική διαγραφή του λογαριασμού, χωρίς επιστροφή τυχόν καταβεβλημένων ποσών, και, όπου κριθεί αναγκαίο, σε γνωστοποίηση στις αρμόδιες αρχές. Η FishBill διατηρεί κάθε νόμιμο δικαίωμα για αποζημίωση έναντι του παραβάτη Χρήστη.</p>
+
+    <h2 id="el-s7">7. Περιορισμός Ευθύνης</h2>
+    <div class="warning-box">
+      <strong>ΚΡΙΣΙΜΗ ΔΙΑΤΑΞΗ — ΔΙΑΒΑΣΤΕ ΠΡΟΣΕΚΤΙΚΑ:</strong> Η παρούσα ενότητα περιορίζει σημαντικά την ευθύνη της FishBill. Εάν δεν αποδέχεστε τους περιορισμούς αυτούς, δεν επιτρέπεται να χρησιμοποιείτε την Υπηρεσία.
+    </div>
+    <p>Στο μέγιστο βαθμό που επιτρέπεται από το εφαρμοστέο δίκαιο, η FishBill, οι διευθυντές, υπάλληλοι, συνεργάτες και εκπρόσωποί της <strong>δεν φέρουν καμία ευθύνη</strong> έναντι του Χρήστη ή οποιουδήποτε τρίτου για:</p>
+    <ul>
+      <li>Οποιεσδήποτε άμεσες, έμμεσες, παρεπόμενες, ειδικές, αποθετικές ή ποινικές ζημίες</li>
+      <li>Απώλεια κερδών, εσόδων, επιχειρηματικών ευκαιριών ή φήμης</li>
+      <li>Απώλεια ή καταστροφή δεδομένων οποιασδήποτε αιτίας</li>
+      <li>Αδυναμία χρήσης της Υπηρεσίας ή διακοπές λειτουργίας, ανεξάρτητα από αιτία</li>
+      <li>Λάθη, παραλείψεις ή ανακρίβειες στα δεδομένα που εισάγει ο Χρήστης</li>
+      <li>Φορολογικές κυρώσεις, πρόστιμα ή άλλες συνέπειες από εσφαλμένη έκδοση παραστατικών</li>
+      <li>Αποτυχία ή καθυστέρηση διαβίβασης παραστατικών στην ΑΑΔΕ/myDATA λόγω μη διαθεσιμότητας συστημάτων ΑΑΔΕ ή άλλων παραγόντων εκτός ελέγχου της FishBill</li>
+      <li>Μη εξουσιοδοτημένη πρόσβαση τρίτων στον λογαριασμό του Χρήστη λόγω αμέλειας ή παράλειψης του ιδίου του Χρήστη</li>
+      <li>Βλάβες προκαλούμενες από ανωτέρα βία, κυβερνοεπιθέσεις τρίτων, φυσικές καταστροφές, πράξεις κρατικών αρχών</li>
+      <li>Οποιεσδήποτε ζημίες που προκύπτουν από τη χρήση ή την αδυναμία χρήσης υπηρεσιών τρίτων (ΑΑΔΕ, τράπεζες, πάροχοι hosting κ.λπ.)</li>
+    </ul>
+    <p>Σε κάθε περίπτωση, η συνολική αθροιστική ευθύνη της FishBill έναντι του Χρήστη για οποιαδήποτε αιτία περιορίζεται <strong>στο ποσό που κατέβαλε ο Χρήστης για τη συνδρομή του κατά τους τρεις (3) μήνες αμέσως πριν από το γεγονός που γέννησε την αξίωση</strong>. Ο περιορισμός αυτός ισχύει ανεξάρτητα από τη νομική βάση της αξίωσης (σύμβαση, αδικοπραξία, αδικαιολόγητος πλουτισμός κ.λπ.).</p>
+    <p>Η Υπηρεσία παρέχεται χωρίς εγγύηση κάθε είδους, ρητή ή σιωπηρή. Η FishBill δεν εγγυάται ότι η Υπηρεσία θα λειτουργεί αδιαλείπτως, αλάνθαστα ή ότι τα αποτελέσματα χρήσης θα είναι ακριβή ή αξιόπιστα.</p>
+
+    <h2 id="el-s8">8. Πνευματική Ιδιοκτησία</h2>
+    <p>Το FishBill, ο πηγαίος κώδικας, τα γραφικά, ο σχεδιασμός, τα κείμενα, το λογότυπο και κάθε άλλο περιεχόμενο της Πλατφόρμας αποτελούν αποκλειστική πνευματική ιδιοκτησία της FishBill ή τρίτων που έχουν παραχωρήσει άδεια χρήσης. Απαγορεύεται η αντιγραφή, αναπαραγωγή, τροποποίηση, διανομή ή δημιουργία παράγωγων έργων χωρίς ρητή γραπτή άδεια.</p>
+    <p>Με τους παρόντες Όρους, η FishBill χορηγεί στον Χρήστη μη αποκλειστική, μη μεταβιβάσιμη, ανακλητή άδεια χρήσης της Πλατφόρμας αποκλειστικά για τις ανάγκες λειτουργίας της επιχείρησής του, για όσο χρόνο ισχύει η συνδρομή του.</p>
+    <p>Τα δεδομένα που εισάγει ο Χρήστης (τιμολόγια, πελάτες, προϊόντα κ.λπ.) παραμένουν ιδιοκτησία του Χρήστη. Η FishBill δεν αποκτά οποιοδήποτε δικαίωμα επ' αυτών πέραν όσων απαιτούνται για την παροχή της Υπηρεσίας. Ο Χρήστης δύναται να εξαγάγει τα δεδομένα του ανά πάσα στιγμή μέσω της Πλατφόρμας.</p>
+
+    <h2 id="el-s9">9. Καταγγελία Λογαριασμού</h2>
+    <p><strong>Καταγγελία από τον Χρήστη:</strong> Ο Χρήστης δύναται να καταγγείλει τον λογαριασμό του οποτεδήποτε επικοινωνώντας στο <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> ή μέσω των ρυθμίσεων λογαριασμού. Μετά την καταγγελία:</p>
+    <ul>
+      <li>Η πρόσβαση στην Υπηρεσία αναστέλλεται άμεσα</li>
+      <li>Τα δεδομένα του Χρήστη διατηρούνται για 60 ημέρες προς εξαγωγή και στη συνέχεια διαγράφονται, εξαιρουμένων δεδομένων που υποχρεούται να τηρεί η FishBill βάσει νόμου (φορολογικά παραστατικά: 10 έτη, Ν. 4308/2014)</li>
+      <li>Δεν επιστρέφεται τυχόν αχρησιμοποίητο μέρος προπληρωθείσας συνδρομής</li>
+      <li>Παραστατικά που έχουν ήδη διαβιβαστεί στην ΑΑΔΕ/myDATA δεν επηρεάζονται από την καταγγελία</li>
+    </ul>
+    <p><strong>Καταγγελία από τη FishBill:</strong> Η FishBill διατηρεί το δικαίωμα να καταγγείλει ή να αναστείλει οποιονδήποτε λογαριασμό, άμεσα και χωρίς προηγούμενη ειδοποίηση, σε περίπτωση παράβασης των παρόντων Όρων, παράνομης χρήσης ή κατόπιν εντολής αρμόδιας αρχής. Σε περίπτωση καταγγελίας λόγω υπαιτιότητας του Χρήστη, δεν γίνεται επιστροφή τυχόν καταβεβλημένων ποσών.</p>
+
+    <h2 id="el-s10">10. Τροποποίηση Όρων</h2>
+    <p>Η FishBill διατηρεί το δικαίωμα να τροποποιεί οποτεδήποτε τους παρόντες Όρους. Σε περίπτωση ουσιωδών τροποποιήσεων, ο Χρήστης ειδοποιείται μέσω email ή μηνύματος εντός της Πλατφόρμας, τουλάχιστον 14 ημέρες πριν από την έναρξη ισχύος. Σε περίπτωση επείγουσας ανάγκης συμμόρφωσης με νέα νομοθεσία, τροποποιήσεις δύνανται να τεθούν σε ισχύ αμέσως μετά την ανακοίνωσή τους.</p>
+    <p>Η συνέχιση χρήσης της Υπηρεσίας μετά την έναρξη ισχύος των τροποποιημένων Όρων συνιστά ανεπιφύλακτη αποδοχή τους. Αν ο Χρήστης διαφωνεί με τις τροποποιήσεις, οφείλει να διακόψει τη χρήση της Υπηρεσίας και να καταγγείλει τον λογαριασμό του πριν από την έναρξη ισχύος.</p>
+
+    <h2 id="el-s11">11. Εφαρμοστέο Δίκαιο &amp; Επίλυση Διαφορών</h2>
+    <p>Οι παρόντες Όροι διέπονται αποκλειστικά από το <strong>ελληνικό δίκαιο</strong>. Για κάθε διαφορά που ανακύπτει από ή σε σχέση με τους παρόντες Όρους ή τη χρήση της Υπηρεσίας, αποκλειστικά αρμόδια ορίζονται τα <strong>Δικαστήρια της Αθήνας</strong>, εφόσον δεν αντίκειται σε αναγκαστικές διατάξεις περί προστασίας καταναλωτή (Ν. 2251/1994).</p>
+    <p>Πριν από οποιαδήποτε νομική ενέργεια, τα μέρη υποχρεούνται να επιχειρήσουν φιλική επίλυση της διαφοράς. Ο Χρήστης οφείλει να αποστείλει γραπτή ειδοποίηση στο <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> περιγράφοντας τη διαφορά, και η FishBill θα απαντήσει εντός 30 ημερών. Παραλείψεις εκ μέρους του Χρήστη στην τήρηση αυτής της προϋπόθεσης αποτελούν λόγο απαραδέκτου της αγωγής.</p>
+    <p>Για εξώδικη επίλυση καταναλωτικών διαφορών, ο Χρήστης δύναται να απευθυνθεί στο Ευρωπαϊκό Κέντρο Καταναλωτών Ελλάδας (ECC Greece) ή στην Ευρωπαϊκή Πλατφόρμα Ηλεκτρονικής Επίλυσης Διαφορών (ec.europa.eu/consumers/odr).</p>
+
+    <h2 id="el-s12">12. Επικοινωνία</h2>
+    <p>Για οποιοδήποτε ζήτημα σχετικό με τους παρόντες Όρους ή την Υπηρεσία:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:info@fishbill.gr">info@fishbill.gr</a></li>
+      <li><strong>Ιστότοπος:</strong> <a href="https://fishbill.gr">fishbill.gr</a></li>
+      <li><strong>Χώρα λειτουργίας:</strong> Ελλάδα (Ευρωπαϊκή Ένωση)</li>
+    </ul>
+
+    <div class="update-date">Έκδοση: 2.0 · Τελευταία ενημέρωση: Μάιος 2026</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ENGLISH SECTION
+  ══════════════════════════════════════════ -->
+  <div class="legal-card en-content" id="section-en" style="display:none">
+    <div class="lang-section-label">English Version</div>
+
+    <div class="toc">
+      <div class="toc-title">Table of Contents</div>
+      <ol>
+        <li><a href="#en-s1">Acceptance of Terms</a></li>
+        <li><a href="#en-s2">Description of Service</a></li>
+        <li><a href="#en-s3">Account Creation</a></li>
+        <li><a href="#en-s4">Subscriptions &amp; Payments</a></li>
+        <li><a href="#en-s5">Legal Compliance – myDATA &amp; AADE</a></li>
+        <li><a href="#en-s6">User Obligations</a></li>
+        <li><a href="#en-s7">Limitation of Liability</a></li>
+        <li><a href="#en-s8">Intellectual Property</a></li>
+        <li><a href="#en-s9">Account Termination</a></li>
+        <li><a href="#en-s10">Amendments to Terms</a></li>
+        <li><a href="#en-s11">Governing Law &amp; Dispute Resolution</a></li>
+        <li><a href="#en-s12">Contact</a></li>
+      </ol>
+    </div>
+
+    <div class="info-box">These Terms constitute a legally binding agreement between you ("User") and <strong>FishBill</strong>, a company operating under Greek law. Please read them carefully before using the Service.</div>
+
+    <h2 id="en-s1">1. Acceptance of Terms</h2>
+    <p>Accessing or using the FishBill platform (hereinafter "Service" or "Platform") constitutes your unconditional acceptance of these Terms of Service, the Privacy Policy, the Cookie Policy and any other policy incorporated herein by reference. If you do not agree with any of these Terms, you are not permitted to use the Service.</p>
+    <p>For companies or legal entities registering through a representative, the individual accepting these Terms warrants that they have full authority to legally bind the entity. Use of the Service by a representative of a legal entity simultaneously constitutes acceptance by that entity.</p>
+    <p>FishBill reserves the right to modify these Terms at any time. In case of material changes, users are notified with reasonable advance notice (at least 14 days) before the changes take effect. Continued use of the Service after the effective date of modified Terms constitutes unconditional acceptance.</p>
+
+    <h2 id="en-s2">2. Description of Service</h2>
+    <p>FishBill is a SaaS (Software as a Service) electronic invoicing solution designed exclusively for professional fishermen and fishing businesses operating in Greece. The Service provides:</p>
+    <ul>
+      <li>Issuance of documents (Sales Invoices, Retail Receipts, Delivery Notes) in accordance with Greek law (Law 4308/2014 Greek Accounting Standards)</li>
+      <li>Direct electronic transmission of documents to AADE via myDATA (myAADE API), with receipt of a MARK number</li>
+      <li>Issuance and electronic submission of Delivery Notes to myDATA, per AADE requirements</li>
+      <li>Customer, product and invoice history management</li>
+      <li>Email delivery of documents to counterparties</li>
+      <li>Reports, statistics and data export for accounting purposes</li>
+    </ul>
+    <p>The Service is provided "as-is" and "as-available." FishBill reserves the right to modify, suspend or discontinue part or all of the Service at any time, with or without notice, without liability to the User or any third party.</p>
+    <p><strong>FishBill is not a licensed Electronic Invoicing Provider (EIP)</strong> under Greek tax legislation. Transmission of documents to AADE is carried out directly via the official myDATA APIs of AADE.</p>
+
+    <h2 id="en-s3">3. Account Creation</h2>
+    <p>Using FishBill requires creating an account with a valid email address and password. The User irrevocably undertakes to:</p>
+    <ul>
+      <li>Provide complete, accurate and current registration information, including VAT number, business name, tax office and address</li>
+      <li>Keep registration information up to date</li>
+      <li>Maintain the confidentiality of access credentials and not disclose them to unauthorised third parties</li>
+      <li>Immediately notify FishBill at <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> upon suspicion or discovery of unauthorised access to their account</li>
+      <li>Bear sole responsibility for all actions performed through their account</li>
+    </ul>
+    <p>Creating an account on behalf of a third party without explicit authorisation is prohibited. Each person or legal entity may hold only one account unless a specific written agreement with FishBill exists. FishBill reserves the right to refuse registration or delete any account at its discretion, without obligation to provide reasons.</p>
+
+    <h2 id="en-s4">4. Subscriptions &amp; Payments</h2>
+    <p><strong>Free trial:</strong> Each new account is entitled to a free trial period as specified on the pricing page, with access to core Service features.</p>
+    <p><strong>Subscription plans:</strong> After the trial expires, an active subscription is required for continued use. Available plans, features and prices are published on the Platform's pricing page and may be updated with at least 30 days' prior notice.</p>
+    <p><strong>Payment method:</strong> All payments are made <strong>exclusively via bank wire transfer (bank transfer)</strong> to the bank account shown on the issued invoice. Credit and debit cards are not accepted. The User must include the invoice number or account number in the wire transfer reference field. Subscription activation or renewal is processed within a reasonable time after the transfer is credited.</p>
+    <p><strong>Invoicing:</strong> Invoices are issued under the VAT number, business name and address provided by the User at registration or in settings. The User bears sole responsibility for the accuracy of these details. Issued invoices will not be cancelled due to errors in details provided by the User.</p>
+    <p><strong>Late payment:</strong> In the event of non-timely payment, FishBill reserves the right to suspend or restrict the User's access to the Service, without liability for any losses arising from such suspension.</p>
+    <p><strong>Refunds:</strong> No refunds are provided for unused subscription time unless expressly required by mandatory Greek law. Any refund claim must be submitted in writing to <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> within 14 days of the payment date.</p>
+    <p><strong>VAT:</strong> Published prices are exclusive of VAT. The applicable VAT rate is added to the final invoice amount in accordance with current Greek legislation.</p>
+
+    <h2 id="en-s5">5. Legal Compliance – myDATA &amp; AADE</h2>
+    <p>FishBill supports the electronic transmission of documents (invoices and Delivery Notes) to the myDATA system of the Independent Authority for Public Revenue (AADE) via the official myAADE APIs. Each successfully transmitted document receives a unique MARK number from AADE.</p>
+    <p><strong>Clear delineation of responsibility:</strong> FishBill provides a technical tool for document creation and transmission. Legal and tax responsibility for the correctness, completeness and lawfulness of documents rests <strong>exclusively with the User</strong>. The User bears sole responsibility for:</p>
+    <ul>
+      <li>The accuracy and completeness of data entered (customer VAT numbers, amounts, VAT rates, document type, quantities, prices)</li>
+      <li>Selecting the correct document type (Sales Invoice, Retail Receipt, Delivery Note, etc.) in accordance with applicable tax regulations</li>
+      <li>Meeting all tax obligations to AADE</li>
+      <li>Managing and securely keeping AADE credentials used for the connection</li>
+      <li>Verifying successful transmission of documents through the official myDATA portal of AADE</li>
+      <li>Any tax penalties, fines or consequences arising from incorrect issuance or failure to transmit documents</li>
+    </ul>
+    <p>FishBill <strong>does not provide tax, accounting or legal advice</strong>. All Platform content is for informational purposes only. For tax or legal matters the User must consult a licensed accountant or legal adviser.</p>
+    <p>FishBill bears no liability for transmission failures attributable to unavailability or malfunction of AADE/myDATA systems, which are outside FishBill's control.</p>
+
+    <h2 id="en-s6">6. User Obligations</h2>
+    <p>The User undertakes to use the Service solely in accordance with these Terms, applicable law and good faith. The following are expressly prohibited:</p>
+    <ul>
+      <li>Issuing false, forged or fictitious documents</li>
+      <li>Using the Service for tax evasion, tax fraud or any illegal activity</li>
+      <li>Entering false, inaccurate or misleading data on the Platform</li>
+      <li>Transferring, assigning or selling access rights to third parties</li>
+      <li>Any action that could overload or damage the Service infrastructure</li>
+      <li>Reverse engineering, decompiling or any other attempt to extract the Platform's source code</li>
+      <li>Using automated tools (bots, scrapers) to access the Service without express written permission</li>
+      <li>Distributing malware or attempting to attack FishBill's or third parties' systems</li>
+    </ul>
+    <p>Violation of any of the above may result in immediate suspension or permanent deletion of the account, without refund, and where necessary, in notification of competent authorities. FishBill reserves all legal rights to seek compensation from the offending User.</p>
+
+    <h2 id="en-s7">7. Limitation of Liability</h2>
+    <div class="warning-box">
+      <strong>CRITICAL PROVISION — PLEASE READ CAREFULLY:</strong> This section significantly limits FishBill's liability. If you do not accept these limitations, you are not permitted to use the Service.
+    </div>
+    <p>To the maximum extent permitted by applicable law, FishBill, its directors, employees, partners and representatives <strong>shall not be liable</strong> to the User or any third party for:</p>
+    <ul>
+      <li>Any direct, indirect, incidental, special, consequential or punitive damages</li>
+      <li>Loss of profits, revenues, business opportunities or reputation</li>
+      <li>Loss or destruction of data for any reason</li>
+      <li>Inability to use the Service or operational interruptions, regardless of cause</li>
+      <li>Errors, omissions or inaccuracies in data entered by the User</li>
+      <li>Tax penalties, fines or other consequences arising from incorrect document issuance</li>
+      <li>Failure or delay in transmitting documents to AADE/myDATA due to AADE systems unavailability or other factors outside FishBill's control</li>
+      <li>Unauthorised access by third parties to the User's account resulting from the User's own negligence or omission</li>
+      <li>Damage caused by force majeure, third-party cyberattacks, natural disasters or acts of public authorities</li>
+      <li>Any damages arising from the use or inability to use third-party services (AADE, banks, hosting providers, etc.)</li>
+    </ul>
+    <p>In any event, FishBill's total cumulative liability to the User for any cause shall be limited to <strong>the amount paid by the User for their subscription in the three (3) months immediately preceding the event giving rise to the claim</strong>. This limitation applies regardless of the legal basis of the claim (contract, tort, unjust enrichment, etc.).</p>
+    <p>The Service is provided without warranty of any kind, express or implied. FishBill does not warrant that the Service will operate uninterruptedly, error-free, or that results of use will be accurate or reliable.</p>
+
+    <h2 id="en-s8">8. Intellectual Property</h2>
+    <p>FishBill, its source code, graphics, design, text, logo and all other Platform content are the exclusive intellectual property of FishBill or third parties who have granted licences. Copying, reproduction, modification, distribution or creation of derivative works is prohibited without express written permission.</p>
+    <p>These Terms grant the User a non-exclusive, non-transferable, revocable licence to use the Platform solely for the purposes of their business operations, for the duration of their active subscription.</p>
+    <p>Data entered by the User (invoices, customers, products, etc.) remains the property of the User. FishBill acquires no rights over such data beyond those necessary to provide the Service. The User may export their data at any time through the Platform.</p>
+
+    <h2 id="en-s9">9. Account Termination</h2>
+    <p><strong>Termination by User:</strong> The User may terminate their account at any time by contacting <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> or through account settings. Upon termination:</p>
+    <ul>
+      <li>Access to the Service is suspended immediately</li>
+      <li>User data is retained for 60 days for export, then deleted, except data that FishBill is required to retain by law (tax documents: 10 years, Law 4308/2014)</li>
+      <li>No refund is provided for any unused prepaid subscription period</li>
+      <li>Documents already transmitted to AADE/myDATA are not affected by termination</li>
+    </ul>
+    <p><strong>Termination by FishBill:</strong> FishBill reserves the right to terminate or suspend any account immediately and without prior notice in the event of breach of these Terms, unlawful use, or upon instruction from a competent authority. In the event of termination due to User fault, no amounts paid will be refunded.</p>
+
+    <h2 id="en-s10">10. Amendments to Terms</h2>
+    <p>FishBill reserves the right to amend these Terms at any time. In the event of material changes, the User is notified by email or in-Platform message at least 14 days before the effective date. In cases of urgent necessity to comply with new legislation, amendments may take effect immediately upon announcement.</p>
+    <p>Continued use of the Service after the effective date of amended Terms constitutes unconditional acceptance. If the User disagrees with the amendments, they must discontinue use of the Service and terminate their account before the effective date.</p>
+
+    <h2 id="en-s11">11. Governing Law &amp; Dispute Resolution</h2>
+    <p>These Terms are governed exclusively by <strong>Greek law</strong>. For any dispute arising from or in connection with these Terms or the use of the Service, the <strong>Courts of Athens, Greece</strong> shall have exclusive jurisdiction, to the extent not contrary to mandatory consumer protection provisions (Law 2251/1994).</p>
+    <p>Before any legal action, the parties are obliged to attempt amicable resolution. The User must send written notice to <a href="mailto:info@fishbill.gr">info@fishbill.gr</a> describing the dispute, and FishBill will respond within 30 days. Failure by the User to comply with this prerequisite constitutes grounds for inadmissibility of any legal action.</p>
+    <p>For out-of-court resolution of consumer disputes, the User may contact the European Consumer Centre Greece (ECC Greece) or the European Online Dispute Resolution platform (ec.europa.eu/consumers/odr).</p>
+
+    <h2 id="en-s12">12. Contact</h2>
+    <p>For any matter relating to these Terms or the Service:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:info@fishbill.gr">info@fishbill.gr</a></li>
+      <li><strong>Website:</strong> <a href="https://fishbill.gr">fishbill.gr</a></li>
+      <li><strong>Country of operation:</strong> Greece (European Union)</li>
+    </ul>
+
+    <div class="update-date">Version: 2.0 · Last updated: May 2026</div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  <p>
+    <a href="terms.html">Όροι Χρήσης</a>
+    <span class="sep">·</span>
+    <a href="privacy.html">Πολιτική Απορρήτου</a>
+    <span class="sep">·</span>
+    <a href="cookies.html">Πολιτική Cookies</a>
+    <span class="sep">·</span>
+    <a href="gdpr.html">GDPR</a>
+    <span class="sep">·</span>
+    <a href="disclaimer.html">Αποποίηση</a>
+    <span class="sep">·</span>
+    <a href="../index.html">← Αρχική</a>
+  </p>
+  <p class="copy">© 2026 FishBill. Με επιφύλαξη παντός δικαιώματος.</p>
+</div>
+
+<script>
+  function setLang(lang) {
+    var elSections = document.querySelectorAll('.el-content');
+    var enSections = document.querySelectorAll('.en-content');
+    var btnEl = document.getElementById('btn-el');
+    var btnEn = document.getElementById('btn-en');
+    var titleEl = document.getElementById('page-title-el');
+    var titleEn = document.getElementById('page-title-en');
+    var subEl = document.getElementById('page-sub-el');
+    var subEn = document.getElementById('page-sub-en');
+    if (lang === 'el') {
+      elSections.forEach(function(el){ el.style.display = 'block'; });
+      enSections.forEach(function(el){ el.style.display = 'none'; });
+      btnEl.classList.add('active'); btnEn.classList.remove('active');
+      titleEl.style.display = ''; titleEn.style.display = 'none';
+      subEl.style.display = ''; subEn.style.display = 'none';
+    } else {
+      elSections.forEach(function(el){ el.style.display = 'none'; });
+      enSections.forEach(function(el){ el.style.display = 'block'; });
+      btnEn.classList.add('active'); btnEl.classList.remove('active');
+      titleEn.style.display = ''; titleEl.style.display = 'none';
+      subEn.style.display = ''; subEl.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>

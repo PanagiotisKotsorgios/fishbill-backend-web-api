@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Εισερχόμενα myDATA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .22s ease-out both; }
+    .inv-row       { cursor:pointer; transition:background .15s; }
+    .inv-row:hover { background:#f0f9ff; }
+    .inv-row.selected { background:#e0f2fe; border-left:3px solid #0284c7; }
+    .inv-row-done       { cursor:pointer; transition:background .15s; }
+    .inv-row-done:hover { background:#f0fdf4; }
+    .inv-row-done.selected { background:#dcfce7; border-left:3px solid #16a34a; }
+    .user-card       { cursor:pointer; transition:all .15s; border-left:3px solid transparent; }
+    .user-card:hover { background:#f8faff; border-left-color:#c7d2fe; }
+    .user-card.active { background:#eef2ff; border-left-color:#4f46e5; }
+    .bell-badge { animation: bellRing 1.5s ease-in-out infinite; }
+    @keyframes bellRing {
+      0%,100% { transform:rotate(0); }
+      10%,30% { transform:rotate(-12deg); }
+      20%,40% { transform:rotate(12deg); }
+      50%     { transform:rotate(0); }
+    }
+    .fchip { cursor:pointer; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; transition:all .15s; border:1.5px solid transparent; }
+    .fchip.on  { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+    .fchip.off { background:#f1f5f9; color:#475569; border-color:#e2e8f0; }
+    .fchip.off:hover { background:#e0e7ff; color:#4f46e5; }
+    .fchip.credit-on  { background:#7c3aed; color:#fff; border-color:#7c3aed; }
+    .fchip.credit-off { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:#f1f5f9; }
+    ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="sidebar-container"></div>
+
+  <div class="pt-14 lg:pt-0 min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col p-3 lg:p-5 gap-3 overflow-hidden" style="min-height:0">
+
+      <!-- Header -->
+      <div class="anim flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 class="text-2xl font-extrabold text-gray-900">Εισερχόμενα myDATA</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Χειροκίνητη επεξεργασία παραστατικών μέσω TIMOLOGIO (ΑΑΔΕ)</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div id="global-pending-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+            <i class="fas fa-bell bell-badge"></i>
+            <span id="global-pending-text"></span> εκκρεμή
+          </div>
+          <a href="https://www.timologio.gr" target="_blank"
+             class="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-arrow-up-right-from-square"></i>TIMOLOGIO ΑΑΔΕ
+          </a>
+          <a href="https://app.epsilonsmart.gr" target="_blank"
+             class="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-arrow-up-right-from-square"></i>Epsilon Smart
+          </a>
+          <button onclick="refresh()" class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            <i class="fas fa-rotate-right mr-1"></i>Ανανέωση
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div id="stats-row" class="grid grid-cols-2 sm:grid-cols-4 gap-2 anim" style="animation-delay:.04s"></div>
+
+      <!-- Main 3-column layout -->
+      <div class="flex gap-3 flex-1 min-h-0" style="min-height:0">
+
+        <!-- Column 1: User list -->
+        <div class="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden anim flex-shrink-0" style="animation-delay:.05s; width:220px; min-width:180px;">
+
+          <!-- User search -->
+          <div class="px-3 py-2 border-b border-gray-100">
+            <div class="relative">
+              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+              <input id="user-search" type="text" placeholder="Αναζήτηση χρήστη…" oninput="filterUsers()"
+                class="w-full pl-7 pr-2 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-indigo-400 bg-gray-50" />
+            </div>
+          </div>
+
+          <!-- Pending-only toggle -->
+          <div class="px-3 py-1.5 border-b border-gray-50 flex items-center justify-between">
+            <span class="text-xs text-gray-400 font-semibold">Μόνο εκκρεμείς</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="pending-only-toggle" class="sr-only peer" onchange="filterUsers()" />
+              <div class="w-8 h-4 bg-gray-200 peer-checked:bg-indigo-600 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4"></div>
+            </label>
+          </div>
+
+          <!-- All-users row -->
+          <div id="user-all" onclick="selectUser(null)"
+               class="user-card active px-3 py-2.5 flex items-center gap-2.5 border-b border-gray-100">
+            <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-layer-group text-indigo-600 text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-gray-800 truncate">Όλοι οι χρήστες</p>
+            </div>
+            <span id="badge-all-pending" class="hidden text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold"></span>
+          </div>
+
+          <!-- Dynamic user list -->
+          <div id="user-list" class="flex-1 overflow-y-auto divide-y divide-gray-50">
+            <div class="flex justify-center py-8"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div></div>
+          </div>
+          <div id="user-count" class="px-3 py-1.5 text-xs text-gray-400 border-t border-gray-100 text-center"></div>
+        </div>
+
+        <!-- Column 2: Invoice list + filters -->
+        <div class="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden anim flex-shrink-0" style="animation-delay:.09s; width:400px; min-width:280px;">
+
+          <!-- Selected user header -->
+          <div id="selected-user-header" class="hidden px-4 py-2 border-b border-gray-100 bg-indigo-50">
+            <p id="selected-user-name" class="text-xs font-bold text-indigo-800 truncate"></p>
+            <p id="selected-user-info" class="text-xs text-indigo-500 truncate"></p>
+          </div>
+
+          <!-- Tabs -->
+          <div class="flex border-b border-gray-100">
+            <button id="tab-pending" onclick="switchTab('pending')"
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50">
+              <i class="fas fa-clock mr-1"></i>Εκκρεμή
+              <span id="badge-pending" class="ml-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold"></span>
+            </button>
+            <button id="tab-done" onclick="switchTab('done')"
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+              <i class="fas fa-circle-check mr-1"></i>Διαβιβάστηκαν
+              <span id="badge-done" class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold"></span>
+            </button>
+          </div>
+
+          <!-- ── Filter bar ── -->
+          <div class="px-3 py-2 border-b border-gray-100 space-y-2 bg-gray-50">
+
+            <!-- Search -->
+            <div class="relative">
+              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+              <input type="text" id="search-input" placeholder="Αρ. παραστατικού, πελάτης, επιχείρηση, ΜΑΡΚ…"
+                oninput="onSearch()"
+                class="w-full pl-8 pr-8 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-indigo-400 bg-white" />
+              <button id="clear-search" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                <i class="fas fa-times text-xs"></i>
+              </button>
+            </div>
+
+            <!-- Type chips + month + sort -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Invoice type -->
+              <div class="flex gap-1">
+                <button onclick="setType('')"    data-t=""    class="type-btn fchip on">Όλα</button>
+                <button onclick="setType('1.1')" data-t="1.1" class="type-btn fchip off">Κανονικά</button>
+                <button onclick="setType('1.3')" data-t="1.3" class="type-btn fchip credit-off">Πιστωτικά</button>
+              </div>
+
+              <!-- Month picker -->
+              <input id="month-filter" type="month" onchange="loadInvoices(1)" title="Φίλτρο μήνα"
+                class="ml-auto px-2 py-1 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-indigo-400 bg-white" />
+            </div>
+
+            <!-- Sort -->
+            <div class="flex items-center gap-2">
+              <i class="fas fa-sort text-gray-300 text-xs"></i>
+              <select id="sort-select" onchange="loadInvoices(1)"
+                class="flex-1 text-xs text-gray-600 bg-white border border-gray-200 rounded-xl px-2 py-1.5 focus:outline-none focus:border-indigo-400">
+                <option id="sort-opt-primary" value="date_asc">Παλαιότερα πρώτα</option>
+                <option value="date_desc">Νεότερα πρώτα</option>
+                <option value="amount_desc">Μεγαλύτερο ποσό</option>
+                <option value="business">Αλφαβητικά (επιχείρηση)</option>
+              </select>
+              <button onclick="clearAllFilters()" title="Καθαρισμός φίλτρων"
+                class="px-2 py-1.5 rounded-xl border border-gray-200 text-xs text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors bg-white">
+                <i class="fas fa-filter-circle-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- List -->
+          <div id="inv-list" class="flex-1 overflow-y-auto divide-y divide-gray-50">
+            <div class="flex justify-center py-12"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div></div>
+          </div>
+          <div id="pagination" class="border-t border-gray-100"></div>
+        </div>
+
+        <!-- Column 3: detail + mark form -->
+        <div id="detail-panel" class="flex-1 flex flex-col gap-3 overflow-y-auto pb-6 opacity-0 pointer-events-none transition-opacity" style="transition:.2s; min-width:0">
+        </div>
+
+        <!-- Placeholder -->
+        <div id="detail-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-300 anim" style="animation-delay:.13s; min-width:0">
+          <i class="fas fa-file-invoice text-5xl mb-3"></i>
+          <p class="text-sm font-semibold">Επιλέξτε παραστατικό</p>
+          <p class="text-xs mt-1">για επεξεργασία ΜΑΡΚ</p>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    initPage({ requireRole: 'super_admin' });
+
+    let currentTab      = 'pending';
+    let currentPage     = 1;
+    let selectedInv     = null;
+    let selectedBizId   = null;
+    let selectedBizData = null;
+    let allInvoices     = [];
+    let userSummaries   = [];
+    let searchTimer     = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setType('');       // init type chips
+      loadUserSummaries();
+      loadInvoices(1);
+    });
+
+    function refresh() {
+      selectedInv = null;
+      hideDetail();
+      loadUserSummaries();
+      loadInvoices(1);
+    }
+
+    // ── Stats row ──────────────────────────────────────────────────────────────
+    function renderStats(pendingTotal, doneTotal, pendingValue, doneValue) {
+      document.getElementById('stats-row').innerHTML = [
+        { icon:'⏳', label:'Εκκρεμή',       value: pendingTotal,            cls:'text-orange-600' },
+        { icon:'✅', label:'Διαβιβάστηκαν', value: doneTotal,               cls:'text-emerald-600'},
+        { icon:'💰', label:'Αξία εκκρεμών', value:'€'+pendingValue.toFixed(2), cls:'text-orange-500'},
+        { icon:'📊', label:'Αξία διαβιβ.',  value:'€'+doneValue.toFixed(2),    cls:'text-emerald-500'},
+      ].map(s => `
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-2">
+          <span class="text-lg">${s.icon}</span>
+          <div><p class="text-xs text-gray-400 mb-0.5">${s.label}</p><p class="font-extrabold text-lg ${s.cls} leading-none">${s.value}</p></div>
+        </div>`).join('');
+    }
+
+    // ── User panel ─────────────────────────────────────────────────────────────
+    async function loadUserSummaries() {
+      try {
+        const res = await api.get('/platform/invoices/users-summary');
+        userSummaries = res.data || [];
+
+        const totalPending    = userSummaries.reduce((s,u) => s + parseInt(u.pending_count||0), 0);
+        const totalTransmitted= userSummaries.reduce((s,u) => s + parseInt(u.transmitted_count||0), 0);
+        const transmittedVal  = userSummaries.reduce((s,u) => s + parseFloat(u.total_transmitted_value||0), 0);
+
+        const badgeAll = document.getElementById('badge-all-pending');
+        if (totalPending > 0) {
+          badgeAll.textContent = totalPending; badgeAll.classList.remove('hidden');
+          const gb = document.getElementById('global-pending-badge');
+          gb.classList.remove('hidden'); gb.classList.add('flex');
+          document.getElementById('global-pending-text').textContent = totalPending;
+        } else {
+          badgeAll.classList.add('hidden');
+          const gb = document.getElementById('global-pending-badge');
+          gb.classList.add('hidden'); gb.classList.remove('flex');
+        }
+
+        renderStats(totalPending, totalTransmitted, 0, transmittedVal);
+        filterUsers();
+      } catch(e) {
+        document.getElementById('user-list').innerHTML =
+          `<div class="text-center py-6 text-red-400 text-xs px-3">${e.message}</div>`;
+      }
+    }
+
+    function filterUsers() {
+      const q           = (document.getElementById('user-search')?.value || '').toLowerCase().trim();
+      const pendingOnly = document.getElementById('pending-only-toggle')?.checked;
+      let users = userSummaries;
+      if (pendingOnly) users = users.filter(u => parseInt(u.pending_count||0) > 0);
+      if (q)           users = users.filter(u =>
+        (u.business_name||'').toLowerCase().includes(q) ||
+        (u.owner_email||'').toLowerCase().includes(q)   ||
+        (u.business_afm||'').includes(q)
+      );
+      renderUserList(users);
+      document.getElementById('user-count').textContent = `${users.length} / ${userSummaries.length} επιχ.`;
+    }
+
+    function renderUserList(users) {
+      if (!users.length) {
+        document.getElementById('user-list').innerHTML =
+          '<div class="text-center py-8 text-gray-300 text-xs">Δεν βρέθηκαν χρήστες</div>';
+        return;
+      }
+      document.getElementById('user-list').innerHTML = users.map(u => {
+        const pending     = parseInt(u.pending_count||0);
+        const transmitted = parseInt(u.transmitted_count||0);
+        const hasPending  = pending > 0;
+        const initials    = (u.business_name||'?').trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const isActive    = selectedBizId === u.business_id;
+        return `
+          <div id="user-card-${u.business_id}" onclick="selectUser('${u.business_id}')"
+               class="user-card ${isActive?'active':''} px-3 py-2.5 flex items-start gap-2.5 relative">
+            ${hasPending ? `<div class="absolute top-2 right-2"><i class="fas fa-bell text-red-500 text-xs bell-badge"></i></div>` : ''}
+            <div class="w-8 h-8 rounded-lg ${hasPending?'bg-red-100':'bg-gray-100'} flex items-center justify-center flex-shrink-0 text-xs font-extrabold ${hasPending?'text-red-600':'text-gray-500'}">
+              ${initials}
+            </div>
+            <div class="flex-1 min-w-0 pr-4">
+              <p class="text-xs font-bold text-gray-800 truncate leading-tight">${u.business_name}</p>
+              <p class="text-xs text-gray-400 truncate">${u.owner_email||u.business_afm||''}</p>
+              <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                ${hasPending ? `<span class="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">${pending} εκκρ.</span>` : ''}
+                ${transmitted > 0 ? `<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">${transmitted} ✓</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function selectUser(bizId) {
+      selectedBizId   = bizId;
+      selectedBizData = bizId ? userSummaries.find(u => u.business_id === bizId) : null;
+      selectedInv     = null;
+      hideDetail();
+
+      document.getElementById('user-all').className =
+        `user-card ${!bizId?'active':''} px-3 py-2.5 flex items-center gap-2.5 border-b border-gray-100`;
+      userSummaries.forEach(u => {
+        const el = document.getElementById(`user-card-${u.business_id}`);
+        if (el) el.className = `user-card ${u.business_id===bizId?'active':''} px-3 py-2.5 flex items-start gap-2.5 relative`;
+      });
+
+      const hdr = document.getElementById('selected-user-header');
+      if (selectedBizData) {
+        hdr.classList.remove('hidden');
+        document.getElementById('selected-user-name').textContent = selectedBizData.business_name;
+        document.getElementById('selected-user-info').textContent =
+          selectedBizData.owner_email || ('ΑΦΜ: ' + selectedBizData.business_afm);
+      } else {
+        hdr.classList.add('hidden');
+      }
+      loadInvoices(1);
+    }
+
+    // ── Filter controls ────────────────────────────────────────────────────────
+    function setType(t) {
+      document.querySelectorAll('.type-btn').forEach(b => {
+        const isThis = b.dataset.t === t;
+        if (b.dataset.t === '1.3') {
+          b.className = `type-btn fchip ${isThis ? 'credit-on' : 'credit-off'}`;
+        } else {
+          b.className = `type-btn fchip ${isThis ? 'on' : 'off'}`;
+        }
+      });
+      loadInvoices(1);
+    }
+
+    function getType() {
+      return [...document.querySelectorAll('.type-btn')].find(b =>
+        b.classList.contains('on') || b.classList.contains('credit-on')
+      )?.dataset.t || '';
+    }
+
+    function clearSearch() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('clear-search').classList.add('hidden');
+      loadInvoices(1);
+    }
+
+    function clearAllFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('clear-search').classList.add('hidden');
+      document.getElementById('month-filter').value = '';
+      setType('');
+      document.getElementById('sort-select').value =
+        currentTab === 'pending' ? 'date_asc' : 'date_desc';
+      loadInvoices(1);
+    }
+
+    function onSearch() {
+      const val = document.getElementById('search-input').value;
+      document.getElementById('clear-search').classList.toggle('hidden', !val);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadInvoices(1), 300);
+    }
+
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      currentTab  = tab;
+      currentPage = 1;
+      selectedInv = null;
+      hideDetail();
+
+      if (tab === 'pending') {
+        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50';
+        document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        // default sort for pending: oldest first
+        document.getElementById('sort-select').value = 'date_asc';
+        document.getElementById('sort-opt-primary').textContent = 'Παλαιότερα πρώτα';
+      } else {
+        document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50';
+        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        // default sort for done: newest first
+        document.getElementById('sort-select').value = 'date_desc';
+        document.getElementById('sort-opt-primary').textContent = 'Νεότερα πρώτα';
+      }
+      loadInvoices(1);
+    }
+
+    // ── Load invoices ──────────────────────────────────────────────────────────
+    async function loadInvoices(page = 1) {
+      currentPage = page;
+      document.getElementById('inv-list').innerHTML =
+        '<div class="flex justify-center py-10"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div></div>';
+
+      const endpoint = currentTab === 'pending'
+        ? '/platform/invoices/pending-mark'
+        : '/platform/invoices/transmitted';
+
+      const params = { page, limit: 30 };
+      if (selectedBizId) params.business_id = selectedBizId;
+
+      const q = document.getElementById('search-input')?.value.trim();
+      if (q) params.search = q;
+
+      const t = getType();
+      if (t) params.invoice_type = t;
+
+      const m = document.getElementById('month-filter')?.value;
+      if (m) params.month = m;
+
+      params.sort = document.getElementById('sort-select')?.value || (currentTab === 'pending' ? 'date_asc' : 'date_desc');
+
+      try {
+        const res = await api.get(endpoint, params);
+        allInvoices = res.data || [];
+
+        // Update badge
+        const badgeEl = document.getElementById(currentTab === 'pending' ? 'badge-pending' : 'badge-done');
+        badgeEl.textContent = res.total;
+
+        renderList(allInvoices);
+        renderPagination(page, res.total, 30);
+      } catch(e) {
+        document.getElementById('inv-list').innerHTML =
+          `<div class="text-center py-10 text-red-400 text-xs px-4">${e.message}</div>`;
+      }
+    }
+
+    // ── Render invoice list ────────────────────────────────────────────────────
+    function renderList(rows) {
+      if (!rows.length) {
+        const msg = currentTab === 'pending'
+          ? '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Δεν υπάρχουν εκκρεμή παραστατικά!</p>'
+          : '<i class="fas fa-inbox text-5xl mb-3"></i><p class="font-semibold text-sm">Δεν βρέθηκαν διαβιβαστέα παραστατικά</p>';
+        document.getElementById('inv-list').innerHTML =
+          `<div class="flex flex-col items-center justify-center py-14 text-gray-300">${msg}</div>`;
+        return;
+      }
+
+      const isPending = currentTab === 'pending';
+      document.getElementById('inv-list').innerHTML = rows.map(inv => {
+        const amt       = parseFloat(inv.total_value||0);
+        const isCredit  = inv.invoice_type === '1.3';
+        const amtClass  = isCredit || amt < 0 ? 'text-red-600' : 'text-gray-800';
+        return `
+          <div class="${isPending?'inv-row':'inv-row-done'} px-3 py-2.5 flex items-center gap-2.5 ${selectedInv?.id===inv.id?'selected':''}"
+               onclick="selectInvoice('${inv.id}')">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-gray-900 text-xs">${inv.full_number||inv.id.slice(0,8)}</span>
+                ${isPending
+                  ? `<span class="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-semibold">Αναμένει</span>`
+                  : inv.mydata_mark
+                    ? `<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold"><i class="fas fa-check mr-0.5"></i>${inv.mydata_mark.slice(0,12)}…</span>`
+                    : `<span class="text-xs px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-semibold"><i class="fas fa-check mr-0.5"></i>Διαβιβάστηκε</span>`
+                }
+                ${isCredit ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold">Πιστωτικό</span>' : ''}
+              </div>
+              <div class="text-xs text-gray-600 truncate mt-0.5 font-medium">${inv.business_name}</div>
+              <div class="text-xs text-gray-400 truncate">${inv.customer_name||'—'} · ${fmtDate(inv.issue_date)}</div>
+            </div>
+            <div class="flex-shrink-0 text-right">
+              <div class="font-extrabold text-xs ${amtClass}">${amt<0?'−':''}€${Math.abs(amt).toFixed(2)}</div>
+              <div class="text-xs text-gray-400">${inv.invoice_type||'1.1'}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderPagination(page, total, limit) {
+      const pages = Math.ceil(total / limit);
+      const el    = document.getElementById('pagination');
+      if (pages <= 1) { el.innerHTML = ''; return; }
+      const start = Math.max(1, page - 3);
+      const end   = Math.min(pages, start + 6);
+      el.innerHTML = `<div class="flex gap-1 justify-center p-2 flex-wrap items-center">
+        ${page > 1 ? `<button onclick="loadInvoices(${page-1})" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-left"></i></button>` : ''}
+        ${Array.from({length:end-start+1}, (_,i) => start+i).map(p => `
+          <button onclick="loadInvoices(${p})"
+            class="px-2.5 py-1 rounded-lg text-xs font-bold ${p===page?'bg-indigo-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}">${p}</button>`).join('')}
+        ${page < pages ? `<button onclick="loadInvoices(${page+1})" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-right"></i></button>` : ''}
+        <span class="text-xs text-gray-400 ml-1">${total} σύνολο</span>
+      </div>`;
+    }
+
+    // ── Select invoice ─────────────────────────────────────────────────────────
+    function selectInvoice(id) {
+      selectedInv = allInvoices.find(x => x.id === id);
+      if (!selectedInv) return;
+
+      document.querySelectorAll('.inv-row, .inv-row-done').forEach(el => el.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+
+      document.getElementById('detail-placeholder').classList.add('hidden');
+      const panel = document.getElementById('detail-panel');
+      panel.style.opacity = '1';
+      panel.style.pointerEvents = 'auto';
+
+      currentTab === 'pending' ? renderPendingDetail(selectedInv) : renderTransmittedDetail(selectedInv);
+    }
+
+    function hideDetail() {
+      const panel = document.getElementById('detail-panel');
+      panel.style.opacity = '0';
+      panel.style.pointerEvents = 'none';
+      panel.innerHTML = '';
+      document.getElementById('detail-placeholder').classList.remove('hidden');
+    }
+
+    // ── Pending detail ─────────────────────────────────────────────────────────
+    function renderPendingDetail(inv) {
+      const isCreditInvoice = inv.invoice_type === '1.3';
+      document.getElementById('detail-panel').innerHTML = `
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          ${invSummaryHtml(inv)}
+
+          ${isCreditInvoice ? `
+          <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-3 flex items-start gap-3">
+            <i class="fas fa-rotate-left text-purple-600 mt-0.5"></i>
+            <div class="text-sm text-purple-800">
+              <strong>Πιστωτικό Τιμολόγιο (1.3)</strong> — Αυτό είναι πιστωτικό παραστατικό.
+              Απαιτεί επίσης καταχώρηση ΜΑΡΚ μέσω Epsilon Smart.
+            </div>
+          </div>` : ''}
+
+          <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-3">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0">1</span>
+              <p class="font-bold text-indigo-900 text-sm">Δημιουργήστε το παραστατικό στο Epsilon Smart</p>
+            </div>
+            <div class="ml-9 grid grid-cols-2 gap-2 text-xs mb-3">
+              ${infoGrid(inv)}
+            </div>
+            <a href="https://app.epsilonsmart.gr" target="_blank"
+               class="ml-9 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors">
+              <i class="fas fa-arrow-up-right-from-square"></i>Άνοιγμα Epsilon Smart
+            </a>
+          </div>
+
+          ${markFormHtml(inv.id, false)}
+        </div>`;
+    }
+
+    // ── Transmitted detail ─────────────────────────────────────────────────────
+    function renderTransmittedDetail(inv) {
+      const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+      document.getElementById('detail-panel').innerHTML = `
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          ${invSummaryHtml(inv)}
+
+          <div class="${inv.mydata_mark ? 'bg-emerald-50 border border-emerald-200' : 'bg-gray-50 border border-gray-200'} rounded-xl p-4 mb-3">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-circle-check ${inv.mydata_mark ? 'text-emerald-600' : 'text-gray-400'}"></i>
+              <span class="font-bold ${inv.mydata_mark ? 'text-emerald-800' : 'text-gray-600'} text-sm">Τρέχον ΜΑΡΚ</span>
+            </div>
+            <div class="ml-6 grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-white rounded-lg p-2.5 border ${inv.mydata_mark ? 'border-emerald-100' : 'border-gray-100'} col-span-2">
+                <p class="${inv.mydata_mark ? 'text-emerald-500' : 'text-gray-400'} mb-0.5">Αριθμός ΜΑΡΚ</p>
+                <p class="font-bold font-mono text-gray-800 text-sm break-all">${inv.mydata_mark||'— (δεν έχει καταχωρηθεί)'}</p>
+              </div>
+              ${inv.mydata_qr ? `
+              <div class="bg-white rounded-lg p-2.5 border border-emerald-100 col-span-2">
+                <p class="text-emerald-500 mb-0.5">QR URL</p>
+                <a href="${inv.mydata_qr}" target="_blank" class="font-mono text-blue-600 text-xs break-all hover:underline">${inv.mydata_qr}</a>
+              </div>` : ''}
+              <div class="bg-white rounded-lg p-2.5 border border-emerald-100">
+                <p class="text-emerald-500 mb-0.5">Διαβιβάστηκε</p>
+                <p class="font-bold text-gray-800">${fmtDateTime(inv.transmitted_at)}</p>
+              </div>
+              <div class="bg-white rounded-lg p-2.5 border border-emerald-100">
+                <p class="text-emerald-500 mb-0.5">PDF</p>
+                <p class="font-bold text-gray-800">${inv.pdf_path?'✅ Ανέβηκε':'❌ Δεν υπάρχει'}</p>
+              </div>
+            </div>
+            ${inv.pdf_path ? `
+            <div class="mt-3">
+              <p class="text-xs font-semibold text-emerald-700 mb-1.5"><i class="fas fa-file-pdf mr-1"></i>Ανεβασμένο PDF</p>
+              <div id="inv-pdf-wrap" class="rounded-xl overflow-hidden border border-emerald-200 bg-gray-50 flex items-center justify-center" style="height:380px">
+                <div class="animate-spin rounded-full h-7 w-7 border-b-2 border-emerald-600"></div>
+              </div>
+            </div>` : ''}
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-pen-to-square text-amber-600"></i>
+              <span class="font-bold text-amber-900 text-sm">Διόρθωση ΜΑΡΚ / PDF</span>
+            </div>
+            ${markFormHtml(inv.id, true)}
+          </div>
+        </div>`;
+      if (inv.pdf_path) loadInvPdfBlob(inv.id);
+    }
+
+    // ── Shared HTML helpers ────────────────────────────────────────────────────
+    function invSummaryHtml(inv) {
+      const isCredit   = inv.invoice_type === '1.3';
+      const amt        = parseFloat(inv.total_value||0);
+      const totalColor = amt < 0 ? 'text-red-600' : 'text-indigo-700';
+      return `
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="text-xl font-extrabold text-gray-900">${inv.full_number||'—'}</h2>
+              ${isCredit ? '<span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold">Πιστωτικό 1.3</span>' : ''}
+            </div>
+            <p class="text-sm text-gray-500 mt-0.5">${inv.business_name} · ΑΦΜ ${inv.business_afm||'—'}</p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              Τύπος: <strong>${inv.invoice_type||'1.1'}</strong> ·
+              Ημ/νία: <strong>${fmtDate(inv.issue_date)}</strong> ·
+              Πελάτης: <strong>${inv.customer_name||'—'}</strong>${inv.customer_afm?' (ΑΦΜ: '+inv.customer_afm+')':''}
+            </p>
+            ${inv.notes ? `<p class="text-xs text-gray-400 mt-0.5 italic">Σημ: ${inv.notes}</p>` : ''}
+          </div>
+          <div class="text-right flex-shrink-0">
+            <p class="text-2xl font-extrabold ${totalColor}">${amt<0?'−':''}€${Math.abs(amt).toFixed(2)}</p>
+            ${amt < 0 ? '<p class="text-xs text-red-400 font-semibold">ΕΠΙΣΤΡΟΦΗ</p>' : ''}
+          </div>
+        </div>`;
+    }
+
+    function infoGrid(inv) {
+      return `
+        <div class="bg-white rounded-lg p-2.5 border border-indigo-100">
+          <p class="text-indigo-400 mb-0.5 text-xs">Αρ. Παραστατικού</p>
+          <p class="font-bold text-gray-800 font-mono text-xs">${inv.full_number||'—'}</p>
+        </div>
+        <div class="bg-white rounded-lg p-2.5 border border-indigo-100">
+          <p class="text-indigo-400 mb-0.5 text-xs">Σύνολο</p>
+          <p class="font-bold text-gray-800 text-xs">€${Math.abs(parseFloat(inv.total_value||0)).toFixed(2)}</p>
+        </div>
+        <div class="bg-white rounded-lg p-2.5 border border-indigo-100">
+          <p class="text-indigo-400 mb-0.5 text-xs">Πελάτης</p>
+          <p class="font-bold text-gray-800 text-xs">${inv.customer_name||'—'}</p>
+        </div>
+        <div class="bg-white rounded-lg p-2.5 border border-indigo-100">
+          <p class="text-indigo-400 mb-0.5 text-xs">ΑΦΜ Πελάτη</p>
+          <p class="font-bold text-gray-800 font-mono text-xs">${inv.customer_afm||'—'}</p>
+        </div>`;
+    }
+
+    function markFormHtml(invoiceId, isEdit) {
+      const btnColor = isEdit ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700';
+      const btnLabel = isEdit
+        ? '<i class="fas fa-rotate mr-2"></i>Ενημέρωση ΜΑΡΚ / PDF'
+        : '<i class="fas fa-circle-check mr-2"></i>Καταχώρηση ΜΑΡΚ — Ολοκλήρωση';
+      const stepHeader = isEdit ? '' : `
+        <div class="flex items-center gap-3 mb-3">
+          <span class="w-6 h-6 rounded-full bg-gray-600 text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0">2</span>
+          <p class="font-bold text-gray-900 text-sm">Εισάγετε τον αριθμό ΜΑΡΚ από το Epsilon Smart</p>
+        </div>`;
+      return `
+        <div class="${isEdit?'':'bg-gray-50 border border-gray-200 rounded-xl p-4'}">
+          ${stepHeader}
+          <div class="${isEdit?'':'ml-9'} space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Αριθμός ΜΑΡΚ <span class="text-red-500">*</span></label>
+              <input type="text" id="mark-input" placeholder="π.χ. 400120250001234"
+                class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-mono focus:outline-none focus:border-indigo-400 bg-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">URL QR Code <span class="text-gray-300 font-normal">(προαιρετικό)</span></label>
+              <input type="url" id="qr-input" placeholder="https://mydatapi.aade.gr/..."
+                class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-indigo-400 bg-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">PDF Παραστατικού <span class="text-gray-300 font-normal">(από Epsilon Smart)</span></label>
+              <label class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-200 bg-white cursor-pointer hover:border-indigo-400 transition-colors">
+                <i class="fas fa-file-pdf text-red-400 text-lg flex-shrink-0"></i>
+                <span id="pdf-label" class="text-sm text-gray-400 truncate min-w-0">Επιλέξτε PDF…</span>
+                <input type="file" id="pdf-input" accept="application/pdf" class="hidden" onchange="onPdfSelected(this)" />
+              </label>
+              <div id="pdf-preview" class="hidden mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50" style="height:320px">
+                <iframe id="pdf-frame" src="" class="w-full h-full border-0" allow="fullscreen"></iframe>
+              </div>
+            </div>
+            <button onclick="submitMark('${invoiceId}', ${isEdit})" id="btn-mark"
+              class="w-full py-3 rounded-xl font-extrabold text-white text-sm ${btnColor} transition-colors flex items-center justify-center gap-2">
+              ${btnLabel}
+            </button>
+            ${!isEdit?`<p class="text-xs text-gray-400 text-center">Μόλις καταχωρηθεί ο ΜΑΡΚ, ο χρήστης μπορεί να κατεβάσει το PDF.</p>`:''}
+          </div>
+        </div>`;
+    }
+
+    // ── Submit MARK ────────────────────────────────────────────────────────────
+    async function submitMark(invoiceId, isEdit) {
+      const mark    = document.getElementById('mark-input').value.trim();
+      const qrUrl   = document.getElementById('qr-input').value.trim();
+      const pdfFile = document.getElementById('pdf-input')?.files[0];
+      const btn     = document.getElementById('btn-mark');
+      if (!mark) { showToast('Εισάγετε τον αριθμό ΜΑΡΚ', 'error'); return; }
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Αποθήκευση…';
+      try {
+        await api.patch(`/platform/invoices/${invoiceId}/mark`, { mark, qr_url: qrUrl||undefined });
+        if (pdfFile) {
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ανέβασμα PDF…';
+          const form    = new FormData();
+          form.append('pdf', pdfFile);
+          const token   = localStorage.getItem('fishbill_token')||'';
+          const apiBase = (typeof CONFIG!=='undefined'?CONFIG.API_URL:'http://localhost:4000/api').replace(/\/api$/,'');
+          const resp    = await fetch(`${apiBase}/api/platform/invoices/${invoiceId}/upload-pdf`,
+            { method:'POST', headers:{'Authorization':`Bearer ${token}`}, body:form });
+          if (!resp.ok) {
+            const err = await resp.json().catch(()=>({}));
+            showToast('ΜΑΡΚ αποθηκεύτηκε αλλά PDF απέτυχε: '+(err.error||resp.status), 'error');
+          } else {
+            showToast(`✅ ΜΑΡΚ ${mark} + PDF ανέβηκαν επιτυχώς!`, 'success');
+          }
+        } else {
+          showToast(`✅ ΜΑΡΚ ${mark} ${isEdit?'ενημερώθηκε':'καταχωρήθηκε'} επιτυχώς!`, 'success');
+        }
+        await loadUserSummaries();
+        if (!isEdit) {
+          allInvoices = allInvoices.filter(x=>x.id!==invoiceId);
+          renderList(allInvoices);
+          const b = document.getElementById('badge-pending');
+          b.textContent = Math.max(0,(parseInt(b.textContent)||1)-1);
+        } else {
+          await loadInvoices(currentPage);
+        }
+        hideDetail();
+      } catch(e) {
+        showToast('Σφάλμα: '+e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = isEdit
+          ? '<i class="fas fa-rotate mr-2"></i>Ενημέρωση ΜΑΡΚ / PDF'
+          : '<i class="fas fa-circle-check mr-2"></i>Καταχώρηση ΜΑΡΚ — Ολοκλήρωση';
+      }
+    }
+
+    async function loadInvPdfBlob(invoiceId) {
+      const wrapper = document.getElementById('inv-pdf-wrap');
+      if (!wrapper) return;
+      try {
+        const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+        const token   = localStorage.getItem('fishbill_token') || '';
+        const resp    = await fetch(`${apiBase}/uploads/invoices/${invoiceId}.pdf`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const url = URL.createObjectURL(await resp.blob());
+        wrapper.style.display = 'block';
+        wrapper.innerHTML = `<iframe src="${url}" class="w-full h-full border-0" allow="fullscreen" style="height:380px"></iframe>`;
+      } catch(e) {
+        wrapper.style.height = 'auto';
+        wrapper.innerHTML =
+          `<div class="flex flex-col items-center gap-2 py-4 px-4 text-center">
+            <i class="fas fa-triangle-exclamation text-amber-400 text-xl"></i>
+            <p class="text-xs text-gray-500">Αδυναμία φόρτωσης PDF (${e.message})</p>
+          </div>`;
+      }
+    }
+
+    function onPdfSelected(input) {
+      document.getElementById('pdf-label').textContent =
+        input.files[0] ? input.files[0].name : 'Επιλέξτε PDF…';
+      const preview = document.getElementById('pdf-preview');
+      const frame   = document.getElementById('pdf-frame');
+      if (input.files[0] && preview && frame) {
+        if (frame._prevUrl) URL.revokeObjectURL(frame._prevUrl);
+        const url = URL.createObjectURL(input.files[0]);
+        frame._prevUrl = url;
+        frame.src = url;
+        preview.classList.remove('hidden');
+      } else if (preview) {
+        preview.classList.add('hidden');
+      }
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      const dt = new Date(d);
+      return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+    }
+    function fmtDateTime(d) {
+      if (!d) return '—';
+      const dt = new Date(d);
+      return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    }
+    function showToast(msg, type='success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl ${type==='error'?'bg-red-500':'bg-emerald-500'}`;
+      t.classList.remove('hidden');
+      setTimeout(()=>t.classList.add('hidden'), 4500);
+    }
+  </script>
+</body>
+</html>

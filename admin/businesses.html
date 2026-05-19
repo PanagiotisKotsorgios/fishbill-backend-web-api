@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Επιχειρήσεις</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+    .stat-card { transition: transform .15s, box-shadow .15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .35s ease-out both; }
+    .suspended-row { border-left: 3px solid #ef4444; }
+    .feat-drawer-bg { position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55;display:none; }
+    .feat-drawer-bg.open { display:block; }
+    .feat-drawer { position:fixed;top:0;right:0;height:100%;width:480px;max-width:96vw;background:#fff;z-index:60;overflow-y:auto;box-shadow:-10px 0 40px rgba(0,0,0,.15);transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1); }
+    .feat-drawer.open { transform:translateX(0); }
+    .toggle-switch { position:relative;display:inline-block;width:44px;height:24px; }
+    .toggle-switch input { opacity:0;width:0;height:0; }
+    .toggle-slider { position:absolute;inset:0;background:#d1d5db;border-radius:99px;transition:.2s;cursor:pointer; }
+    .toggle-slider:before { content:'';position:absolute;left:2px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s; }
+    input:checked + .toggle-slider { background:#4f46e5; }
+    input:checked + .toggle-slider:before { transform:translateX(20px); }
+    .pay-status-paid    { background:#dcfce7;color:#166534; }
+    .pay-status-pending { background:#fef9c3;color:#854d0e; }
+    .pay-status-failed  { background:#fee2e2;color:#991b1b; }
+    .pay-status-refunded{ background:#f3e8ff;color:#6b21a8; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Επιχειρήσεις</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Διαχείριση επιχειρήσεων συστήματος (Super Admin)</p>
+      </div>
+      <button onclick="openCreateModal()"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Νέα Επιχείρηση
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats-bar" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 anim">
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse col-span-2 lg:col-span-4"><div class="h-6 bg-gray-100 rounded w-1/4"></div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5 anim">
+      <div class="flex flex-wrap gap-3">
+        <div class="flex-1 min-w-48 relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="f-search" placeholder="Αναζήτηση ονόματος, ΑΦΜ..."
+            class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500"
+            oninput="debouncedLoad()" />
+        </div>
+        <select id="f-plan" onchange="loadBusinesses(1)"
+          class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+          <option value="">Όλα τα Πλάνα</option>
+          <option value="trial">Trial</option>
+          <option value="basic">Basic</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+        <select id="f-active" onchange="loadBusinesses(1)"
+          class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+          <option value="">Όλες</option>
+          <option value="1">Ενεργές</option>
+          <option value="0">Ανενεργές</option>
+        </select>
+        <select id="f-suspended" onchange="loadBusinesses(1)"
+          class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+          <option value="">Όλες</option>
+          <option value="1">Ανεσταλμένες</option>
+          <option value="0">Μη Ανεσταλμένες</option>
+        </select>
+        <button onclick="clearFilters()"
+          class="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+          Καθαρισμός
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 anim">
+      <div id="biz-table"></div>
+      <div id="biz-pagination"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- CREATE/EDIT MODAL -->
+<div id="modal-biz" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 id="modal-biz-title" class="text-lg font-bold text-gray-900">Νέα Επιχείρηση</h2>
+      <button onclick="closeModal('modal-biz')" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-6 py-5">
+      <input type="hidden" id="b-id" />
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Επωνυμία *</label>
+          <input type="text" id="b-name" placeholder="Ιχθυοπωλείο Παπαδόπουλος" data-autofocus
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">ΑΦΜ * (9 ψηφία)</label>
+          <input type="text" id="b-afm" placeholder="123456789" maxlength="9"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Πλάνο</label>
+          <select id="b-plan"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer transition-all">
+            <option value="trial">Trial</option>
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Εμπορική Επωνυμία</label>
+          <input type="text" id="b-trade" placeholder="Προαιρετικό"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">ΔΟΥ</label>
+          <input type="text" id="b-doy" placeholder="π.χ. ΔΟΥ Αθηνών"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Διεύθυνση</label>
+          <input type="text" id="b-address" placeholder="Οδός και Αριθμός"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Πόλη</label>
+          <input type="text" id="b-city" placeholder="Αθήνα"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Τηλέφωνο</label>
+          <input type="text" id="b-phone" placeholder="210-0000000"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+          <input type="email" id="b-email" placeholder="info@business.gr"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+        </div>
+        <!-- Invoice Types (edit only) -->
+        <div id="b-inv-types-row" class="col-span-2 hidden">
+          <div class="border border-gray-200 rounded-xl p-4 bg-gray-50">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="text-sm font-semibold text-gray-700">Επιτρεπόμενοι Τύποι Παραστατικών</p>
+                <p class="text-xs text-gray-400 mt-0.5">myDATA 2026 · Επιλέξτε έως <strong>5</strong> τύπους</p>
+              </div>
+              <span id="b-types-count" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">0/5</span>
+            </div>
+            <div id="b-inv-types-list" class="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>
+        <div id="b-active-row" class="col-span-2 hidden">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="b-active" class="w-4 h-4 rounded text-blue-600 border-gray-300 cursor-pointer" />
+            <span class="text-sm font-semibold text-gray-700">Ενεργή επιχείρηση</span>
+          </label>
+        </div>
+        <div id="b-suspend-row" class="col-span-2 hidden space-y-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="b-suspended" class="w-4 h-4 rounded text-red-600 border-gray-300 cursor-pointer"
+              onchange="toggleSuspendReason()" />
+            <span class="text-sm font-semibold text-red-600">Ανάστολή Επιχείρησης</span>
+          </label>
+          <div id="b-suspend-reason-field" class="hidden">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Αιτιολογία Ανάστολης</label>
+            <textarea id="b-suspend-reason" rows="2"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all resize-none"
+              placeholder="Αιτιολογία..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex gap-3">
+      <button onclick="saveBusiness()" id="btn-save-biz"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+        <span id="save-biz-text">Αποθήκευση</span>
+      </button>
+      <button onclick="closeModal('modal-biz')"
+        class="px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Άκυρο</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW DETAIL MODAL -->
+<div id="modal-biz-view" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 id="view-biz-name" class="text-lg font-bold text-gray-900">Επιχείρηση</h2>
+      <button onclick="closeModal('modal-biz-view')" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="view-biz-body" class="flex-1 overflow-y-auto px-6 py-5"></div>
+    <div class="px-6 py-4 border-t border-gray-100">
+      <button onclick="closeModal('modal-biz-view')"
+        class="w-full py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Κλείσιμο</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="modal-delete-confirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-gray-900">Επιβεβαίωση Διαγραφής</h3>
+        <p class="text-xs text-gray-500">Εισάγετε τον κωδικό που στάλθηκε στο email του διαχειριστή</p>
+      </div>
+    </div>
+    <div class="bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4 text-sm font-semibold text-red-700 truncate" id="del-biz-name"></div>
+    <input id="del-confirm-code" type="text" maxlength="6" placeholder="000000"
+      class="w-full text-center text-3xl font-black tracking-[10px] border-2 border-gray-200 rounded-xl py-4 outline-none focus:border-red-500 transition-colors"
+      oninput="this.value=this.value.replace(/\D/g,'')" />
+    <div id="del-code-err" class="mt-2 text-sm text-red-600 font-semibold hidden"></div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Άκυρο</button>
+      <button onclick="confirmDeleteBusiness()" id="btn-confirm-delete"
+        class="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
+        Διαγραφή Οριστικά
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Features & Payments Drawer -->
+<div id="feat-bg" class="feat-drawer-bg" onclick="closeFeatDrawer()"></div>
+<div id="feat-drawer" class="feat-drawer">
+  <div class="sticky top-0 bg-white z-10 border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+    <div>
+      <h3 class="font-bold text-gray-900 text-base" id="feat-drawer-title">Features & Πληρωμές</h3>
+      <p class="text-xs text-gray-400 mt-0.5" id="feat-drawer-sub"></p>
+    </div>
+    <button onclick="closeFeatDrawer()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-200">
+      <i class="fa-solid fa-xmark text-sm"></i>
+    </button>
+  </div>
+
+  <!-- Monthly total -->
+  <div id="feat-billing-bar" class="mx-5 mt-4 p-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-white hidden">
+    <p class="text-xs font-semibold opacity-75 uppercase tracking-wider mb-1">Μηνιαίο Κόστος</p>
+    <p class="text-2xl font-black" id="feat-total-cost">€0</p>
+    <p class="text-xs opacity-70 mt-0.5" id="feat-cost-breakdown"></p>
+  </div>
+
+  <!-- Add-on features -->
+  <div class="px-5 mt-5">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Πρόσθετες Λειτουργίες (Add-ons)</p>
+    <div id="feat-toggles" class="space-y-3">
+      <div class="h-16 bg-gray-100 rounded-xl animate-pulse"></div>
+      <div class="h-16 bg-gray-100 rounded-xl animate-pulse"></div>
+    </div>
+  </div>
+
+  <!-- ΑΑΔΕ myDATA Credentials -->
+  <div class="px-5 mt-6">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Διαπιστευτήρια ΑΑΔΕ myDATA</p>
+    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+      <div id="feat-mydata-status" class="text-xs text-gray-400 mb-1"></div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1">AADE UserID</label>
+        <input type="text" id="feat-mydata-user-id" placeholder="π.χ. user123456" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 bg-white" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1">Subscription Key</label>
+        <input type="password" id="feat-mydata-sub-key" placeholder="••••••••••••••••" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 bg-white" />
+      </div>
+      <button onclick="saveMydataCredentials()" id="btn-save-mydata-creds"
+        class="w-full py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+        <i class="fa-solid fa-satellite-dish mr-1.5"></i>Αποθήκευση myDATA
+      </button>
+    </div>
+  </div>
+
+  <!-- Payment history -->
+  <div class="px-5 mt-6">
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Ιστορικό Πληρωμών</p>
+      <button onclick="openAddPayment()" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors">
+        <i class="fa-solid fa-plus text-xs"></i> Προσθήκη
+      </button>
+    </div>
+
+    <!-- Add payment form (hidden by default) -->
+    <div id="add-pay-form" class="hidden mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+      <p class="text-sm font-semibold text-gray-700">Καταχώρηση Πληρωμής</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Ποσό (€) *</label>
+          <input type="number" id="pay-amount" step="0.01" min="0" placeholder="0.00"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Μήνας</label>
+          <input type="month" id="pay-period"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1">Περιγραφή *</label>
+        <input type="text" id="pay-desc" placeholder="π.χ. Μηνιαία συνδρομή Basic + OSPA"
+          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Τύπος</label>
+          <select id="pay-type" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 bg-white">
+            <option value="subscription">Συνδρομή</option>
+            <option value="addon">Add-on</option>
+            <option value="manual">Χειροκίνητο</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">Κατάσταση</label>
+          <select id="pay-status" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 bg-white">
+            <option value="paid">Πληρώθηκε</option>
+            <option value="pending">Εκκρεμεί</option>
+            <option value="failed">Απέτυχε</option>
+            <option value="refunded">Επεστράφη</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1">Σημειώσεις</label>
+        <textarea id="pay-notes" rows="2" placeholder="Προαιρετικές σημειώσεις…"
+          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none"></textarea>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="savePayment()" id="btn-save-pay"
+          class="flex-1 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+          <i class="fa-solid fa-check mr-1"></i>Αποθήκευση
+        </button>
+        <button onclick="document.getElementById('add-pay-form').classList.add('hidden')"
+          class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">Άκυρο</button>
+      </div>
+    </div>
+
+    <div id="pay-history" class="space-y-2 pb-8">
+      <p class="text-gray-400 text-sm text-center py-8"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Φόρτωση…</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/page.js"></script>
+<script>
+  requireAuth();
+  buildSidebar();
+
+  // Super admin only
+  if (getUserRole() !== 'super_admin') {
+    window.location.href = 'dashboard.html';
+  }
+
+  let currentPage = 1;
+  let bizLimit    = 25;
+  let bizMap = {};
+  const debouncedLoad = debounce(() => loadBusinesses(1), 350);
+
+  const planColors = {
+    trial: 'bg-gray-100 text-gray-600',
+    basic: 'bg-blue-100 text-blue-700',
+    pro:   'bg-purple-100 text-purple-700',
+    enterprise: 'bg-amber-100 text-amber-700',
+  };
+  const planLabels = { trial:'Trial', basic:'Basic', pro:'Pro', enterprise:'Enterprise' };
+
+  async function loadBusinesses(page = 1) {
+    currentPage = page;
+    showSpinner('biz-table');
+    document.getElementById('biz-pagination').innerHTML = '';
+
+    const params = { page, limit: bizLimit };
+    const q = val('f-search'); if (q) params.q = q;
+    const plan = val('f-plan'); if (plan) params.plan = plan;
+    const active = val('f-active'); if (active !== '') params.active = active;
+    const susp = val('f-suspended'); if (susp !== '') params.suspended = susp;
+
+    try {
+      const res = await api.get('/businesses', params);
+      const list = res.data || [];
+      const total = res.total || list.length;
+
+      bizMap = {};
+      list.forEach(b => { bizMap[b.id] = b; });
+
+      updateStats(list, total);
+
+      if (!list.length) { showEmpty('biz-table', 'Δεν βρέθηκαν επιχειρήσεις', '<i class="fas fa-building"></i>'); return; }
+
+      const rows = list.map(b => {
+        const pc = planColors[b.plan] || 'bg-gray-100 text-gray-600';
+        const pl = planLabels[b.plan] || b.plan;
+        const suspClass = b.is_suspended ? 'suspended-row' : '';
+        return `
+          <tr class="hover:bg-gray-50 transition-colors ${suspClass} ${!b.is_active ? 'opacity-60' : ''}">
+            <td class="px-4 py-3">
+              <div>
+                <p class="text-sm font-semibold text-gray-900">${b.name}</p>
+                <p class="text-xs text-gray-400 font-mono mt-0.5">ΑΦΜ: ${b.afm}</p>
+                ${b.city ? `<p class="text-xs text-gray-400">${b.city}</p>` : ''}
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${pc}">${pl}</span>
+            </td>
+            <td class="px-4 py-3">
+              ${b.is_suspended
+                ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700"><i class="fas fa-ban"></i> Ανεσταλμένη</span>'
+                : activeBadge(b.is_active)}
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-400">${b.trial_ends_at ? fmtDate(b.trial_ends_at) : '—'}</td>
+            <td class="px-4 py-3 text-xs text-gray-500">
+              ${b.email ? `<p>${b.email}</p>` : ''}
+              ${b.phone ? `<p>${b.phone}</p>` : ''}
+              ${!b.email && !b.phone ? '—' : ''}
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-400">${fmtDate(b.created_at)}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-1">
+                <button onclick="viewBusiness('${b.id}')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors" title="Προβολή">
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+                <button onclick="openFeatDrawer('${b.id}', '${b.name.replace(/'/g,"\\'")}')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-indigo-600 hover:bg-indigo-50 border border-indigo-100 transition-colors" title="Features & Πληρωμές">
+                  <i class="fa-solid fa-puzzle-piece h-3.5 w-3.5 text-xs"></i>
+                  <span class="hidden sm:inline">Add-ons</span>
+                </button>
+                <button onclick="openEditModal('${b.id}')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors" title="Επεξεργασία">
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                ${b.is_suspended
+                  ? `<button onclick="suspendBusiness('${b.id}', false)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition-colors" title="Άρση Ανάστολης">
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <span class="hidden sm:inline">Άρση</span>
+                     </button>`
+                  : `<button onclick="suspendBusiness('${b.id}', true)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors" title="Ανάστολη">
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                      <span class="hidden sm:inline">Ανάστολη</span>
+                     </button>`}
+                <button onclick="deleteBusiness('${b.id}', '${b.name.replace(/'/g, "\\'")}')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 transition-colors" title="Διαγραφή">
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('biz-table').innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                ${['Επιχείρηση','Πλάνο','Κατάσταση','Trial Έως','Email / Τηλ.','Εγγραφή','Ενέργειες']
+                  .map(h=>`<th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">${rows}</tbody>
+          </table>
+        </div>`;
+
+      renderPagination('biz-pagination', total, page, bizLimit, 'loadBusinesses', function(l) { bizLimit = l; loadBusinesses(1); });
+    } catch(err) {
+      showError('biz-table', err.message);
+    }
+  }
+
+  function updateStats(list, total) {
+    const active = list.filter(b => b.is_active && !b.is_suspended).length;
+    const suspended = list.filter(b => b.is_suspended).length;
+    const trial = list.filter(b => b.plan === 'trial').length;
+    document.getElementById('stats-bar').innerHTML = `
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Σύνολο</p><p class="text-2xl font-extrabold text-gray-900 mt-1">${total}</p></div>
+          <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl text-blue-600"><i class="fas fa-building"></i></div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Ενεργές</p><p class="text-2xl font-extrabold text-emerald-600 mt-1">${active}</p></div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-xl text-emerald-600"><i class="fas fa-circle-check"></i></div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Ανεσταλμένες</p><p class="text-2xl font-extrabold text-red-500 mt-1">${suspended}</p></div>
+          <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl text-red-600"><i class="fas fa-ban"></i></div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Trial</p><p class="text-2xl font-extrabold text-gray-600 mt-1">${trial}</p></div>
+          <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xl">⏳</div>
+        </div>
+      </div>`;
+  }
+
+  // ── myDATA 2026 invoice types for fishermen ──────────────────────────────────
+  const MYDATA_TYPES = [
+    { code: '1.1',  label: 'Τιμολόγιο Πώλησης' },
+    { code: '5.1',  label: 'Πιστωτικό Τιμολόγιο / Ακυρωτικό (Συσχετισμένο)' },
+    { code: '6.1',  label: 'Στοιχείο Αυτοτιμολόγησης' },
+    { code: '11.1', label: 'ΑΠΥ – Λιανική Πώληση / Παροχή Υπηρεσιών' },
+    { code: '11.4', label: 'Πιστωτικό Στοιχείο Λιανικής / Ακυρωτικό' },
+  ];
+
+  function buildTypesCheckboxes(selectedCodes) {
+    const container = document.getElementById('b-inv-types-list');
+    if (!container) return;
+    container.innerHTML = MYDATA_TYPES.map(t => {
+      const checked = selectedCodes.includes(t.code);
+      return `<label class="flex items-center gap-2 cursor-pointer py-1 px-2 rounded-lg hover:bg-white transition-colors">
+        <input type="checkbox" name="inv-type-check" value="${t.code}" ${checked ? 'checked' : ''}
+          onchange="updateTypeCount()" class="w-3.5 h-3.5 rounded text-blue-600 border-gray-300 cursor-pointer flex-shrink-0" />
+        <span class="text-xs text-gray-700"><span class="font-mono font-semibold text-blue-700">${t.code}</span> – ${t.label}</span>
+      </label>`;
+    }).join('');
+    updateTypeCount();
+  }
+
+  function updateTypeCount() {
+    const checks = document.querySelectorAll('input[name="inv-type-check"]:checked');
+    const count = checks.length;
+    const countEl = document.getElementById('b-types-count');
+    if (countEl) {
+      countEl.textContent = `${count}/5`;
+      countEl.className = `text-xs font-bold px-2 py-0.5 rounded-full ${count >= 5 ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`;
+    }
+    // Disable unchecked boxes if limit reached
+    document.querySelectorAll('input[name="inv-type-check"]').forEach(cb => {
+      if (!cb.checked) cb.disabled = count >= 5;
+    });
+  }
+
+  function getSelectedTypes() {
+    return Array.from(document.querySelectorAll('input[name="inv-type-check"]:checked')).map(cb => cb.value);
+  }
+
+  function openCreateModal() {
+    document.getElementById('modal-biz-title').textContent = 'Νέα Επιχείρηση';
+    ['b-id','b-name','b-afm','b-trade','b-doy','b-address','b-city','b-phone','b-email'].forEach(id => setVal(id,''));
+    setVal('b-plan','trial');
+    document.getElementById('b-active-row').classList.add('hidden');
+    document.getElementById('b-suspend-row').classList.add('hidden');
+    document.getElementById('b-inv-types-row').classList.add('hidden');
+    openModal('modal-biz');
+  }
+
+  function openEditModal(id) {
+    const b = bizMap[id];
+    if (!b) return;
+    document.getElementById('modal-biz-title').textContent = 'Επεξεργασία Επιχείρησης';
+    setVal('b-id', b.id);
+    setVal('b-name', b.name);
+    setVal('b-afm', b.afm);
+    setVal('b-trade', b.trade_name||'');
+    setVal('b-doy', b.doy||'');
+    setVal('b-address', b.address||'');
+    setVal('b-city', b.city||'');
+    setVal('b-phone', b.phone||'');
+    setVal('b-email', b.email||'');
+    setVal('b-plan', b.plan||'trial');
+    setChecked('b-active', !!b.is_active);
+    setChecked('b-suspended', !!b.is_suspended);
+    setVal('b-suspend-reason', b.suspend_reason||'');
+    document.getElementById('b-active-row').classList.remove('hidden');
+    document.getElementById('b-suspend-row').classList.remove('hidden');
+    document.getElementById('b-suspend-reason-field').classList.toggle('hidden', !b.is_suspended);
+
+    // Load allowed invoice types
+    document.getElementById('b-inv-types-row').classList.remove('hidden');
+    buildTypesCheckboxes([]);
+    api.get(`/businesses/${id}/invoice-types`).then(res => {
+      buildTypesCheckboxes(res.data || []);
+    }).catch(() => buildTypesCheckboxes([]));
+
+    openModal('modal-biz');
+  }
+
+  function viewBusiness(id) {
+    const b = bizMap[id];
+    if (!b) return;
+    const pc = planColors[b.plan] || 'bg-gray-100 text-gray-600';
+    document.getElementById('view-biz-name').textContent = b.name;
+    document.getElementById('view-biz-body').innerHTML = `
+      <div class="grid grid-cols-2 gap-4">
+        ${infoRow('ΑΦΜ', `<span class="font-mono">${b.afm}</span>`)}
+        ${infoRow('Πλάνο', `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${pc}">${planLabels[b.plan]||b.plan}</span>`)}
+        ${infoRow('Εμπορική Επωνυμία', b.trade_name||'—')}
+        ${infoRow('ΔΟΥ', b.doy||'—')}
+        ${infoRow('Πόλη', b.city||'—')}
+        ${infoRow('Τηλέφωνο', b.phone||'—')}
+        ${infoRow('Email', b.email||'—')}
+        ${infoRow('Κατάσταση', b.is_suspended ? '<span class="text-red-600 font-semibold"><i class="fas fa-ban mr-1"></i>Ανεσταλμένη</span>' : activeBadge(b.is_active))}
+        ${b.is_suspended ? infoRow('Αιτία Ανάστολης', b.suspend_reason||'—', true) : ''}
+        ${infoRow('Trial Έως', b.trial_ends_at ? fmtDate(b.trial_ends_at) : '—')}
+        ${infoRow('Εγγραφή', fmtDateTime(b.created_at))}
+        ${infoRow('Τελ. Ενημέρωση', fmtDateTime(b.updated_at))}
+      </div>
+      ${(() => {
+        let types = [];
+        try { types = JSON.parse(b.allowed_invoice_types || '[]'); } catch {}
+        if (!types.length) return '';
+        const MYDATA_MAP = Object.fromEntries(MYDATA_TYPES.map(t => [t.code, t.label]));
+        return `<div class="mt-4 pt-4 border-t border-gray-100">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Επιτρεπόμενοι Τύποι Παραστατικών</p>
+          <div class="flex flex-wrap gap-1.5">
+            ${types.map(c => `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"><span class="font-mono font-bold mr-1">${c}</span>${MYDATA_MAP[c] || ''}</span>`).join('')}
+          </div>
+        </div>`;
+      })()}`;
+    openModal('modal-biz-view');
+  }
+
+  function infoRow(label, value, full = false) {
+    return `<div class="${full ? 'col-span-2' : ''}">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">${label}</p>
+      <p class="text-sm text-gray-800">${value}</p>
+    </div>`;
+  }
+
+  function toggleSuspendReason() {
+    const checked = getChecked('b-suspended');
+    document.getElementById('b-suspend-reason-field').classList.toggle('hidden', !checked);
+  }
+
+  async function saveBusiness() {
+    const id = val('b-id');
+    const name = val('b-name');
+    const afm  = val('b-afm');
+    if (!name) { showToast('Η επωνυμία είναι υποχρεωτική', 'error'); return; }
+    if (!id && afm.length !== 9) { showToast('Το ΑΦΜ πρέπει να έχει 9 ψηφία', 'error'); return; }
+
+    const body = {
+      name, afm, plan: val('b-plan'),
+      trade_name: val('b-trade') || undefined,
+      doy:     val('b-doy')     || undefined,
+      address: val('b-address') || undefined,
+      city:    val('b-city')    || undefined,
+      phone:   val('b-phone')   || undefined,
+      email:   val('b-email')   || undefined,
+    };
+    if (id) {
+      body.is_active   = getChecked('b-active') ? 1 : 0;
+      body.is_suspended = getChecked('b-suspended') ? 1 : 0;
+      if (body.is_suspended) body.suspend_reason = val('b-suspend-reason');
+    }
+
+    const btn = document.getElementById('btn-save-biz');
+    btn.disabled = true;
+    document.getElementById('save-biz-text').textContent = 'Αποθήκευση...';
+    try {
+      if (id) {
+        await api.put(`/businesses/${id}`, body);
+        // Save allowed invoice types
+        const selectedTypes = getSelectedTypes();
+        await api.put(`/businesses/${id}/invoice-types`, { types: selectedTypes }).catch(() => {});
+        showToast('Επιχείρηση ενημερώθηκε', 'success');
+      } else {
+        await api.post('/businesses', body);
+        showToast('Επιχείρηση δημιουργήθηκε', 'success');
+      }
+      closeModal('modal-biz');
+      loadBusinesses(currentPage);
+    } catch(err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('save-biz-text').textContent = 'Αποθήκευση';
+    }
+  }
+
+  async function suspendBusiness(id, doSuspend) {
+    if (doSuspend) {
+      const reason = prompt('Αιτιολογία ανάστολης (προαιρετικό):') ?? '';
+      const ok = await confirmDialog('Ανάστολη Επιχείρησης', 'Η επιχείρηση δεν θα μπορεί να χρησιμοποιεί το σύστημα.', true);
+      if (!ok) return;
+      try {
+        await api.post(`/businesses/${id}/suspend`, { suspend_reason: reason || '' });
+        showToast('Η επιχείρηση ανεστάλη', 'warning');
+        loadBusinesses(currentPage);
+      } catch(err) { showToast(err.message, 'error'); }
+    } else {
+      const ok = await confirmDialog('Άρση Ανάστολης', 'Η επιχείρηση θα αποκτήσει ξανά πρόσβαση.', false);
+      if (!ok) return;
+      try {
+        await api.post(`/businesses/${id}/activate`);
+        showToast('Άρση ανάστολης επιτυχής', 'success');
+        loadBusinesses(currentPage);
+      } catch(err) { showToast(err.message, 'error'); }
+    }
+  }
+
+  async function deleteBusiness(id, name) {
+    const ok = await confirmDialog('Διαγραφή Επιχείρησης', `Είστε σίγουροι ότι θέλετε να διαγράψετε την επιχείρηση "${name}"; Όλα τα δεδομένα (τιμολόγια, πελάτες, προϊόντα) θα χαθούν ανεπιστρεπτί.`, true);
+    if (!ok) return;
+    try {
+      await api.delete(`/businesses/${id}`);
+      showToast('Η επιχείρηση διαγράφηκε.', 'success');
+      loadBusinesses(currentPage);
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  function clearFilters() {
+    ['f-search','f-plan','f-active','f-suspended'].forEach(id => setVal(id,''));
+    loadBusinesses(1);
+  }
+
+  // ── AFM Lookup ────────────────────────────────────────────────────────────────
+  // ── Hard Delete with OTP ──────────────────────────────────────────────────────
+  let _pendingDeleteId = null;
+
+  async function deleteBusiness(id, name) {
+    const ok = await confirmDialog(
+      'Διαγραφή Επιχείρησης',
+      `Πρόκειται να διαγράψετε οριστικά την επιχείρηση "${name}". Θα σταλεί κωδικός επιβεβαίωσης στο email του διαχειριστή. Συνέχεια;`,
+      true
+    );
+    if (!ok) return;
+    try {
+      await api.post(`/businesses/${id}/delete-request`);
+      _pendingDeleteId = id;
+      document.getElementById('del-biz-name').textContent = name;
+      document.getElementById('del-confirm-code').value = '';
+      document.getElementById('del-code-err').classList.add('hidden');
+      openModal('modal-delete-confirm');
+    } catch(e) {
+      showToast('Σφάλμα: ' + e.message, 'error');
+    }
+  }
+
+  function closeDeleteModal() {
+    _pendingDeleteId = null;
+    closeModal('modal-delete-confirm');
+  }
+
+  async function confirmDeleteBusiness() {
+    const code = document.getElementById('del-confirm-code').value.trim();
+    if (code.length !== 6) {
+      document.getElementById('del-code-err').textContent = 'Εισάγετε 6-ψήφιο κωδικό.';
+      document.getElementById('del-code-err').classList.remove('hidden');
+      return;
+    }
+    const btn = document.getElementById('btn-confirm-delete');
+    btn.disabled = true;
+    btn.textContent = 'Διαγραφή...';
+    document.getElementById('del-code-err').classList.add('hidden');
+    try {
+      await api.delete(`/businesses/${_pendingDeleteId}`, { confirmation_code: code });
+      closeDeleteModal();
+      showToast('Η επιχείρηση διαγράφηκε οριστικά.', 'success');
+      loadBusinesses(currentPage);
+    } catch(e) {
+      document.getElementById('del-code-err').textContent = e.message;
+      document.getElementById('del-code-err').classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Διαγραφή Οριστικά';
+    }
+  }
+
+  loadBusinesses(1);
+
+  // ── Features & Payments Drawer ────────────────────────────────────────────────
+
+  const PLAN_PRICES = { trial: 0, basic: 8, pro: 12, enterprise: 30 };
+  const ADDON_DEFS  = [
+    { key: 'feature_weighing_slips', label: 'Δελτία Ζύγισης', price: 2,  icon: 'fa-scale-balanced',    color: 'teal',   desc: 'Καταγραφή και παρακολούθηση ζυγίσεων αλιευμάτων' },
+    { key: 'feature_ospa',           label: 'OSPA',           price: 10, icon: 'fa-file-circle-check', color: 'indigo', desc: 'Υποβολές στον Οργανισμό Συλλογικής Προστασίας Αλιέων' },
+  ];
+  const PAY_STATUS_LABELS = { paid: 'Πληρώθηκε', pending: 'Εκκρεμεί', failed: 'Απέτυχε', refunded: 'Επεστράφη' };
+  const PAY_TYPE_LABELS   = { subscription: 'Συνδρομή', addon: 'Add-on', manual: 'Χειροκίνητο' };
+
+  let _featBizId   = null;
+  let _featBizName = '';
+  let _featBizPlan = 'trial';
+  let _currentFeatures = [];
+
+  function openFeatDrawer(bizId, bizName) {
+    _featBizId   = bizId;
+    _featBizName = bizName;
+    const biz = bizMap[bizId];
+    _featBizPlan = biz?.plan || 'trial';
+    document.getElementById('feat-drawer-title').textContent = bizName;
+    document.getElementById('feat-drawer-sub').textContent   = `Πλάνο: ${planLabels[_featBizPlan] || _featBizPlan} · ΑΦΜ ${biz?.afm || '—'}`;
+    document.getElementById('add-pay-form').classList.add('hidden');
+    // Set default period to current month
+    const now = new Date();
+    document.getElementById('pay-period').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    document.getElementById('feat-bg').classList.add('open');
+    document.getElementById('feat-drawer').classList.add('open');
+    loadFeatDrawer();
+  }
+
+  function closeFeatDrawer() {
+    document.getElementById('feat-bg').classList.remove('open');
+    document.getElementById('feat-drawer').classList.remove('open');
+    _featBizId = null;
+  }
+
+  async function loadFeatDrawer() {
+    loadFeatures();
+    loadPayments();
+    loadMydataStatus();
+  }
+
+  async function loadMydataStatus() {
+    const statusEl = document.getElementById('feat-mydata-status');
+    document.getElementById('feat-mydata-user-id').value = '';
+    document.getElementById('feat-mydata-sub-key').value = '';
+    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Φόρτωση…';
+    try {
+      const res = await api.get('/settings/mydata/status', { business_id: _featBizId });
+      const d   = res.data || {};
+      if (d.configured) {
+        statusEl.innerHTML = `<span class="text-green-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>Ρυθμισμένο · UserID: ${d.user_id}</span>`;
+      } else {
+        statusEl.innerHTML = `<span class="text-orange-500 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Δεν έχουν οριστεί credentials — δεν μπορεί να γίνει διαβίβαση.</span>`;
+      }
+    } catch(e) {
+      statusEl.innerHTML = `<span class="text-gray-400">${e.message}</span>`;
+    }
+  }
+
+  async function saveMydataCredentials() {
+    const userId = document.getElementById('feat-mydata-user-id').value.trim();
+    const subKey = document.getElementById('feat-mydata-sub-key').value.trim();
+    if (!userId && !subKey) { alert('Συμπληρώστε τουλάχιστον το UserID ή το Subscription Key.'); return; }
+    const btn = document.getElementById('btn-save-mydata-creds');
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Αποθήκευση…';
+    try {
+      const body = {};
+      if (userId) body.mydata_user_id = userId;
+      if (subKey) body.mydata_subscription_key = subKey;
+      await api.patch('/settings/mydata', body, { business_id: _featBizId });
+      document.getElementById('feat-mydata-sub-key').value = '';
+      loadMydataStatus();
+    } catch(e) {
+      alert('Σφάλμα: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-satellite-dish mr-1.5"></i>Αποθήκευση myDATA';
+    }
+  }
+
+  async function loadFeatures() {
+    const wrap = document.getElementById('feat-toggles');
+    wrap.innerHTML = ADDON_DEFS.map(() =>
+      `<div class="h-16 bg-gray-100 rounded-xl animate-pulse"></div>`).join('');
+    try {
+      const res = await api.get(`/businesses/${_featBizId}/features`);
+      _currentFeatures = res.data || [];
+      renderFeatures(_currentFeatures);
+    } catch(e) {
+      wrap.innerHTML = `<p class="text-red-500 text-sm">${e.message}</p>`;
+    }
+  }
+
+  function renderFeatures(features) {
+    const wrap = document.getElementById('feat-toggles');
+    wrap.innerHTML = features.map(f => {
+      const colorMap = { teal: '#0d9488', indigo: '#4f46e5' };
+      const bgMap    = { teal: '#f0fdfa', indigo: '#eef2ff' };
+      const clr      = colorMap[f.color] || '#4f46e5';
+      const bg       = bgMap[f.color]    || '#eef2ff';
+      return `
+        <div class="flex items-center justify-between p-4 rounded-xl border-2 transition-all ${f.enabled ? 'border-current' : 'border-gray-100 bg-gray-50'}"
+             style="${f.enabled ? `background:${bg};border-color:${clr}22` : ''}">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style="background:${f.enabled ? clr + '18' : '#e5e7eb'}">
+              <i class="fa-solid ${f.icon} text-sm" style="color:${f.enabled ? clr : '#9ca3af'}"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-gray-900 text-sm">${f.label}</p>
+              <p class="text-xs text-gray-400">${f.desc} · <strong style="color:${clr}">+€${f.price}/μήνα</strong></p>
+            </div>
+          </div>
+          <label class="toggle-switch flex-shrink-0" title="${f.enabled ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}">
+            <input type="checkbox" ${f.enabled ? 'checked' : ''} onchange="toggleFeature('${f.key}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>`;
+    }).join('');
+    updateBillingBar(features);
+  }
+
+  function updateBillingBar(features) {
+    const planPrice = PLAN_PRICES[_featBizPlan] || 0;
+    const addonTotal = features.filter(f => f.enabled).reduce((s, f) => s + f.price, 0);
+    const total = planPrice + addonTotal;
+    const bar = document.getElementById('feat-billing-bar');
+    bar.classList.remove('hidden');
+    document.getElementById('feat-total-cost').textContent = `€${total}`;
+    const parts = [`Πλάνο ${planLabels[_featBizPlan]} €${planPrice}`];
+    features.filter(f => f.enabled).forEach(f => parts.push(`${f.label} +€${f.price}`));
+    document.getElementById('feat-cost-breakdown').textContent = parts.join(' · ');
+  }
+
+  async function toggleFeature(featureKey, enabled) {
+    try {
+      await api.patch(`/businesses/${_featBizId}/features`, { feature: featureKey, enabled });
+      showToast(`${enabled ? 'Ενεργοποιήθηκε' : 'Απενεργοποιήθηκε'}: ${ADDON_DEFS.find(f=>f.key===featureKey)?.label}`, enabled ? 'success' : 'warning');
+      // Update local state and re-render
+      _currentFeatures = _currentFeatures.map(f => f.key === featureKey ? { ...f, enabled } : f);
+      updateBillingBar(_currentFeatures);
+    } catch(e) {
+      showToast(e.message, 'error');
+      loadFeatures(); // revert toggle
+    }
+  }
+
+  async function loadPayments() {
+    const wrap = document.getElementById('pay-history');
+    wrap.innerHTML = `<p class="text-gray-400 text-sm text-center py-6"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Φόρτωση…</p>`;
+    try {
+      const res = await api.get(`/businesses/${_featBizId}/payments`);
+      const rows = res.data || [];
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="text-center py-10 text-gray-300">
+          <i class="fa-solid fa-receipt text-4xl mb-2 block"></i>
+          <p class="text-sm font-medium text-gray-400">Δεν υπάρχουν πληρωμές</p>
+        </div>`;
+        return;
+      }
+      wrap.innerHTML = rows.map(p => {
+        const stCls = `pay-status-${p.status}`;
+        const stLbl = PAY_STATUS_LABELS[p.status] || p.status;
+        const tpLbl = PAY_TYPE_LABELS[p.payment_type] || p.payment_type;
+        const dt    = new Date(p.created_at).toLocaleDateString('el-GR', {day:'2-digit',month:'short',year:'numeric'});
+        return `
+          <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white transition-colors">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-bold text-gray-900">€${parseFloat(p.amount).toLocaleString('el-GR',{minimumFractionDigits:2})}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${stCls}">${stLbl}</span>
+                <span class="text-xs text-gray-400">${tpLbl}</span>
+                ${p.billing_period ? `<span class="text-xs text-gray-400 font-mono">${p.billing_period}</span>` : ''}
+              </div>
+              <p class="text-xs text-gray-600 mt-0.5 truncate">${p.description}</p>
+              ${p.notes ? `<p class="text-xs text-gray-400 mt-0.5 italic">${p.notes}</p>` : ''}
+              <p class="text-xs text-gray-300 mt-1">${dt}</p>
+            </div>
+            <button onclick="deletePayment('${p.id}')"
+              class="w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0" title="Διαγραφή">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+          </div>`;
+      }).join('');
+    } catch(e) {
+      wrap.innerHTML = `<p class="text-red-500 text-sm text-center py-6">${e.message}</p>`;
+    }
+  }
+
+  function openAddPayment() {
+    const form = document.getElementById('add-pay-form');
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+      // Pre-fill description with plan + active addons
+      const planName = planLabels[_featBizPlan] || _featBizPlan;
+      const activeAddons = _currentFeatures.filter(f => f.enabled).map(f => f.label).join(', ');
+      const planPrice  = PLAN_PRICES[_featBizPlan] || 0;
+      const addonPrice = _currentFeatures.filter(f => f.enabled).reduce((s, f) => s + f.price, 0);
+      document.getElementById('pay-amount').value = (planPrice + addonPrice) || '';
+      document.getElementById('pay-desc').value = `Συνδρομή ${planName}${activeAddons ? ' + ' + activeAddons : ''}`;
+      document.getElementById('pay-type').value = 'subscription';
+      document.getElementById('pay-status').value = 'paid';
+      document.getElementById('pay-notes').value = '';
+    }
+  }
+
+  async function savePayment() {
+    const amount = document.getElementById('pay-amount').value;
+    const desc   = document.getElementById('pay-desc').value.trim();
+    if (!amount || !desc) { showToast('Συμπληρώστε ποσό και περιγραφή', 'error'); return; }
+    const btn = document.getElementById('btn-save-pay');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Αποθήκευση…';
+    try {
+      await api.post(`/businesses/${_featBizId}/payments`, {
+        amount: parseFloat(amount),
+        description: desc,
+        payment_type:   document.getElementById('pay-type').value,
+        billing_period: document.getElementById('pay-period').value || null,
+        status:         document.getElementById('pay-status').value,
+        notes:          document.getElementById('pay-notes').value.trim() || null,
+      });
+      document.getElementById('add-pay-form').classList.add('hidden');
+      showToast('Πληρωμή καταχωρήθηκε', 'success');
+      loadPayments();
+    } catch(e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Αποθήκευση';
+    }
+  }
+
+  async function deletePayment(paymentId) {
+    const ok = await confirmDialog('Διαγραφή Πληρωμής', 'Η πληρωμή θα διαγραφεί από το ιστορικό.', true);
+    if (!ok) return;
+    try {
+      await api.delete(`/businesses/${_featBizId}/payments/${paymentId}`);
+      showToast('Διαγράφηκε', 'success');
+      loadPayments();
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+</script>
+</body>
+</html>

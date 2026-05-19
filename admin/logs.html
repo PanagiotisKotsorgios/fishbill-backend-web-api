@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Αρχεία Καταγραφής</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .input-field { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; font-size: 14px; background: #f9fafb; outline: none; transition: all .15s; }
+    .input-field:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .35s ease-out both; }
+    .tab-btn { padding: 10px 20px; font-size: 14px; border-bottom: 2px solid transparent; transition: all .15s; color: #6b7280; cursor: pointer; white-space: nowrap; }
+    .tab-btn:hover { color: #374151; }
+    .tab-btn.active { border-bottom-color: #2563eb; color: #1d4ed8; font-weight: 600; }
+    .log-row:hover td { background: #f9fafb; }
+    .log-row { cursor: pointer; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Αρχεία Καταγραφής</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Ιστορικό ενεργειών &amp; μεταδόσεων myDATA</p>
+      </div>
+      <button onclick="openMagicWizard()"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-colors">
+            🧙 Magic Log Wizard
+          </button>
+      <button onclick="refresh()"
+        class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Ανανέωση
+      </button>
+    </div>
+
+    <!-- Card with Tabs + Filters + Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden anim" style="animation-delay:.08s">
+
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-100 px-2 pt-1 overflow-x-auto">
+        <button id="tab-audit" class="tab-btn active" onclick="switchTab('audit')">
+          <i class="fas fa-list-check mr-1"></i>Αρχείο Ελέγχου
+        </button>
+        <button id="tab-transmission" class="tab-btn" onclick="switchTab('transmission')">
+          <i class="fas fa-satellite-dish mr-1"></i>Μεταδόσεις myDATA
+        </button>
+      </div>
+
+      <!-- Audit Filters -->
+      <div id="audit-filters" class="flex flex-wrap gap-3 px-5 py-3 border-b border-gray-50 bg-gray-50/50">
+        <div class="flex-1 min-w-40 relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="f-user" type="text" placeholder="Αναζήτηση χρήστη..."
+            class="input-field w-full pl-9" oninput="debouncedAudit()" />
+        </div>
+        <select id="f-action" class="input-field" onchange="loadAudit(1)">
+          <option value="">Όλες οι Ενέργειες</option>
+          <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
+          <option value="LOGIN_FAILED">LOGIN_FAILED</option>
+          <option value="login">login</option>
+          <option value="logout">logout</option>
+          <option value="create_invoice">create_invoice</option>
+          <option value="update_invoice">update_invoice</option>
+          <option value="cancel_invoice">cancel_invoice</option>
+          <option value="create_customer">create_customer</option>
+          <option value="update_customer">update_customer</option>
+          <option value="delete_customer">delete_customer</option>
+          <option value="create_user">create_user</option>
+          <option value="update_user">update_user</option>
+          <option value="delete_user">delete_user</option>
+          <option value="transmit">transmit</option>
+        </select>
+        <input type="date" id="f-from" class="input-field" onchange="loadAudit(1)" title="Από" />
+        <input type="date" id="f-to" class="input-field" onchange="loadAudit(1)" title="Έως" />
+        <button onclick="clearAuditFilters()" class="input-field text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
+          Καθαρισμός
+        </button>
+      </div>
+
+      <!-- Transmission Filters -->
+      <div id="transmission-filters" class="hidden flex-wrap gap-3 px-5 py-3 border-b border-gray-50 bg-gray-50/50">
+        <select id="ft-status" class="input-field" onchange="loadTransmission(1)">
+          <option value="">Όλες οι Καταστάσεις</option>
+          <option value="success">Επιτυχία</option>
+          <option value="error">Σφάλμα</option>
+          <option value="pending">Εκκρεμεί</option>
+        </select>
+        <input type="date" id="ft-from" class="input-field" onchange="loadTransmission(1)" title="Από" />
+        <input type="date" id="ft-to" class="input-field" onchange="loadTransmission(1)" title="Έως" />
+        <button onclick="clearTransmissionFilters()" class="input-field text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
+          Καθαρισμός
+        </button>
+      </div>
+
+      <!-- Audit Table -->
+      <div id="audit-panel">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-100 bg-gray-50/40">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Ενέργεια</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Χρήστης</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Οντότητα</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Περιγραφή</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden xl:table-cell">IP</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Ημ/νία</th>
+              </tr>
+            </thead>
+            <tbody id="audit-body">
+              <tr><td colspan="6" class="py-16 text-center text-gray-400 text-sm">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="audit-pagination"></div>
+      </div>
+
+      <!-- Transmission Table -->
+      <div id="transmission-panel" class="hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-100 bg-gray-50/40">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Κατάσταση</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Παραστατικό</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Κωδ. Απάντησης</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Μήνυμα</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden xl:table-cell">MARK</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Απόπειρα</th>
+              </tr>
+            </thead>
+            <tbody id="transmission-body">
+              <tr><td colspan="6" class="py-16 text-center text-gray-400 text-sm">Φόρτωση...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="transmission-pagination"></div>
+      </div>
+
+    </div><!-- /card -->
+
+  </main>
+</div>
+
+<!-- Detail Modal -->
+<div id="modal-detail" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="text-base font-bold text-gray-900" id="modal-detail-title">Λεπτομέρειες</h2>
+      <button onclick="closeModal('modal-detail')" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="modal-detail-body" class="p-6"></div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+
+<!-- ═══ Magic Log Wizard ═══════════════════════════════════════════════════ -->
+<div id="magic-wizard-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-white font-bold text-lg">🧙 Magic Log Wizard</h2>
+          <p class="text-purple-200 text-xs mt-0.5">Εξαγωγή & οριστική διαγραφή παλαιών logs</p>
+        </div>
+        <button onclick="closeMagicWizard()" class="text-white/70 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+    </div>
+    <!-- Steps -->
+    <div id="wizard-step-1" class="p-6">
+      <p class="text-sm text-gray-600 mb-5">Επιλέξτε τι θέλετε να διαγράψετε και από πότε. Τα δεδομένα θα <strong>εξαχθούν πρώτα σε .txt αρχεία</strong> στον υπολογιστή σας και μετά θα διαγραφούν οριστικά από τη βάση.</p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Τύπος Logs</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="wizard-type-btn flex flex-col items-center justify-center p-3 rounded-xl border-2 border-purple-500 bg-purple-50 cursor-pointer text-center" data-value="both">
+              <input type="radio" name="wizard-type" value="both" checked class="hidden"/>
+              <span class="text-xl">📋</span>
+              <span class="text-xs font-semibold text-purple-700 mt-1">Και τα δύο</span>
+            </label>
+            <label class="wizard-type-btn flex flex-col items-center justify-center p-3 rounded-xl border-2 border-gray-200 cursor-pointer text-center" data-value="audit">
+              <input type="radio" name="wizard-type" value="audit" class="hidden"/>
+              <span class="text-xl">🔍</span>
+              <span class="text-xs font-semibold text-gray-600 mt-1">Audit Logs</span>
+            </label>
+            <label class="wizard-type-btn flex flex-col items-center justify-center p-3 rounded-xl border-2 border-gray-200 cursor-pointer text-center" data-value="transmission">
+              <input type="radio" name="wizard-type" value="transmission" class="hidden"/>
+              <span class="text-xl">📡</span>
+              <span class="text-xs font-semibold text-gray-600 mt-1">Transmission</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Διαγραφή logs παλαιότερων από</label>
+          <div class="grid grid-cols-4 gap-2">
+            <label class="wizard-age-btn flex flex-col items-center p-3 rounded-xl border-2 border-gray-200 cursor-pointer text-center" data-value="1">
+              <input type="radio" name="wizard-age" value="1" class="hidden"/>
+              <span class="text-lg font-bold text-gray-700">1</span>
+              <span class="text-xs text-gray-500">μήνας</span>
+            </label>
+            <label class="wizard-age-btn flex flex-col items-center p-3 rounded-xl border-2 border-gray-200 cursor-pointer text-center" data-value="3">
+              <input type="radio" name="wizard-age" value="3" class="hidden"/>
+              <span class="text-lg font-bold text-gray-700">3</span>
+              <span class="text-xs text-gray-500">μήνες</span>
+            </label>
+            <label class="wizard-age-btn flex flex-col items-center p-3 rounded-xl border-2 border-gray-200 cursor-pointer text-center" data-value="6">
+              <input type="radio" name="wizard-age" value="6" class="hidden"/>
+              <span class="text-lg font-bold text-gray-700">6</span>
+              <span class="text-xs text-gray-500">μήνες</span>
+            </label>
+            <label class="wizard-age-btn flex flex-col items-center p-3 rounded-xl border-2 border-gray-200 cursor-pointer text-center border-purple-500 bg-purple-50" data-value="12">
+              <input type="radio" name="wizard-age" value="12" checked class="hidden"/>
+              <span class="text-lg font-bold text-purple-700">12</span>
+              <span class="text-xs text-purple-500">μήνες</span>
+            </label>
+          </div>
+        </div>
+        <div id="wizard-preview" class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          <strong>⚠️ Προσοχή:</strong> Θα διαγραφούν οριστικά όλα τα logs παλαιότερα από <strong id="wizard-preview-text">12 μήνες</strong>. Τα αρχεία θα ληφθούν στον υπολογιστή σας πριν τη διαγραφή.
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeMagicWizard()" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Άκυρο</button>
+        <button onclick="wizardConfirm()" class="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold">Εξαγωγή & Διαγραφή →</button>
+      </div>
+    </div>
+    <!-- Step 2: Processing -->
+    <div id="wizard-step-2" class="p-6 hidden text-center">
+      <div class="flex flex-col items-center gap-4 py-4">
+        <svg class="animate-spin h-12 w-12 text-purple-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <p class="text-gray-700 font-semibold">Εξαγωγή και διαγραφή σε εξέλιξη...</p>
+        <p class="text-gray-400 text-sm">Παρακαλώ μην κλείσετε το παράθυρο</p>
+      </div>
+    </div>
+    <!-- Step 3: Done -->
+    <div id="wizard-step-3" class="p-6 hidden">
+      <div class="text-center mb-5">
+        <div class="text-5xl mb-3">✅</div>
+        <h3 class="text-lg font-bold text-gray-800">Ολοκληρώθηκε!</h3>
+        <p class="text-sm text-gray-500 mt-1">Τα αρχεία ελήφθησαν και τα logs διαγράφηκαν.</p>
+      </div>
+      <div id="wizard-results" class="space-y-2 mb-5"></div>
+      <button onclick="closeMagicWizard()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold">Κλείσιμο</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/page.js"></script>
+<script>
+  initPage({ requireRole: ['super_admin', 'owner', 'accountant'] });
+
+  let currentTab  = 'audit';
+  let auditPage   = 1;
+  let transPage   = 1;
+  let LIMIT       = 25;
+  let auditCache  = {};
+
+  const debouncedAudit = debounce(() => loadAudit(1), 350);
+
+  // ── Action color map ─────────────────────────────────────────────────────────
+  function actionBadge(action) {
+    const a = (action || '').toLowerCase();
+    const map = {
+      login:           'bg-blue-100 text-blue-700',
+      logout:          'bg-gray-100 text-gray-500',
+      create_invoice:  'bg-emerald-100 text-emerald-700',
+      update_invoice:  'bg-amber-100 text-amber-700',
+      cancel_invoice:  'bg-red-100 text-red-600',
+      create_customer: 'bg-teal-100 text-teal-700',
+      update_customer: 'bg-amber-50 text-amber-600',
+      delete_customer: 'bg-red-100 text-red-600',
+      create_user:     'bg-purple-100 text-purple-700',
+      update_user:     'bg-purple-50 text-purple-600',
+      delete_user:     'bg-red-100 text-red-600',
+      transmit:        'bg-indigo-100 text-indigo-700',
+    };
+    const cls = map[a] || 'bg-gray-100 text-gray-600';
+    return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${cls}">${action || '—'}</span>`;
+  }
+
+  // ── Tab switch ───────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tab-audit').className        = `tab-btn${tab === 'audit' ? ' active' : ''}`;
+    document.getElementById('tab-transmission').className = `tab-btn${tab === 'transmission' ? ' active' : ''}`;
+    document.getElementById('audit-panel').classList.toggle('hidden', tab !== 'audit');
+    document.getElementById('transmission-panel').classList.toggle('hidden', tab !== 'transmission');
+    document.getElementById('audit-filters').classList.toggle('hidden', tab !== 'audit');
+    document.getElementById('audit-filters').classList.toggle('flex', tab === 'audit');
+    document.getElementById('transmission-filters').classList.toggle('hidden', tab !== 'transmission');
+    document.getElementById('transmission-filters').classList.toggle('flex', tab === 'transmission');
+    if (tab === 'audit') loadAudit(auditPage);
+    else loadTransmission(transPage);
+  }
+
+  function refresh() {
+    if (currentTab === 'audit') loadAudit(auditPage);
+    else loadTransmission(transPage);
+  }
+
+  // ── Audit Log ────────────────────────────────────────────────────────────────
+  function clearAuditFilters() {
+    setVal('f-user', '');
+    setVal('f-action', '');
+    document.getElementById('f-from').value = '';
+    document.getElementById('f-to').value   = '';
+    loadAudit(1);
+  }
+
+  async function loadAudit(page = 1) {
+    auditPage = page;
+    const tbody = document.getElementById('audit-body');
+    tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></td></tr>';
+
+    const params = new URLSearchParams({ page, limit: LIMIT });
+    const user   = val('f-user');
+    const action = val('f-action');
+    const from   = document.getElementById('f-from').value;
+    const to     = document.getElementById('f-to').value;
+    if (user)   params.set('user', user);
+    if (action) params.set('action', action);
+    if (from)   params.set('from', from);
+    if (to)     params.set('to', to + 'T23:59:59');
+
+    try {
+      const res = await api.get(`/logs?${params}`);
+      const { data, total } = res;
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="flex flex-col items-center justify-center py-16 text-center"><div class="text-4xl mb-3 opacity-40"><i class='fas fa-list-check'></i></div><p class="text-sm text-gray-500">Δεν βρέθηκαν εγγραφές</p></div></td></tr>`;
+        document.getElementById('audit-pagination').innerHTML = '';
+        return;
+      }
+
+      auditCache = {};
+      data.forEach(r => { auditCache[r.id] = r; });
+
+      tbody.innerHTML = data.map(r => `
+        <tr class="log-row border-b border-gray-50" onclick="showAuditDetail('${r.id}')">
+          <td class="px-5 py-3">${actionBadge(r.action)}</td>
+          <td class="px-5 py-3">
+            <div class="text-xs font-semibold text-gray-900">${r.user_name || '—'}</div>
+            <div class="text-xs text-gray-400">${r.user_email || ''}</div>
+          </td>
+          <td class="px-5 py-3 hidden md:table-cell">
+            ${r.entity_type
+              ? `<span class="text-xs text-gray-600 font-medium">${r.entity_type}</span><span class="text-xs text-gray-400 ml-1">${r.entity_id ? '#' + String(r.entity_id).slice(0,8) : ''}</span>`
+              : '<span class="text-gray-300 text-xs">—</span>'}
+          </td>
+          <td class="px-5 py-3 hidden lg:table-cell max-w-xs">
+            <span class="text-xs text-gray-600 truncate block">${r.description || '—'}</span>
+          </td>
+          <td class="px-5 py-3 hidden xl:table-cell">
+            <span class="text-xs font-mono text-gray-400">${r.ip_address || '—'}</span>
+          </td>
+          <td class="px-5 py-3 whitespace-nowrap text-xs text-gray-500">${fmtDateTime(r.created_at)}</td>
+        </tr>`).join('');
+
+      renderPagination('audit-pagination', total, page, LIMIT, 'loadAudit', function(l) { LIMIT = l; loadAudit(1); });
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-red-500 text-sm">Σφάλμα: ${e.message}</td></tr>`;
+    }
+  }
+
+  function showAuditDetail(id) {
+    const r = auditCache[id];
+    if (!r) return;
+    document.getElementById('modal-detail-title').textContent = `Λεπτομέρειες — ${r.action}`;
+    document.getElementById('modal-detail-body').innerHTML = `
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Ενέργεια</dt>
+          <dd>${actionBadge(r.action)}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Χρόνος</dt>
+          <dd class="text-gray-900">${fmtDateTime(r.created_at)}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Χρήστης</dt>
+          <dd class="text-gray-900 font-medium">${r.user_name || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</dt>
+          <dd class="text-gray-600">${r.user_email || '—'}</dd>
+        </div>
+        ${r.business_name ? `<div class="sm:col-span-2">
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Επιχείρηση</dt>
+          <dd class="text-gray-900">${r.business_name}</dd>
+        </div>` : ''}
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Τύπος Οντότητας</dt>
+          <dd class="text-gray-700">${r.entity_type || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">ID Οντότητας</dt>
+          <dd class="font-mono text-xs text-gray-500 break-all">${r.entity_id || '—'}</dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Περιγραφή</dt>
+          <dd class="text-gray-700 bg-gray-50 rounded-lg p-3 text-xs">${r.description || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Διεύθυνση IP</dt>
+          <dd class="font-mono text-xs text-gray-500">${r.ip_address || '—'}</dd>
+        </div>
+      </dl>`;
+    openModal('modal-detail');
+  }
+
+  // ── Transmission Log ─────────────────────────────────────────────────────────
+  function clearTransmissionFilters() {
+    setVal('ft-status', '');
+    document.getElementById('ft-from').value = '';
+    document.getElementById('ft-to').value   = '';
+    loadTransmission(1);
+  }
+
+  async function loadTransmission(page = 1) {
+    transPage = page;
+    const tbody = document.getElementById('transmission-body');
+    tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></td></tr>';
+
+    const params = new URLSearchParams({ page, limit: LIMIT });
+    const status = val('ft-status');
+    const from   = document.getElementById('ft-from').value;
+    const to     = document.getElementById('ft-to').value;
+    if (status) params.set('status', status);
+    if (from)   params.set('from', from);
+    if (to)     params.set('to', to + 'T23:59:59');
+
+    try {
+      const res = await api.get(`/logs/transmission?${params}`);
+      const { data, total } = res;
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="flex flex-col items-center justify-center py-16 text-center"><div class="text-4xl mb-3 opacity-40"><i class='fas fa-satellite-dish'></i></div><p class="text-sm text-gray-500">Δεν βρέθηκαν εγγραφές μετάδοσης</p></div></td></tr>`;
+        document.getElementById('transmission-pagination').innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => `
+        <tr class="log-row border-b border-gray-50" onclick="showTransmissionDetail(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+          <td class="px-5 py-3">${statusBadge(r.status)}</td>
+          <td class="px-5 py-3">
+            <span class="font-semibold text-gray-900 text-xs">${r.invoice_number || '—'}</span>
+            ${r.business_name ? `<div class="text-xs text-gray-400">${r.business_name}</div>` : ''}
+          </td>
+          <td class="px-5 py-3 hidden md:table-cell">
+            <span class="font-mono text-xs ${r.response_code && r.response_code !== '200' && r.response_code !== 200 ? 'text-red-500' : 'text-gray-500'}">${r.response_code || '—'}</span>
+          </td>
+          <td class="px-5 py-3 hidden lg:table-cell max-w-xs">
+            <span class="text-xs text-gray-600 truncate block">${r.response_message || '—'}</span>
+          </td>
+          <td class="px-5 py-3 hidden xl:table-cell">
+            <span class="font-mono text-xs text-indigo-600">${r.mark || '—'}</span>
+          </td>
+          <td class="px-5 py-3 whitespace-nowrap text-xs text-gray-500">${fmtDateTime(r.attempted_at)}</td>
+        </tr>`).join('');
+
+      renderPagination('transmission-pagination', total, page, LIMIT, 'loadTransmission', function(l) { LIMIT = l; loadTransmission(1); });
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-red-500 text-sm">Σφάλμα: ${e.message}</td></tr>`;
+    }
+  }
+
+  function showTransmissionDetail(r) {
+    document.getElementById('modal-detail-title').textContent = `Μετάδοση — ${r.invoice_number || r.id}`;
+    document.getElementById('modal-detail-body').innerHTML = `
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Κατάσταση</dt>
+          <dd>${statusBadge(r.status)}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Χρόνος Απόπειρας</dt>
+          <dd class="text-gray-900">${fmtDateTime(r.attempted_at)}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Παραστατικό</dt>
+          <dd class="font-semibold text-blue-700">${r.invoice_number || '—'}</dd>
+        </div>
+        ${r.business_name ? `<div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Επιχείρηση</dt>
+          <dd class="text-gray-900">${r.business_name}</dd>
+        </div>` : ''}
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Κωδ. Απάντησης</dt>
+          <dd class="font-mono text-gray-700">${r.response_code || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">MARK</dt>
+          <dd class="font-mono text-indigo-600">${r.mark || '—'}</dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Μήνυμα Απάντησης</dt>
+          <dd class="text-gray-700 text-xs bg-gray-50 rounded-lg p-3 font-mono break-all">${r.response_message || '—'}</dd>
+        </div>
+      </dl>`;
+    openModal('modal-detail');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  loadAudit(1);
+
+
+  // ═══ Magic Log Wizard ═══════════════════════════════════════════════════
+  function openMagicWizard() {
+    // Only for super_admin
+    if (getUserRole() !== 'super_admin') {
+      alert('Μόνο ο Super Admin μπορεί να χρησιμοποιήσει το Magic Log Wizard.');
+      return;
+    }
+    document.getElementById('wizard-step-1').classList.remove('hidden');
+    document.getElementById('wizard-step-2').classList.add('hidden');
+    document.getElementById('wizard-step-3').classList.add('hidden');
+    const bd = document.getElementById('magic-wizard-backdrop');
+    bd.classList.remove('hidden');
+    bd.classList.add('flex');
+  }
+
+  function closeMagicWizard() {
+    const bd = document.getElementById('magic-wizard-backdrop');
+    bd.classList.add('hidden');
+    bd.classList.remove('flex');
+    refresh();
+  }
+
+  // Type selector highlighting
+  document.querySelectorAll('.wizard-type-btn').forEach(lbl => {
+    lbl.addEventListener('click', () => {
+      document.querySelectorAll('.wizard-type-btn').forEach(b => {
+        b.classList.remove('border-purple-500', 'bg-purple-50');
+        b.classList.add('border-gray-200');
+        b.querySelector('span.font-semibold').classList.remove('text-purple-700');
+        b.querySelector('span.font-semibold').classList.add('text-gray-600');
+      });
+      lbl.classList.add('border-purple-500', 'bg-purple-50');
+      lbl.classList.remove('border-gray-200');
+      lbl.querySelector('span.font-semibold').classList.add('text-purple-700');
+      lbl.querySelector('span.font-semibold').classList.remove('text-gray-600');
+    });
+  });
+
+  // Age selector highlighting
+  document.querySelectorAll('.wizard-age-btn').forEach(lbl => {
+    lbl.addEventListener('click', () => {
+      document.querySelectorAll('.wizard-age-btn').forEach(b => {
+        b.classList.remove('border-purple-500', 'bg-purple-50');
+        b.classList.add('border-gray-200');
+        b.querySelectorAll('span')[0].classList.remove('text-purple-700');
+        b.querySelectorAll('span')[0].classList.add('text-gray-700');
+        b.querySelectorAll('span')[1].classList.remove('text-purple-500');
+        b.querySelectorAll('span')[1].classList.add('text-gray-500');
+      });
+      lbl.classList.add('border-purple-500', 'bg-purple-50');
+      lbl.classList.remove('border-gray-200');
+      lbl.querySelectorAll('span')[0].classList.add('text-purple-700');
+      lbl.querySelectorAll('span')[0].classList.remove('text-gray-700');
+      lbl.querySelectorAll('span')[1].classList.add('text-purple-500');
+      lbl.querySelectorAll('span')[1].classList.remove('text-gray-500');
+      // Update preview text
+      const months = lbl.dataset.value;
+      document.getElementById('wizard-preview-text').textContent =
+        months === '1' ? '1 μήνα' : `${months} μήνες`;
+    });
+  });
+
+  async function wizardConfirm() {
+    const type = document.querySelector('input[name="wizard-type"]:checked')?.value || 'both';
+    const months = parseInt(document.querySelector('input[name="wizard-age"]:checked')?.value || '12');
+
+    document.getElementById('wizard-step-1').classList.add('hidden');
+    document.getElementById('wizard-step-2').classList.remove('hidden');
+
+    try {
+      const result = await api.post('/logs/purge', { type, older_than_months: months });
+      const files = result.data?.files || [];
+
+      // Download each file that has content
+      for (const f of files) {
+        if (f.content && f.rows > 0) {
+          const bytes = atob(f.content);
+          const arr = new Uint8Array(bytes.length);
+          for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+          const blob = new Blob([arr], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = f.filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          await new Promise(r => setTimeout(r, 400)); // slight delay between downloads
+        }
+      }
+
+      // Show results
+      const resultsEl = document.getElementById('wizard-results');
+      resultsEl.innerHTML = files.map(f => `
+        <div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 text-sm">
+          <span class="font-medium text-gray-700">📄 ${f.filename}</span>
+          <span class="${f.rows > 0 ? 'text-purple-600 font-bold' : 'text-gray-400'}">
+            ${f.rows > 0 ? `${f.rows.toLocaleString()} εγγραφές διαγράφηκαν` : 'Δεν βρέθηκαν εγγραφές'}
+          </span>
+        </div>
+      `).join('');
+
+      document.getElementById('wizard-step-2').classList.add('hidden');
+      document.getElementById('wizard-step-3').classList.remove('hidden');
+    } catch (err) {
+      document.getElementById('wizard-step-2').classList.add('hidden');
+      document.getElementById('wizard-step-1').classList.remove('hidden');
+      alert('Σφάλμα: ' + (err.message || 'Άγνωστο σφάλμα'));
+    }
+  }
+</script>
+</body>
+</html>

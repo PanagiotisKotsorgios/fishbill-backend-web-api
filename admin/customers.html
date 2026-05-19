@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Πελάτες</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .stat-card { transition: transform .15s, box-shadow .15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .anim   { animation: fadeUp .35s ease-out both; }
+    .anim-1 { animation-delay: .05s; }
+    .anim-2 { animation-delay: .10s; }
+    .anim-3 { animation-delay: .15s; }
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: #f9fafb; }
+    .fav-btn { transition: color .15s, transform .15s; }
+    .fav-btn:hover { transform: scale(1.2); }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div id="sidebar-container"></div>
+
+  <!-- Main content -->
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Page header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim anim-1">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Πελάτες</h1>
+          <p class="text-sm text-gray-500 mt-0.5">Διαχείριση πελατολογίου</p>
+        </div>
+        <button id="btn-new-customer" onclick="openCreateModal()"
+          class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Νέος Πελάτης
+        </button>
+      </div>
+
+      <!-- Stats bar -->
+      <div id="stats-bar" class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6 anim anim-1">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-3 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-7 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-3 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-7 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-3 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-7 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5 anim anim-2">
+        <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <!-- Search -->
+          <div class="relative flex-1 min-w-0">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+              xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
+            </svg>
+            <input id="search-input" type="text"
+              placeholder="Αναζήτηση ονόματος, ΑΦΜ, πόλης..."
+              class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" />
+          </div>
+          <!-- Active filter -->
+          <select id="filter-active"
+            class="text-sm border border-gray-200 rounded-xl px-3 py-2.5
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition flex-shrink-0">
+            <option value="">Όλοι</option>
+            <option value="1">Ενεργοί</option>
+            <option value="0">Ανενεργοί</option>
+          </select>
+          <!-- Favorite toggle -->
+          <button id="btn-fav-filter" onclick="toggleFavFilter()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-medium
+                   border border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300
+                   hover:text-amber-600 transition-colors flex-shrink-0">
+            <span class="text-base leading-none">&#9733;</span>
+            <span>Αγαπημένοι</span>
+          </button>
+          <!-- Result count -->
+          <span id="result-count" class="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap hidden sm:inline"></span>
+        </div>
+      </div>
+
+      <!-- Table card -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 anim anim-3">
+        <div id="customers-table"><!-- loaded by JS --></div>
+        <div id="customers-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══════════════════════ CREATE / EDIT MODAL ═══════════════════════ -->
+  <div id="modal-customer"
+    class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 items-center justify-center p-4 modal-backdrop">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+      onclick="event.stopPropagation()">
+
+      <!-- Modal header -->
+      <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+        <div>
+          <h2 id="modal-title" class="text-lg font-bold text-gray-900">Νέος Πελάτης</h2>
+          <p id="modal-subtitle" class="text-xs text-gray-400 mt-0.5">Συμπληρώστε τα στοιχεία του πελάτη</p>
+        </div>
+        <button onclick="closeModal('modal-customer')"
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal body -->
+      <div class="px-6 py-5 space-y-5">
+
+        <!-- Name + AFM -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">
+              Όνομα / Επωνυμία <span class="text-red-500">*</span>
+            </label>
+            <input id="f-name" type="text" data-autofocus placeholder="π.χ. Νικόλαος Παπαδόπουλος"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">ΑΦΜ</label>
+            <input id="f-afm" type="text" placeholder="π.χ. 123456789"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+        </div>
+
+        <!-- Trade name -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5">Εμπορική Επωνυμία</label>
+          <input id="f-trade-name" type="text" placeholder="Εμπορική ονομασία (αν διαφέρει)"
+            class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+        </div>
+
+        <!-- Address + City + Postal code -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-1">
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Διεύθυνση</label>
+            <input id="f-address" type="text" placeholder="Οδός &amp; αριθμός"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Πόλη</label>
+            <input id="f-city" type="text" placeholder="π.χ. Αθήνα"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Τ.Κ.</label>
+            <input id="f-postal-code" type="text" placeholder="π.χ. 10558"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+        </div>
+
+        <!-- Phone + Email -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Τηλέφωνο</label>
+            <input id="f-phone" type="tel" placeholder="π.χ. 2101234567"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">Email</label>
+            <input id="f-email" type="email" placeholder="π.χ. info@example.gr"
+              class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+          </div>
+        </div>
+
+        <!-- Default payment method -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5">
+            Προεπιλεγμένος Τρόπος Πληρωμής
+          </label>
+          <select id="f-payment-method"
+            class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+            <option value="cash">Μετρητά</option>
+            <option value="bank">Τραπεζική Μεταφορά</option>
+            <option value="check">Επιταγή</option>
+            <option value="credit">Πίστωση</option>
+          </select>
+        </div>
+
+        <!-- Toggles -->
+        <div class="flex flex-wrap gap-6 pt-1 pb-1">
+          <label class="inline-flex items-center gap-3 cursor-pointer select-none">
+            <input id="f-favorite" type="checkbox"
+              class="w-4 h-4 rounded text-amber-500 border-gray-300 focus:ring-amber-400" />
+            <span class="text-sm font-medium text-gray-700">&#9733; Αγαπημένος</span>
+          </label>
+          <label id="f-active-row" class="hidden inline-flex items-center gap-3 cursor-pointer select-none">
+            <input id="f-active" type="checkbox"
+              class="w-4 h-4 rounded text-emerald-500 border-gray-300 focus:ring-emerald-400" />
+            <span class="text-sm font-medium text-gray-700">Ενεργός</span>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- Modal footer -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+        <p id="modal-error" class="text-xs text-red-600 font-medium"></p>
+        <div class="flex gap-3">
+          <button onclick="closeModal('modal-customer')"
+            class="px-5 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200
+                   hover:bg-gray-50 rounded-xl transition-colors">
+            Άκυρο
+          </button>
+          <button id="btn-save-customer" onclick="saveCustomer()"
+            class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700
+                   rounded-xl transition-colors shadow-sm">
+            Αποθήκευση
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/page.js"></script>
+  <script>
+    requireAuth();
+    buildSidebar();
+
+    // ── Role & state ─────────────────────────────────────────────────────────
+    const role     = getUserRole();
+    const canWrite = ['owner', 'super_admin'].includes(role);
+
+    let currentPage  = 1;
+    let PAGE_LIMIT   = 25;
+    let searchQuery  = '';
+    let filterActive = '';
+    let filterFav    = false;
+    let editingId    = null;
+    let statsLoaded  = false;
+
+    // Hide create button if no write access
+    if (!canWrite) {
+      const btnNew = document.getElementById('btn-new-customer');
+      if (btnNew) btnNew.classList.add('hidden');
+    }
+
+    // ── Search & filter listeners ────────────────────────────────────────────
+    const debouncedSearch = debounce(() => {
+      searchQuery = val('search-input');
+      currentPage = 1;
+      loadCustomers(1);
+    }, 350);
+
+    document.getElementById('search-input').addEventListener('input', debouncedSearch);
+
+    document.getElementById('filter-active').addEventListener('change', function () {
+      filterActive = this.value;
+      currentPage  = 1;
+      loadCustomers(1);
+    });
+
+    function toggleFavFilter() {
+      filterFav = !filterFav;
+      currentPage = 1;
+      const btn = document.getElementById('btn-fav-filter');
+      if (filterFav) {
+        btn.classList.add('bg-amber-50', 'border-amber-400', 'text-amber-600');
+        btn.classList.remove('border-gray-200', 'text-gray-600');
+      } else {
+        btn.classList.remove('bg-amber-50', 'border-amber-400', 'text-amber-600');
+        btn.classList.add('border-gray-200', 'text-gray-600');
+      }
+      loadCustomers(1);
+    }
+
+    // ── Load customers ───────────────────────────────────────────────────────
+    async function loadCustomers(page) {
+      page = page || currentPage;
+      currentPage = page;
+      showSpinner('customers-table');
+      document.getElementById('customers-pagination').innerHTML = '';
+
+      const params = { page, limit: PAGE_LIMIT };
+      if (searchQuery)        params.q        = searchQuery;
+      if (filterActive !== '') params.active   = filterActive;
+      if (filterFav)           params.favorite = 1;
+
+      try {
+        const res       = await api.get('/customers', params);
+        const customers = res.data  || [];
+        const total     = res.total || 0;
+
+        // Update result count
+        const countEl = document.getElementById('result-count');
+        countEl.textContent = total > 0 ? `${total} αποτελέσματα` : 'Κανένα αποτέλεσμα';
+        countEl.classList.remove('hidden');
+
+        // Build stats on the initial unfiltered load
+        if (!statsLoaded && page === 1 && !searchQuery && filterActive === '' && !filterFav) {
+          buildStats(customers, total, res);
+          statsLoaded = true;
+        }
+
+        if (!customers.length) {
+          showEmpty('customers-table', 'Δεν βρέθηκαν πελάτες', '<i class="fas fa-users"></i>');
+          return;
+        }
+
+        renderTable(customers);
+
+        renderPagination(
+          'customers-pagination',
+          total, page, PAGE_LIMIT,
+          'function(p){ loadCustomers(p); }',
+          function(l) { PAGE_LIMIT = l; loadCustomers(1); }
+        );
+      } catch (err) {
+        showError('customers-table', 'Σφάλμα φόρτωσης: ' + err.message);
+      }
+    }
+
+    // ── Stats bar ────────────────────────────────────────────────────────────
+    function buildStats(customers, total, res) {
+      // Use server totals if available, otherwise derive from the page sample
+      const totalCount = res.total_count || total;
+      const favCount   = res.favorite_count  !== undefined
+        ? res.favorite_count
+        : customers.filter(c => c.is_favorite).length;
+      const activeCount = res.active_count   !== undefined
+        ? res.active_count
+        : customers.filter(c => c.is_active).length;
+
+      const card = (icon, label, value, bg) => `
+        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl ${bg} flex items-center justify-center text-2xl flex-shrink-0">
+            ${icon}
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider leading-none mb-1">${label}</p>
+            <p class="text-2xl font-extrabold text-gray-900">${value}</p>
+          </div>
+        </div>`;
+
+      document.getElementById('stats-bar').innerHTML =
+        card('&#128101;', 'Σύνολο Πελατών', totalCount, 'bg-blue-100') +
+        card('&#9733;',   'Αγαπημένοι',     favCount,   'bg-amber-100') +
+        card('&#10003;',  'Ενεργοί',         activeCount, 'bg-emerald-100');
+    }
+
+    // ── Render table ─────────────────────────────────────────────────────────
+    function renderTable(customers) {
+      const paymentLabels = {
+        cash:   'Μετρητά',
+        bank:   'Τράπεζα',
+        check:  'Επιταγή',
+        credit: 'Πίστωση',
+      };
+
+      const rows = customers.map(c => {
+        const favCls = c.is_favorite
+          ? 'fav-btn text-amber-500 hover:text-amber-600 focus:outline-none'
+          : 'fav-btn text-gray-300 hover:text-amber-400 focus:outline-none';
+
+        const actionButtons = canWrite
+          ? `<div class="flex items-center gap-0.5">
+               <button onclick="openEditModal('${c.id}')"
+                 class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium
+                        text-gray-600 hover:bg-gray-100 transition-colors" title="Επεξεργασία">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                        m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                 </svg>
+                 <span class="hidden sm:inline">Επεξ.</span>
+               </button>
+               <button onclick="toggleActive('${c.id}', ${c.is_active ? 1 : 0})"
+                 class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium
+                        ${c.is_active
+                          ? 'text-amber-600 hover:bg-amber-50'
+                          : 'text-emerald-600 hover:bg-emerald-50'}
+                        transition-colors"
+                 title="${c.is_active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}">
+                 ${c.is_active ? '&#9646;&#9646;' : '&#9654;'}
+                 <span class="hidden sm:inline">${c.is_active ? 'Απενεργ.' : 'Ενεργοπ.'}</span>
+               </button>
+               <button onclick="deleteCustomer('${c.id}', '${escHtml(c.name)}')"
+                 class="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium
+                        text-red-600 hover:bg-red-50 transition-colors" title="Διαγραφή">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7
+                        m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                 </svg>
+               </button>
+             </div>`
+          : '<span class="text-gray-300 text-xs">—</span>';
+
+        return `
+          <tr>
+            <td class="px-4 py-3.5">
+              <div class="font-semibold text-sm text-gray-900">${escHtml(c.name)}</div>
+              ${c.afm       ? `<div class="text-xs text-gray-400 mt-0.5">ΑΦΜ: ${escHtml(c.afm)}</div>` : ''}
+              ${c.trade_name ? `<div class="text-xs text-blue-500 mt-0.5">${escHtml(c.trade_name)}</div>` : ''}
+            </td>
+            <td class="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">${escHtml(c.city || '—')}</td>
+            <td class="px-4 py-3.5">
+              ${c.phone ? `<div class="text-sm text-gray-700">${escHtml(c.phone)}</div>` : ''}
+              ${c.email ? `<div class="text-xs text-gray-400 mt-0.5 truncate max-w-[160px]">${escHtml(c.email)}</div>` : ''}
+              ${!c.phone && !c.email ? '<span class="text-gray-300 text-sm">—</span>' : ''}
+            </td>
+            <td class="px-4 py-3.5 text-sm text-gray-700 text-right tabular-nums font-medium">
+              ${c.total_invoices != null ? c.total_invoices : 0}
+            </td>
+            <td class="px-4 py-3.5 text-sm font-semibold text-gray-900 text-right tabular-nums whitespace-nowrap">
+              ${fmtMoney(c.total_amount || 0)}
+            </td>
+            <td class="px-4 py-3.5 whitespace-nowrap">${activeBadge(c.is_active)}</td>
+            <td class="px-4 py-3.5 text-center">
+              <button onclick="toggleFavorite('${c.id}', ${c.is_favorite ? 1 : 0})"
+                class="${favCls} text-xl leading-none"
+                title="${c.is_favorite ? 'Αφαίρεση από αγαπημένα' : 'Προσθήκη στα αγαπημένα'}">
+                &#9733;
+              </button>
+            </td>
+            <td class="px-4 py-3.5">${actionButtons}</td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('customers-table').innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Όνομα / ΑΦΜ
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Πόλη
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Τηλ. / Email
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Παραστατικά
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Σύνολο Αξία
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Κατάσταση
+                </th>
+                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  &#9733;
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Ενέργειες
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    // ── Toggle favorite ──────────────────────────────────────────────────────
+    async function toggleFavorite(id, currentVal) {
+      try {
+        await api.put('/customers/' + id, { is_favorite: !currentVal });
+        loadCustomers(currentPage);
+      } catch (err) {
+        showToast('Σφάλμα: ' + err.message, 'error');
+      }
+    }
+
+    // ── Toggle active ────────────────────────────────────────────────────────
+    async function toggleActive(id, currentVal) {
+      const newState = !currentVal;
+      const label    = newState ? 'ενεργοποίηση' : 'απενεργοποίηση';
+      const ok = await confirmDialog(
+        (newState ? 'Ενεργοποίηση' : 'Απενεργοποίηση') + ' πελάτη',
+        'Επιβεβαιώνετε την ' + label + ' αυτού του πελάτη;',
+        false
+      );
+      if (!ok) return;
+      try {
+        await api.put('/customers/' + id, { is_active: newState });
+        showToast('Πελάτης ' + (newState ? 'ενεργοποιήθηκε' : 'απενεργοποιήθηκε') + '.', 'success');
+        statsLoaded = false;
+        loadCustomers(currentPage);
+      } catch (err) {
+        showToast('Σφάλμα: ' + err.message, 'error');
+      }
+    }
+
+    // ── Delete customer ──────────────────────────────────────────────────────
+    async function deleteCustomer(id, name) {
+      const ok = await confirmDialog(
+        'Διαγραφή Πελάτη',
+        'Είστε σίγουροι ότι θέλετε να διαγράψετε τον πελάτη «' + name + '»; Η ενέργεια δεν αναιρείται.',
+        true
+      );
+      if (!ok) return;
+      try {
+        await api.delete('/customers/' + id);
+        showToast('Ο πελάτης διαγράφηκε.', 'success');
+        statsLoaded = false;
+        loadCustomers(currentPage);
+      } catch (err) {
+        showToast('Σφάλμα διαγραφής: ' + err.message, 'error');
+      }
+    }
+
+    // ── Open create modal ────────────────────────────────────────────────────
+    function openCreateModal() {
+      if (!canWrite) return;
+      editingId = null;
+      document.getElementById('modal-title').textContent    = 'Νέος Πελάτης';
+      document.getElementById('modal-subtitle').textContent = 'Συμπληρώστε τα στοιχεία του νέου πελάτη';
+      document.getElementById('modal-error').textContent    = '';
+      document.getElementById('f-active-row').classList.add('hidden');
+      clearForm();
+      openModal('modal-customer');
+    }
+
+    // ── Open edit modal ──────────────────────────────────────────────────────
+    async function openEditModal(id) {
+      if (!canWrite) return;
+      editingId = id;
+      document.getElementById('modal-title').textContent    = 'Επεξεργασία Πελάτη';
+      document.getElementById('modal-subtitle').textContent = 'Τροποποιήστε τα στοιχεία του πελάτη';
+      document.getElementById('modal-error').textContent    = '';
+      document.getElementById('f-active-row').classList.remove('hidden');
+      clearForm();
+      openModal('modal-customer');
+
+      try {
+        const res = await api.get('/customers/' + id);
+        const c   = res.data || res;
+        setVal('f-name',           c.name                   || '');
+        setVal('f-afm',            c.afm                    || '');
+        setVal('f-trade-name',     c.trade_name             || '');
+        setVal('f-address',        c.address                || '');
+        setVal('f-city',           c.city                   || '');
+        setVal('f-postal-code',    c.postal_code            || '');
+        setVal('f-phone',          c.phone                  || '');
+        setVal('f-email',          c.email                  || '');
+        setVal('f-payment-method', c.default_payment_method || 'cash');
+        setChecked('f-favorite', !!c.is_favorite);
+        setChecked('f-active',   !!c.is_active);
+      } catch (err) {
+        document.getElementById('modal-error').textContent = 'Σφάλμα φόρτωσης: ' + err.message;
+      }
+    }
+
+    // ── Save (create / update) ───────────────────────────────────────────────
+    async function saveCustomer() {
+      const name = val('f-name');
+      if (!name) {
+        document.getElementById('modal-error').textContent = 'Το πεδίο "Όνομα" είναι υποχρεωτικό.';
+        document.getElementById('f-name').focus();
+        return;
+      }
+      document.getElementById('modal-error').textContent = '';
+
+      const payload = {
+        name,
+        afm:                    val('f-afm')            || undefined,
+        trade_name:              val('f-trade-name')     || undefined,
+        address:                 val('f-address')        || undefined,
+        city:                    val('f-city')           || undefined,
+        postal_code:             val('f-postal-code')    || undefined,
+        phone:                   val('f-phone')          || undefined,
+        email:                   val('f-email')          || undefined,
+        default_payment_method:  val('f-payment-method'),
+        is_favorite:             getChecked('f-favorite'),
+      };
+      if (editingId) {
+        payload.is_active = getChecked('f-active');
+      }
+
+      const btn = document.getElementById('btn-save-customer');
+      btn.disabled    = true;
+      btn.textContent = 'Αποθήκευση...';
+
+      try {
+        if (editingId) {
+          await api.put('/customers/' + editingId, payload);
+          showToast('Ο πελάτης ενημερώθηκε επιτυχώς.', 'success');
+        } else {
+          await api.post('/customers', payload);
+          showToast('Ο πελάτης δημιουργήθηκε επιτυχώς.', 'success');
+        }
+        statsLoaded = false;
+        closeModal('modal-customer');
+        loadCustomers(editingId ? currentPage : 1);
+      } catch (err) {
+        document.getElementById('modal-error').textContent = err.message;
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Αποθήκευση';
+      }
+    }
+
+    // ── Form helpers ─────────────────────────────────────────────────────────
+    function clearForm() {
+      ['f-name','f-afm','f-trade-name','f-address','f-city','f-postal-code','f-phone','f-email']
+        .forEach(id => setVal(id, ''));
+      setVal('f-payment-method', 'cash');
+      setChecked('f-favorite', false);
+      setChecked('f-active', true);
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    loadCustomers(1);
+  </script>
+</body>
+</html>

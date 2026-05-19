@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>FishBill – Πύλη Λογιστών</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:       #0B7285;
+      --brand-dark:  #0A5568;
+      --brand-mid:   #117A8B;
+      --bg-from:     #092B36;
+      --bg-mid:      #0B4A5C;
+      --bg-to:       #0D3544;
+      --accent:      #38BEC9;
+      --accent-glow: rgba(56,190,201,.18);
+      --err:         #D32F2F;
+      --err-bg:      #FFEBEE;
+      --ok:          #1B5E20;
+      --ok-bg:       #E8F5E9;
+      --warn-clr:    #E65100;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, var(--bg-from) 0%, var(--bg-mid) 45%, var(--bg-to) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0 16px 40px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .page-wrap {
+      width: 100%;
+      max-width: 460px;
+      animation: fadeUp .35s ease-out;
+    }
+
+    /* ── WELCOME ── */
+    #screen-welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 56px;
+    }
+    .fish-logo-wrap { margin-bottom: 20px; }
+    .app-title { font-size: 52px; font-weight: 900; color: #fff; text-align: center; letter-spacing: 2px; line-height: 1; margin-bottom: 8px; }
+    .app-sub { font-size: 19px; color: rgba(255,255,255,.82); text-align: center; line-height: 1.55; margin-bottom: 16px; }
+    .acct-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(56,190,201,.18); border: 1.5px solid rgba(56,190,201,.42);
+      border-radius: 100px; padding: 6px 16px;
+      font-size: 12px; font-weight: 800; color: var(--accent);
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 36px;
+    }
+    .acct-badge svg { width: 14px; height: 14px; fill: var(--accent); }
+    .btn-welcome-primary {
+      width: 100%; height: 72px; background: #fff; color: var(--brand-dark);
+      border: none; border-radius: 18px; font-size: 24px; font-weight: 900;
+      letter-spacing: 2px; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.22);
+      transition: transform .12s, box-shadow .12s; margin-bottom: 16px; font-family: inherit;
+    }
+    .btn-welcome-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,.28); }
+    .btn-welcome-primary:active { transform: scale(.98); }
+    .btn-welcome-outline {
+      width: 100%; height: 72px; background: transparent; color: #fff;
+      border: 3px solid rgba(255,255,255,.75); border-radius: 18px;
+      font-size: 24px; font-weight: 900; letter-spacing: 2px; cursor: pointer;
+      transition: background .12s, transform .12s, border-color .12s; margin-bottom: 36px; font-family: inherit;
+    }
+    .btn-welcome-outline:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); border-color: #fff; }
+    .divider-row { display: flex; align-items: center; width: 100%; margin-bottom: 18px; }
+    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.28); }
+    .divider-text { color: rgba(255,255,255,.48); font-size: 14px; padding: 0 12px; }
+    .fisher-btn {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0;
+    }
+    .fisher-btn span:first-child { color: rgba(255,255,255,.65); font-size: 14px; }
+    .fisher-btn span:last-child  { color: rgba(255,255,255,.85); font-size: 15px; font-weight: 600; text-decoration: underline; }
+
+    /* ── HEADER ── */
+    .header { display: flex; align-items: center; gap: 14px; padding: 44px 0 22px; }
+    .back-btn {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.18);
+      border-radius: 12px; width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: background .15s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,.26); }
+    .back-btn svg { width: 22px; height: 22px; fill: #fff; }
+    .header-title { font-size: 26px; font-weight: 700; color: #fff; }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff; border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.22), 0 0 0 1.5px rgba(56,190,201,.15);
+      padding: 28px 24px;
+    }
+    .card-greeting { font-size: 26px; font-weight: 700; color: var(--brand-dark); margin-bottom: 4px; }
+    .card-sub { font-size: 17px; color: #7a8fa0; margin-bottom: 20px; line-height: 1.4; }
+    .portal-notice {
+      display: flex; align-items: flex-start; gap: 9px;
+      background: rgba(56,190,201,.08); border: 1px solid rgba(56,190,201,.28);
+      border-radius: 12px; padding: 11px 14px; margin-bottom: 20px;
+      font-size: 13px; color: #0B5669; line-height: 1.5;
+    }
+    .portal-notice svg { width: 15px; height: 15px; fill: var(--brand); flex-shrink: 0; margin-top: 1px; }
+
+    /* ── FIELDS ── */
+    .field-wrap { margin-bottom: 4px; }
+
+    .outlined-field {
+      position: relative; border: 2px solid #B0BEC5; border-radius: 14px;
+      background: #fff; display: flex; align-items: center;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .outlined-field:focus-within {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(11,114,133,.1);
+    }
+    .outlined-field .field-icon {
+      flex-shrink: 0; width: 48px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .outlined-field .field-icon svg { width: 22px; height: 22px; fill: #90A4AE; transition: fill .15s; }
+    .outlined-field:focus-within .field-icon svg { fill: var(--brand); }
+    .outlined-field .floating-label {
+      position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+      font-size: 17px; color: #78909C; pointer-events: none; transition: all .15s;
+      background: #fff; padding: 0 4px;
+    }
+    .outlined-field.active .floating-label,
+    .outlined-field input:not(:placeholder-shown) ~ .floating-label {
+      top: 0; font-size: 11px; font-weight: 700;
+      color: var(--brand); letter-spacing: .04em; text-transform: uppercase;
+    }
+    .outlined-field input {
+      flex: 1; padding: 16px 14px 14px 0;
+      border: none; outline: none;
+      font-size: 16px; font-family: inherit;
+      color: #111; background: transparent; min-width: 0;
+    }
+    .outlined-field input::placeholder { color: transparent; }
+    .pw-toggle {
+      flex-shrink: 0; width: 48px; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+    }
+    .pw-toggle svg { width: 22px; height: 22px; fill: #90A4AE; transition: fill .15s; }
+    .pw-toggle:hover svg { fill: var(--brand); }
+
+    /* ── VALIDATION STATES ── */
+    .outlined-field.field-error { border-color: var(--err) !important; box-shadow: 0 0 0 3px rgba(211,47,47,.08) !important; }
+    .outlined-field.field-error .field-icon svg { fill: var(--err) !important; }
+    .outlined-field.field-error .floating-label  { color: var(--err) !important; }
+    .outlined-field.field-ok { border-color: #43A047 !important; box-shadow: 0 0 0 3px rgba(67,160,71,.08) !important; }
+    .outlined-field.field-ok .field-icon svg { fill: #43A047 !important; }
+    .outlined-field.field-ok .floating-label  { color: #43A047 !important; }
+
+    .field-status-icon {
+      flex-shrink: 0; width: 36px; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .2s;
+    }
+    .field-status-icon svg { width: 18px; height: 18px; }
+    .field-status-icon.show { opacity: 1; }
+    .field-status-icon.ok  svg { fill: #43A047; }
+    .field-status-icon.err svg { fill: var(--err); }
+
+    .field-err-msg {
+      font-size: 12px; font-weight: 500; color: var(--err);
+      padding: 4px 0 0 14px;
+      max-height: 0; overflow: hidden; opacity: 0;
+      transition: max-height .22s ease, opacity .18s;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .field-err-msg::before { content: '⚠'; font-size: 11px; flex-shrink: 0; }
+    .field-err-msg.visible { max-height: 36px; opacity: 1; }
+    .field-hint-msg {
+      font-size: 12px; color: #78909C;
+      padding: 4px 0 6px 14px;
+      display: none;
+    }
+    .field-hint-msg.show { display: block; }
+
+    .pw-strength-wrap { padding: 6px 0 4px 14px; display: none; }
+    .pw-strength-wrap.show { display: block; }
+    .pw-strength-bar {
+      height: 4px; border-radius: 4px;
+      background: #E0E0E0; overflow: hidden; margin-bottom: 4px;
+    }
+    .pw-strength-fill {
+      height: 100%; border-radius: 4px;
+      width: 0; transition: width .3s ease, background .3s;
+    }
+    .pw-strength-label { font-size: 11px; font-weight: 700; color: #78909C; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 11px; font-weight: 800; color: var(--brand);
+      text-transform: uppercase; letter-spacing: .08em;
+      margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: rgba(11,114,133,.2); }
+
+    /* ── TERMS ── */
+    .terms-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin: 14px 0 2px; cursor: pointer;
+    }
+    .terms-row input[type=checkbox] {
+      width: 20px; height: 20px; accent-color: var(--brand);
+      flex-shrink: 0; margin-top: 3px; cursor: pointer;
+    }
+    .terms-row label { font-size: 14px; color: #555; line-height: 1.6; cursor: pointer; }
+    .terms-row a { color: var(--brand); }
+    .terms-row.terms-error label { color: var(--err); }
+    .terms-row.terms-error a     { color: var(--err) !important; }
+
+    /* ── CHECK ROW ── */
+    .check-row {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 6px 0; margin-bottom: 4px;
+    }
+    .check-row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
+    .check-row label { font-size: 19px; color: #333; cursor: pointer; line-height: 1.3; }
+
+    /* ── FORGOT ── */
+    .forgot-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: none; border: none; cursor: pointer; width: 100%; padding: 8px 0;
+      font-family: inherit;
+    }
+    .forgot-btn svg { width: 20px; height: 20px; fill: var(--brand); }
+    .forgot-btn span { font-size: 18px; font-weight: 500; color: var(--brand); }
+
+    /* ── PRIMARY BUTTON ── */
+    .btn-primary {
+      width: 100%; height: 62px;
+      background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+      color: #fff; border: none; border-radius: 14px;
+      font-size: 21px; font-weight: 700; letter-spacing: 1px;
+      cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 6px 20px rgba(11,114,133,.38);
+      transition: transform .12s, box-shadow .12s, opacity .15s;
+      margin-top: 4px;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(11,114,133,.48); opacity: .93; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .58; cursor: not-allowed; transform: none; }
+    .btn-primary svg { width: 22px; height: 22px; fill: #fff; flex-shrink: 0; }
+
+    /* ── ALERTS ── */
+    .alert-warn { background: #FFF8E1; border-radius: 10px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+    .alert-warn p { font-size: 17px; color: #E65100; line-height: 1.45; }
+    .alert-err  { background: var(--err-bg); border-radius: 10px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+    .alert-err p  { font-size: 17px; color: #B71C1C; line-height: 1.45; }
+    .alert-ok   { background: var(--ok-bg); border-radius: 10px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+    .alert-ok p   { font-size: 17px; color: var(--ok); line-height: 1.45; }
+    .alert-icon { font-size: 20px; flex-shrink: 0; }
+    .hidden { display: none !important; }
+
+    /* ── CHAR COUNTER ── */
+    .char-counter {
+      font-size: 11px; color: #90A4AE;
+      text-align: right; padding: 2px 8px 4px 0;
+      display: none;
+    }
+    .char-counter.show { display: block; }
+    .char-counter.warn { color: var(--warn-clr); font-weight: 700; }
+
+    /* ── REGISTER LINK ── */
+    .register-link-row { text-align: center; margin-top: 16px; }
+    .register-link-row p { font-size: 18px; color: #555; margin-bottom: 4px; }
+    .register-link-row button {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 18px; font-weight: 700; color: var(--brand); text-decoration: underline;
+    }
+
+    .forgot-desc { font-size: 16px; color: #778899; line-height: 1.55; margin-bottom: 20px; }
+
+    /* ── SHAKE (error feedback) ── */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%      { transform: translateX(-7px); }
+      30%      { transform: translateX(7px); }
+      45%      { transform: translateX(-5px); }
+      60%      { transform: translateX(5px); }
+      75%      { transform: translateX(-3px); }
+      90%      { transform: translateX(3px); }
+    }
+    .shake { animation: shake .45s ease-out; }
+
+    /* ── SPINNER ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 26px; height: 26px;
+      border: 3px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* ── DIALOG ── */
+    .dialog-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 24px;
+      opacity: 0; transition: opacity .2s; pointer-events: none;
+    }
+    .dialog-backdrop.show { opacity: 1; pointer-events: all; display: flex; }
+    .dialog-box {
+      background: #fff; border-radius: 20px; padding: 28px 24px 20px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.3);
+      transform: scale(.92) translateY(12px);
+      transition: transform .22s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+      opacity: 0;
+    }
+    .dialog-backdrop.show .dialog-box { transform: scale(1) translateY(0); opacity: 1; }
+    .dialog-title    { font-size: 22px; font-weight: 700; color: var(--brand-dark); margin-bottom: 14px; }
+    .dialog-subtitle { font-size: 17px; font-weight: 500; color: #222; margin-bottom: 10px; }
+    .dialog-errors   { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .dialog-error-row { display: flex; align-items: flex-start; gap: 6px; }
+    .dialog-bullet   { font-size: 19px; font-weight: 700; color: #B71C1C; line-height: 1.4; flex-shrink: 0; }
+    .dialog-error-text { font-size: 17px; color: #1A1A1A; line-height: 1.45; }
+    .dialog-btn {
+      width: 100%; padding: 14px;
+      background: var(--brand-dark); color: #fff;
+      border: none; border-radius: 12px; font-size: 18px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: opacity .15s;
+    }
+    .dialog-btn:hover { opacity: .9; }
+
+    /* ── FOOTER ── */
+    .footer { text-align: center; margin-top: 24px; padding-bottom: 8px; }
+    .footer a, .footer span { color: rgba(255,255,255,.48); font-size: 12px; text-decoration: none; }
+    .footer a:hover { color: rgba(255,255,255,.75); }
+    .footer .dot { margin: 0 5px; }
+
+    /* ── BOTTOM LINKS ── */
+    .bottom-links {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-back-home {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: transparent; border: 1.5px solid #B0BEC5; border-radius: 14px;
+      padding: 12px 20px; text-decoration: none; color: #78909C;
+      font-weight: 500; font-size: 15px; font-family: inherit;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-back-home:hover { border-color: #0B7285; color: #0B7285; }
+    .btn-back-home svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
+.btn-guide {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: #0B7285; border: 2px solid #0B7285; border-radius: 14px;
+      padding: 22px 20px; text-decoration: none; color: #fff;
+      font-weight: 700; font-size: 26px; font-family: inherit;
+      transition: opacity .15s;
+    }
+    .btn-guide:hover { opacity: .88; }
+    .btn-guide svg { width: 28px; height: 28px; fill: #fff; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════
+       MOBILE FIX: portal notice stacking
+    ═══════════════════════════════════════ */
+    @media (max-width: 480px) {
+      .portal-notice {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .portal-notice a {
+        display: inline-block;
+        margin-top: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- ═══════════════ WELCOME ═══════════════ -->
+  <div id="screen-welcome">
+    <div class="fish-logo-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="200" height="133">
+        <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <path stroke="#065666" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+        <path stroke="#065666" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+        <path fill="#0A5568" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+        <path fill="#0A5568" d="M80,88 C88,108 102,108 110,86 Z"/>
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <circle cx="138" cy="60" r="5"  fill="#064E60"/>
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+        <path stroke="#0A5568" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+      </svg>
+    </div>
+    <div class="app-title">FishBill</div>
+    <div class="app-sub">Ηλεκτρονική Τιμολόγηση<br>Αλιείας</div>
+    <div class="acct-badge">
+      <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.34C18 2.54 15.46 0 12.34 0c-1.7 0-3.2.8-4.22 2.05L12 6H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-5 3c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-6 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm8 8H7v-2c0-2.33 4.67-3.5 7-3.5s7 1.17 7 3.5v2z"/></svg>
+      Πύλη Λογιστών
+    </div>
+    <button type="button" class="btn-welcome-primary" onclick="showScreen('login')">ΣΥΝΔΕΣΗ</button>
+    <button type="button" class="btn-welcome-outline"  onclick="showScreen('register')">ΕΓΓΡΑΦΗ</button>
+    <div class="divider-row">
+      <div class="divider-line"></div>
+      <span class="divider-text">ή</span>
+      <div class="divider-line"></div>
+    </div>
+    <button type="button" class="fisher-btn" onclick="window.location='/fishbill/app/'">
+      <span>Είστε ψαράς;</span>
+      <span>Σύνδεση / Εγγραφή Χρήστη →</span>
+    </button>
+
+    <div style="margin-top:18px;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <a href="/fishbill/" style="display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.52);font-size:13px;font-weight:500;text-decoration:none;transition:color .15s" onmouseover="this.style.color='rgba(255,255,255,.85)'" onmouseout="this.style.color='rgba(255,255,255,.52)'">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Επιστροφή στην αρχική σελίδα
+      </a>
+      <!-- 👇 ΑΛΛΑΓΗ ΕΔΩ: ΟΔΗΓΟΣ ΛΟΓΙΣΤΗ ΓΙΝΕΤΑΙ ΜΕΓΑΛΟ ΚΟΥΜΠΙ ΜΕ ΠΕΡΙΓΡΑΜΜΑ ΚΑΙ ΕΙΚΟΝΙΔΙΟ -->
+      <a href="guide.html" class="btn-guide" style="margin-top: 4px; width: 100%;">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+        Οδηγός Χρήσης Λογιστή
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══════════════ LOGIN ═══════════════ -->
+  <div id="screen-login" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Σύνδεση Λογιστή</span>
+    </div>
+
+    <div class="card">
+      <div class="card-greeting">Καλώς ήρθατε!</div>
+      <div class="card-sub">Συνδεθείτε με τα στοιχεία σας εδώ.</div>
+
+      <div class="portal-notice">
+        <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.34C18 2.54 15.46 0 12.34 0c-1.7 0-3.2.8-4.22 2.05L12 6H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-5 3c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-6 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm8 8H7v-2c0-2.33 4.67-3.5 7-3.5s7 1.17 7 3.5v2z"/></svg>
+        Ειδική πύλη για εξουσιοδοτημένους λογιστές. Αν είστε ψαράς χρησιμοποιήστε την <a href="/fishbill/app/" style="color:var(--brand);font-weight:600">κανονική είσοδο</a>
+      </div>
+
+      <!-- Email -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="lf-email-wrap">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="l-email" type="email" placeholder=" " autocomplete="email"
+            maxlength="100"
+            oninput="sanitizeEmail(this); liveValidateLoginEmail(); clearLoginError()"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); validateLoginEmail()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" />
+          <span class="floating-label">Email</span>
+          <div class="field-status-icon" id="lf-email-status">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </div>
+        </div>
+        <div class="field-err-msg" id="lerr-email">Εισάγετε έγκυρο email (π.χ. name@domain.com)</div>
+      </div>
+
+      <!-- Password -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="lf-pass-wrap">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input id="l-pass" type="password" placeholder=" " autocomplete="current-password"
+            maxlength="128"
+            oninput="validateLoginPass(); clearLoginError()"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); validateLoginPass()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" />
+          <span class="floating-label">Κωδικός</span>
+          <button class="pw-toggle" type="button" onclick="togglePw('l-pass',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="field-err-msg" id="lerr-pass">Ο κωδικός δεν μπορεί να είναι κενός</div>
+      </div>
+
+      <!-- Remember me -->
+      <div class="check-row" onclick="toggleCheck('l-remember')">
+        <input type="checkbox" id="l-remember" onclick="event.stopPropagation()" />
+        <label for="l-remember">Να με θυμάσαι!</label>
+      </div>
+
+      <!-- Forgot -->
+      <button type="button" class="forgot-btn" onclick="showScreen('forgot')">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        <span>Ξεχάσατε τον κωδικό σας;</span>
+      </button>
+
+      <button type="button" class="btn-primary" id="login-btn" onclick="doLogin()">
+        <svg viewBox="0 0 24 24"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/></svg>
+        ΣΥΝΔΕΣΗ
+      </button>
+
+      <div id="login-warn" class="alert-warn hidden">
+        <span class="alert-icon">⚠️</span>
+        <p>Συμπληρώστε το email και τον κωδικό πρόσβασης.</p>
+      </div>
+      <div id="login-err" class="alert-err hidden">
+        <span class="alert-icon">❌</span>
+        <p id="login-err-msg"></p>
+      </div>
+
+      <div class="register-link-row">
+        <p>Δεν έχετε λογαριασμό λογιστή;</p>
+        <button type="button" onclick="showScreen('register')">Εγγραφείτε εδώ</button>
+      </div>
+
+      <div class="bottom-links">
+        <a href="/fishbill/" class="btn-back-home">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          Επιστροφή στην αρχική σελίδα
+        </a>
+        <a href="guide.html" class="btn-guide">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+          Οδηγός Χρήσης Λογιστή
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ REGISTER ═══════════════ -->
+  <div id="screen-register" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Εγγραφή Λογιστή</span>
+    </div>
+
+    <div class="card">
+      <div id="reg-err" class="alert-err hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">⚠️</span>
+        <p id="reg-err-msg"></p>
+      </div>
+      <div id="reg-ok" class="alert-ok hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">✅</span>
+        <p id="reg-ok-msg"></p>
+      </div>
+
+      <div class="portal-notice">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        Μόνο λογιστές μπορούν να δημιουργήσουν λογαριασμό εδώ.
+      </div>
+
+      <div class="section-title">Στοιχεία Λογιστή</div>
+
+      <!-- AFM field -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-afm">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+          </div>
+          <input id="r-afm" type="text" placeholder=" " maxlength="9"
+            oninput="this.value=this.value.replace(/\D/g,'')"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">ΑΦΜ (9 ψηφία) *</span>
+        </div>
+        <div class="field-err-msg" id="err-afm">Πρέπει να είναι ακριβώς 9 ψηφία</div>
+      </div>
+
+      <!-- Full name -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-name">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          </div>
+          <input id="r-name" type="text" placeholder=" "
+            maxlength="80"
+            oninput="sanitizeName(this); validateRegName()"
+            onfocus="this.closest('.outlined-field').classList.add('active'); showHint('hint-name')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); hideHint('hint-name'); validateRegName()" />
+          <span class="floating-label">Ονοματεπώνυμο *</span>
+          <div class="field-status-icon" id="rf-name-status">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </div>
+        </div>
+        <div class="field-hint-msg" id="hint-name">Μόνο γράμματα, κενά και παύλες. Π.χ. Νίκος Παπαδόπουλος</div>
+        <div class="field-err-msg" id="err-name">Εισάγετε το πλήρες ονοματεπώνυμό σας (τουλάχιστον 2 λέξεις)</div>
+      </div>
+
+      <!-- Email -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-email">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="r-email" type="email" placeholder=" "
+            maxlength="100"
+            oninput="sanitizeEmail(this); validateRegEmail()"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); validateRegEmail()" />
+          <span class="floating-label">Email *</span>
+          <div class="field-status-icon" id="rf-email-status">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </div>
+        </div>
+        <div class="field-err-msg" id="err-email">Εισάγετε έγκυρο email (π.χ. <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f39f9c949a80879a80b3979c9e929a9ddd9481">[email&#160;protected]</a>)</div>
+      </div>
+
+      <!-- Phone -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-phone">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          </div>
+          <input id="r-phone" type="tel" placeholder=" "
+            maxlength="15"
+            oninput="sanitizePhone(this); validateRegPhone()"
+            onfocus="this.closest('.outlined-field').classList.add('active'); showHint('hint-phone')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); hideHint('hint-phone'); validateRegPhone()" />
+          <span class="floating-label">Τηλέφωνο (προαιρετικό)</span>
+          <div class="field-status-icon" id="rf-phone-status">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </div>
+        </div>
+        <div class="field-hint-msg" id="hint-phone">Π.χ. 6912345678 ή +30 6912345678</div>
+        <div class="field-err-msg" id="err-phone">Μη έγκυρος αριθμός τηλεφώνου (10 ψηφία για Ελλάδα)</div>
+      </div>
+
+      <div class="section-title">Ασφάλεια</div>
+
+      <!-- Password -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-pass">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input id="r-pass" type="password" placeholder=" "
+            maxlength="128"
+            oninput="updatePwStrength(); validateRegPass(); validateRegPass2()"
+            onfocus="this.closest('.outlined-field').classList.add('active'); document.getElementById('pw-strength-wrap').classList.add('show')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); validateRegPass()" />
+          <span class="floating-label">Κωδικός (min 8 χαρ.) *</span>
+          <button class="pw-toggle" type="button" onclick="togglePw('r-pass',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="pw-strength-wrap" id="pw-strength-wrap">
+          <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-fill"></div></div>
+          <div class="pw-strength-label" id="pw-label">Ισχύς κωδικού</div>
+        </div>
+        <div class="field-err-msg" id="err-pass">Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες</div>
+      </div>
+
+      <!-- Confirm password -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-pass2">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input id="r-pass2" type="password" placeholder=" "
+            maxlength="128"
+            oninput="validateRegPass2()"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active'); validateRegPass2()" />
+          <span class="floating-label">Επιβεβαίωση Κωδικού *</span>
+          <div class="field-status-icon" id="rf-pass2-status">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </div>
+          <button class="pw-toggle" type="button" onclick="togglePw('r-pass2',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="field-err-msg" id="err-pass2">Οι κωδικοί δεν ταιριάζουν</div>
+      </div>
+
+      <!-- Terms -->
+      <div class="terms-row" id="terms-row" onclick="document.getElementById('r-terms').click();event.stopPropagation()">
+        <input type="checkbox" id="r-terms"
+          onclick="event.stopPropagation()"
+          onchange="validateTerms()" />
+        <label for="r-terms">
+          Αποδέχομαι τους <a href="/fishbill/legal/terms.html" target="_blank" onclick="event.stopPropagation()">Όρους Χρήσης</a>
+          και την <a href="/fishbill/legal/privacy.html" target="_blank" onclick="event.stopPropagation()">Πολιτική Απορρήτου</a>
+        </label>
+      </div>
+      <div class="field-err-msg" id="err-terms" style="padding-left:0">Πρέπει να αποδεχτείτε τους όρους για να συνεχίσετε</div>
+
+      <button type="button" class="btn-primary" id="reg-btn" onclick="doRegister()" style="margin-top:16px">
+        <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        ΔΗΜΙΟΥΡΓΙΑ ΛΟΓΑΡΙΑΣΜΟΥ
+      </button>
+
+      <div class="register-link-row" style="margin-top:14px">
+        <p>Έχετε ήδη λογαριασμό;</p>
+        <button type="button" onclick="showScreen('login')">Συνδεθείτε εδώ</button>
+      </div>
+
+      <div class="bottom-links">
+        <a href="/fishbill/" class="btn-back-home">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          Επιστροφή στην αρχική σελίδα
+        </a>
+        <a href="guide.html" class="btn-guide">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+          Οδηγός Χρήσης Λογιστή
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ FORGOT ═══════════════ -->
+  <div id="screen-forgot" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Επαναφορά Κωδικού</span>
+    </div>
+    <div class="card">
+      <p class="forgot-desc">Εισάγετε το email σας και θα λάβετε οδηγίες επαναφοράς κωδικού.</p>
+      <div id="forgot-err" class="alert-err hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">⚠️</span>
+        <p id="forgot-err-msg"></p>
+      </div>
+      <div id="forgot-ok" class="alert-ok hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">✅</span>
+        <p id="forgot-ok-msg"></p>
+      </div>
+      <div class="field-wrap">
+        <div class="outlined-field">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="f-email" type="email" placeholder=" "
+            maxlength="100"
+            oninput="sanitizeEmail(this)"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')"
+            onkeydown="if(event.key==='Enter')doForgot()" />
+          <span class="floating-label">Email Λογιστή</span>
+        </div>
+      </div>
+      <button type="button" class="btn-primary" onclick="doForgot()">ΑΠΟΣΤΟΛΗ ΣΥΝΔΕΣΜΟΥ</button>
+    </div>
+  </div>
+
+  <!-- VALIDATION DIALOG -->
+  <div id="reg-dialog" class="dialog-backdrop" onclick="closeDialog(event)">
+    <div class="dialog-box">
+      <div class="dialog-title">Συμπληρώστε τα παρακάτω</div>
+      <div class="dialog-subtitle">Τα παρακάτω πεδία χρειάζονται διόρθωση:</div>
+      <div class="dialog-errors" id="dialog-error-list"></div>
+      <button type="button" class="dialog-btn" onclick="closeDialogDirect()">Εντάξει, διορθώνω</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════
+   SCREEN ROUTER
+═══════════════════════════════════════════════════ */
+const SCREENS = ['welcome','login','register','forgot'];
+
+function showScreen(name, pushHistory) {
+  SCREENS.forEach(s => {
+    document.getElementById('screen-' + s).classList.toggle('hidden', s !== name);
+  });
+  window.scrollTo(0, 0);
+  if (pushHistory !== false) {
+    if (name === 'welcome') {
+      history.replaceState({ screen: 'welcome' }, '', location.pathname);
+    } else {
+      history.pushState({ screen: name }, '', location.pathname + '#' + name);
+    }
+  }
+}
+
+window.addEventListener('popstate', function(e) {
+  const screen = (e.state && e.state.screen) || 'welcome';
+  showScreen(screen, false);
+});
+
+function toggleCheck(id) {
+  const cb = document.getElementById(id);
+  cb.checked = !cb.checked;
+}
+
+const EYE_OPEN = '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>';
+const EYE_OFF  = '<path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>';
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  const hide = inp.type === 'password';
+  inp.type = hide ? 'text' : 'password';
+  btn.querySelector('svg').innerHTML = hide ? EYE_OFF : EYE_OPEN;
+}
+
+function setLoading(btnId, loading, label, iconPath) {
+  const b = document.getElementById(btnId);
+  b.disabled = loading;
+  b.innerHTML = loading
+    ? '<div class="spinner"></div>'
+    : `<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff;flex-shrink:0"><path d="${iconPath}"/></svg> ${label}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   DIALOG
+═══════════════════════════════════════════════════ */
+function openDialog(errors) {
+  const list = document.getElementById('dialog-error-list');
+  list.innerHTML = errors.map(e =>
+    `<div class="dialog-error-row"><span class="dialog-bullet">•</span><span class="dialog-error-text">${e}</span></div>`
+  ).join('');
+  const bd = document.getElementById('reg-dialog');
+  bd.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('show')));
+}
+function closeDialogDirect() {
+  const bd = document.getElementById('reg-dialog');
+  bd.classList.remove('show');
+  setTimeout(() => { bd.style.display = ''; }, 220);
+}
+function closeDialog(e) {
+  if (e.target === document.getElementById('reg-dialog')) closeDialogDirect();
+}
+
+/* ═══════════════════════════════════════════════════
+   HINT HELPERS
+═══════════════════════════════════════════════════ */
+function showHint(id) { const el = document.getElementById(id); if(el) el.classList.add('show'); }
+function hideHint(id)  { const el = document.getElementById(id); if(el) el.classList.remove('show'); }
+
+/* ═══════════════════════════════════════════════════
+   FIELD STATE HELPERS
+═══════════════════════════════════════════════════ */
+function setFieldState(wrapId, statusId, errId, state, errText) {
+  const wrap   = document.getElementById(wrapId);
+  const status = document.getElementById(statusId);
+  const err    = document.getElementById(errId);
+
+  wrap.classList.remove('field-error', 'field-ok');
+  if (status) { status.classList.remove('show','ok','err'); }
+  if (err)    { err.classList.remove('visible'); }
+
+  if (state === 'error') {
+    wrap.classList.add('field-error');
+    if (status) { status.classList.add('show','err'); }
+    if (err) {
+      if (errText) err.textContent = errText;
+      err.classList.add('visible');
+    }
+  } else if (state === 'ok') {
+    wrap.classList.add('field-ok');
+    if (status) { status.classList.add('show','ok'); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   SANITIZERS
+═══════════════════════════════════════════════════ */
+function sanitizeEmail(inp) {
+  let v = inp.value;
+  v = v.replace(/[\s<>'"]/g, '');
+  v = v.replace(/[^a-zA-Z0-9@._+\-]/g, '');
+  if (v !== inp.value) inp.value = v;
+}
+
+function sanitizeName(inp) {
+  let v = inp.value;
+  v = v.replace(/[0-9!@#$%^&*()_=+\[\]{};:"\\|,.<>\/?`~]/g, '');
+  v = v.replace(/ {2,}/g, ' ');
+  if (v !== inp.value) inp.value = v;
+}
+
+function sanitizePhone(inp) {
+  let v = inp.value;
+  v = v.replace(/[^0-9+\s\-()]/g, '');
+  if ((v.match(/\+/g) || []).length > 1) v = v.replace(/\+/g, (m, i) => i === v.indexOf('+') ? '+' : '');
+  if (v !== inp.value) inp.value = v;
+}
+
+/* ═══════════════════════════════════════════════════
+   VALIDATORS
+═══════════════════════════════════════════════════ */
+const RE_EMAIL = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+const RE_PHONE_GR = /^(\+30|0030)?\s?[2679]\d{9}$/;
+const RE_PHONE_INTL = /^(\+\d{1,3}[\s\-]?)?\(?\d{1,4}\)?[\s\-]?\d{3,5}[\s\-]?\d{4,6}$/;
+
+function isValidEmail(v) {
+  if (!v) return false;
+  if (v.length > 100) return false;
+  if (!RE_EMAIL.test(v)) return false;
+  if (/\.{2,}/.test(v)) return false;
+  const local = v.split('@')[0];
+  if (local.startsWith('.') || local.endsWith('.')) return false;
+  return true;
+}
+
+function isValidName(v) {
+  if (!v || v.trim().length < 2) return false;
+  const parts = v.trim().split(/\s+/);
+  if (parts.length < 2) return false;
+  if (parts.some(p => p.length < 2)) return false;
+  return true;
+}
+
+function isValidPhone(v) {
+  if (!v || v.trim() === '') return null;
+  const stripped = v.replace(/[\s\-()]/g, '');
+  if (RE_PHONE_GR.test(stripped)) return true;
+  if (RE_PHONE_INTL.test(v)) return true;
+  return false;
+}
+
+function isStrongEnough(v) {
+  return v.length >= 8;
+}
+
+/* ═══════════════════════════════════════════════════
+   PASSWORD STRENGTH METER
+═══════════════════════════════════════════════════ */
+function pwStrengthScore(pw) {
+  let score = 0;
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  return score;
+}
+
+const STRENGTH_CONFIG = [
+  { pct:'0%',   color:'#E0E0E0', label:'' },
+  { pct:'25%',  color:'#D32F2F', label:'Πολύ αδύναμος' },
+  { pct:'45%',  color:'#EF6C00', label:'Αδύναμος' },
+  { pct:'65%',  color:'#F9A825', label:'Μέτριος' },
+  { pct:'85%',  color:'#43A047', label:'Ισχυρός' },
+  { pct:'100%', color:'#1B5E20', label:'Πολύ ισχυρός 💪' },
+];
+
+function updatePwStrength() {
+  const pw   = document.getElementById('r-pass').value;
+  const fill  = document.getElementById('pw-fill');
+  const label = document.getElementById('pw-label');
+  const wrap  = document.getElementById('pw-strength-wrap');
+  if (!pw) {
+    fill.style.width = '0'; label.textContent = 'Ισχύς κωδικού';
+    wrap.classList.remove('show'); return;
+  }
+  wrap.classList.add('show');
+  const sc = pwStrengthScore(pw);
+  const cfg = STRENGTH_CONFIG[sc] || STRENGTH_CONFIG[0];
+  fill.style.width = cfg.pct;
+  fill.style.background = cfg.color;
+  label.textContent = cfg.label;
+  label.style.color = cfg.color;
+}
+
+/* ═══════════════════════════════════════════════════
+   LIVE VALIDATORS
+═══════════════════════════════════════════════════ */
+function liveValidateLoginEmail() {
+  const v = document.getElementById('l-email').value.trim();
+  if (!v) { setFieldState('lf-email-wrap','lf-email-status','lerr-email',''); return; }
+}
+function validateLoginEmail() {
+  const v = document.getElementById('l-email').value.trim();
+  if (!v) { setFieldState('lf-email-wrap','lf-email-status','lerr-email',''); return; }
+  if (!isValidEmail(v)) {
+    setFieldState('lf-email-wrap','lf-email-status','lerr-email','error','Εισάγετε έγκυρο email (π.χ. name@domain.com)');
+  } else {
+    setFieldState('lf-email-wrap','lf-email-status','lerr-email','ok');
+  }
+}
+function validateLoginPass() {
+  const v = document.getElementById('l-pass').value;
+  if (!v) { setFieldState('lf-pass-wrap',null,'lerr-pass',''); return; }
+  setFieldState('lf-pass-wrap',null,'lerr-pass','');
+}
+
+function validateRegName() {
+  const v = document.getElementById('r-name').value.trim();
+  if (!v) { setFieldState('rf-name','rf-name-status','err-name',''); return; }
+  if (!isValidName(v)) {
+    let msg = 'Εισάγετε το πλήρες ονοματεπώνυμό σας (τουλάχιστον 2 λέξεις)';
+    const parts = v.trim().split(/\s+/);
+    if (parts.length < 2) msg = 'Προσθέστε και το επώνυμό σας';
+    else if (parts.some(p => p.length < 2)) msg = 'Κάθε λέξη πρέπει να έχει τουλάχιστον 2 γράμματα';
+    setFieldState('rf-name','rf-name-status','err-name','error', msg);
+  } else {
+    setFieldState('rf-name','rf-name-status','err-name','ok');
+  }
+}
+
+function validateRegEmail() {
+  const v = document.getElementById('r-email').value.trim();
+  if (!v) { setFieldState('rf-email','rf-email-status','err-email',''); return; }
+  if (!isValidEmail(v)) {
+    let msg = 'Εισάγετε έγκυρο email (π.χ. logistis@domain.gr)';
+    if (!v.includes('@'))  msg = 'Το email πρέπει να περιέχει @';
+    else if (!v.includes('.')) msg = 'Το email δεν φαίνεται έγκυρο (λείπει το .gr/.com κτλ)';
+    setFieldState('rf-email','rf-email-status','err-email','error', msg);
+  } else {
+    setFieldState('rf-email','rf-email-status','err-email','ok');
+  }
+}
+
+function validateRegPhone() {
+  const v = document.getElementById('r-phone').value.trim();
+  const res = isValidPhone(v);
+  if (res === null) {
+    setFieldState('rf-phone','rf-phone-status','err-phone','');
+  } else if (res === false) {
+    setFieldState('rf-phone','rf-phone-status','err-phone','error',
+      'Μη έγκυρος αριθμός. Π.χ. 6912345678 ή +30 6912345678');
+  } else {
+    setFieldState('rf-phone','rf-phone-status','err-phone','ok');
+  }
+}
+
+function validateRegPass() {
+  const v = document.getElementById('r-pass').value;
+  if (!v) { setFieldState('rf-pass',null,'err-pass',''); return; }
+  if (v.length < 8) {
+    setFieldState('rf-pass',null,'err-pass','error',
+      `Χρειάζονται ${8 - v.length} ακόμα χαρακτήρες (ελάχιστο 8)`);
+  } else {
+    setFieldState('rf-pass',null,'err-pass','');
+  }
+}
+
+function validateRegPass2() {
+  const p1 = document.getElementById('r-pass').value;
+  const p2 = document.getElementById('r-pass2').value;
+  if (!p2) { setFieldState('rf-pass2','rf-pass2-status','err-pass2',''); return; }
+  if (p2 !== p1) {
+    setFieldState('rf-pass2','rf-pass2-status','err-pass2','error','Οι κωδικοί δεν ταιριάζουν');
+  } else if (p1.length >= 8) {
+    setFieldState('rf-pass2','rf-pass2-status','err-pass2','ok');
+  }
+}
+
+function validateTerms() {
+  const checked = document.getElementById('r-terms').checked;
+  const row = document.getElementById('terms-row');
+  const err = document.getElementById('err-terms');
+  row.classList.toggle('terms-error', !checked);
+  err.classList.toggle('visible', !checked);
+}
+
+/* ═══════════════════════════════════════════════════
+   LOGIN SUBMIT
+═══════════════════════════════════════════════════ */
+
+// Καθαρισμός error όταν ο χρήστης αρχίσει να πληκτρολογεί
+function clearLoginError() {
+  document.getElementById('login-warn').classList.add('hidden');
+  document.getElementById('login-err').classList.add('hidden');
+}
+
+function shakeEl(el) {
+  if (!el) return;
+  el.classList.remove('shake');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('shake');
+}
+
+async function doLogin() {
+  const email    = document.getElementById('l-email').value.trim();
+  const password = document.getElementById('l-pass').value;
+  const warn     = document.getElementById('login-warn');
+  const err      = document.getElementById('login-err');
+  const errMsg   = document.getElementById('login-err-msg');
+
+  warn.classList.add('hidden');
+  err.classList.add('hidden');
+
+  // Client-side validation
+  let hasErr = false;
+  if (!email || !isValidEmail(email)) {
+    setFieldState('lf-email-wrap','lf-email-status','lerr-email','error',
+      !email ? 'Το email είναι υποχρεωτικό' : 'Εισάγετε έγκυρο email (π.χ. name@domain.com)');
+    hasErr = true;
+  }
+  if (!password) {
+    setFieldState('lf-pass-wrap',null,'lerr-pass','error','Ο κωδικός είναι υποχρεωτικός');
+    hasErr = true;
+  }
+  if (hasErr) {
+    warn.classList.remove('hidden');
+    shakeEl(warn);
+    return;
+  }
+
+  const ICON = 'M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z';
+  setLoading('login-btn', true, 'ΣΥΝΔΕΣΗ', ICON);
+
+  try {
+    const res = await api.post('/auth/login', { email, password });
+    if (!res || !res.data) throw new Error('Μη έγκυρη απάντηση διακομιστή.');
+
+    const { access_token, refresh_token, user } = res.data;
+    if (!['accountant','super_admin'].includes(user.role)) {
+      throw new Error('Αυτή η πύλη είναι μόνο για λογιστές. Χρησιμοποιήστε την κανονική είσοδο.');
+    }
+
+    if (typeof setToken === 'function') setToken(access_token, refresh_token);
+    if (typeof setCurrentUser === 'function') setCurrentUser(user);
+    if (document.getElementById('l-remember').checked) localStorage.setItem('fb_acct_email', email);
+
+    window.location.href = 'dashboard.html';
+
+  } catch (e) {
+    setLoading('login-btn', false, 'ΣΥΝΔΕΣΗ', ICON);
+    let errorMessage = 'Σφάλμα σύνδεσης. Παρακαλώ δοκιμάστε ξανά.';
+    const raw = (e.message || '').toLowerCase();
+    if (raw.includes('401') || raw.includes('invalid') || raw.includes('unauthorized') || raw.includes('wrong') || raw.includes('incorrect') || raw.includes('credentials') || raw.includes('λάθος')) {
+      errorMessage = 'Λάθος email ή κωδικός πρόσβασης. Ελέγξτε τα στοιχεία σας και δοκιμάστε ξανά.';
+      // Κοκκίνισμα των πεδίων
+      setFieldState('lf-email-wrap','lf-email-status','lerr-email','error','');
+      setFieldState('lf-pass-wrap',null,'lerr-pass','error','');
+    } else if (raw.includes('not found') || raw.includes('404') || raw.includes('no user') || raw.includes('δεν βρέθηκε')) {
+      errorMessage = 'Δεν βρέθηκε λογαριασμός με αυτό το email.';
+      setFieldState('lf-email-wrap','lf-email-status','lerr-email','error','');
+    } else if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout') || raw.includes('σύνδεση')) {
+      errorMessage = 'Πρόβλημα σύνδεσης δικτύου. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
+    } else if (raw.includes('blocked') || raw.includes('disabled') || raw.includes('inactive') || raw.includes('suspended') || raw.includes('απενεργοποιη')) {
+      errorMessage = 'Ο λογαριασμός σας έχει απενεργοποιηθεί. Επικοινωνήστε με την υποστήριξη.';
+    } else if (raw.includes('too many') || raw.includes('rate limit') || raw.includes('429') || raw.includes('πολλές')) {
+      errorMessage = 'Πολλές αποτυχημένες προσπάθειες. Παρακαλώ περιμένετε λίγο και δοκιμάστε ξανά.';
+    } else if (raw.includes('server') || raw.includes('500') || raw.includes('503') || raw.includes('προσωρινό')) {
+      errorMessage = 'Προσωρινό πρόβλημα στον server. Παρακαλώ δοκιμάστε ξανά σε λίγο.';
+    } else if (raw.includes('πύλη') || raw.includes('λογιστ') || raw.includes('portal') || raw.includes('μόνο')) {
+      errorMessage = e.message;
+    } else if (e.message && !raw.includes('error') && !raw.includes('exception') && !raw.includes('http')) {
+      errorMessage = e.message;
+    }
+    errMsg.textContent = errorMessage;
+    err.classList.remove('hidden');
+    shakeEl(err);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   REGISTER SUBMIT
+═══════════════════════════════════════════════════ */
+async function doRegister() {
+  const afm       = document.getElementById('r-afm').value.trim();
+  const full_name = document.getElementById('r-name').value.trim();
+  const email     = document.getElementById('r-email').value.trim();
+  const phone     = document.getElementById('r-phone').value.trim();
+  const pass      = document.getElementById('r-pass').value;
+  const pass2     = document.getElementById('r-pass2').value;
+  const terms     = document.getElementById('r-terms').checked;
+
+  document.getElementById('reg-err').classList.add('hidden');
+  document.getElementById('reg-ok').classList.add('hidden');
+
+  const errors = [];
+
+  if (!afm || !/^\d{9}$/.test(afm)) {
+    validateAfm();
+    errors.push(!afm ? 'ΑΦΜ: υποχρεωτικό πεδίο' : 'ΑΦΜ: πρέπει να είναι ακριβώς 9 ψηφία');
+  }
+
+  if (!full_name || !isValidName(full_name)) {
+    const parts = full_name ? full_name.trim().split(/\s+/) : [];
+    let msg = 'Ονοματεπώνυμο: εισάγετε τουλάχιστον 2 λέξεις';
+    if (parts.length === 1) msg = 'Ονοματεπώνυμο: προσθέστε και το επώνυμό σας';
+    validateRegName();
+    errors.push(msg);
+  }
+
+  if (!email || !isValidEmail(email)) {
+    let msg = 'Email: εισάγετε έγκυρη διεύθυνση email';
+    if (email && !email.includes('@')) msg = 'Email: λείπει το σύμβολο @';
+    validateRegEmail();
+    errors.push(msg);
+  }
+
+  if (phone) {
+    const phoneOk = isValidPhone(phone);
+    if (phoneOk === false) {
+      validateRegPhone();
+      errors.push('Τηλέφωνο: ο αριθμός δεν φαίνεται έγκυρος');
+    }
+  }
+
+  if (!pass || pass.length < 8) {
+    validateRegPass();
+    errors.push(!pass
+      ? 'Κωδικός: υποχρεωτικό πεδίο'
+      : `Κωδικός: χρειάζονται τουλάχιστον 8 χαρακτήρες (τώρα έχετε ${pass.length})`
+    );
+  }
+
+  if (!pass2) {
+    setFieldState('rf-pass2','rf-pass2-status','err-pass2','error','Επιβεβαιώστε τον κωδικό σας');
+    errors.push('Επιβεβαίωση Κωδικού: υποχρεωτικό πεδίο');
+  } else if (pass !== pass2) {
+    validateRegPass2();
+    errors.push('Επιβεβαίωση Κωδικού: οι κωδικοί δεν ταιριάζουν');
+  }
+
+  if (!terms) {
+    document.getElementById('terms-row').classList.add('terms-error');
+    document.getElementById('err-terms').classList.add('visible');
+    errors.push('Όροι Χρήσης: πρέπει να αποδεχτείτε για να συνεχίσετε');
+  }
+
+  if (errors.length > 0) { openDialog(errors); return; }
+
+  const ICON = 'M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z';
+  setLoading('reg-btn', true, 'ΔΗΜΙΟΥΡΓΙΑ ΛΟΓΑΡΙΑΣΜΟΥ', ICON);
+  try {
+    await api.post('/accountant/register', {
+      full_name, email, phone: phone || undefined, password: pass, afm: afm || undefined
+    });
+    const okEl  = document.getElementById('reg-ok');
+    const okMsg = document.getElementById('reg-ok-msg');
+    okMsg.textContent = 'Ο λογαριασμός δημιουργήθηκε! Ανακατεύθυνση στη σύνδεση…';
+    okEl.classList.remove('hidden');
+    setTimeout(() => showScreen('login'), 2000);
+  } catch(e) {
+    const errEl  = document.getElementById('reg-err');
+    const errMsg = document.getElementById('reg-err-msg');
+    const raw = (e.message || '').toLowerCase();
+    let msg = 'Σφάλμα κατά την εγγραφή. Παρακαλώ δοκιμάστε ξανά.';
+    if (raw.includes('already') || raw.includes('exists') || raw.includes('duplicate') || raw.includes('taken')) {
+      msg = 'Υπάρχει ήδη λογαριασμός με αυτό το email. Συνδεθείτε ή χρησιμοποιήστε άλλο email.';
+    } else if (raw.includes('afm') || raw.includes('vat') || raw.includes('tax')) {
+      msg = 'Το ΑΦΜ που εισάγατε δεν είναι έγκυρο. Παρακαλώ ελέγξτε και δοκιμάστε ξανά.';
+    } else if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout')) {
+      msg = 'Πρόβλημα σύνδεσης δικτύου. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
+    } else if (raw.includes('server') || raw.includes('500') || raw.includes('503')) {
+      msg = 'Προσωρινό πρόβλημα στον server. Παρακαλώ δοκιμάστε ξανά σε λίγο.';
+    } else if (e.message && !raw.includes('error') && !raw.includes('exception')) {
+      msg = e.message;
+    }
+    errMsg.textContent = msg;
+    errEl.classList.remove('hidden');
+  } finally {
+    setLoading('reg-btn', false, 'ΔΗΜΙΟΥΡΓΙΑ ΛΟΓΑΡΙΑΣΜΟΥ', ICON);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   FORGOT SUBMIT
+═══════════════════════════════════════════════════ */
+async function doForgot() {
+  const email   = document.getElementById('f-email').value.trim();
+  const errEl   = document.getElementById('forgot-err');
+  const errMsg  = document.getElementById('forgot-err-msg');
+  const okEl    = document.getElementById('forgot-ok');
+  const okMsg   = document.getElementById('forgot-ok-msg');
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
+
+  if (!email) {
+    errMsg.textContent = 'Εισάγετε το email σας.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (!isValidEmail(email)) {
+    errMsg.textContent = 'Εισάγετε έγκυρο email (π.χ. name@domain.com)';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    await api.post('/auth/forgot-password', { email });
+    okMsg.textContent = 'Αν το email υπάρχει στο σύστημα, θα λάβετε οδηγίες επαναφοράς.';
+    okEl.classList.remove('hidden');
+  } catch(e) {
+    const raw = (e.message || '').toLowerCase();
+    let msg = 'Σφάλμα αποστολής. Παρακαλώ δοκιμάστε ξανά.';
+    if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout')) {
+      msg = 'Πρόβλημα σύνδεσης δικτύου. Ελέγξτε τη σύνδεσή σας.';
+    } else if (raw.includes('server') || raw.includes('500')) {
+      msg = 'Προσωρινό πρόβλημα στον server. Δοκιμάστε ξανά σε λίγο.';
+    } else if (e.message && !raw.includes('error') && !raw.includes('exception')) {
+      msg = e.message;
+    }
+    errMsg.textContent = msg;
+    errEl.classList.remove('hidden');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+(function() {
+  history.replaceState({ screen: 'welcome' }, '', location.pathname);
+
+  try {
+    if (typeof getUser === 'undefined') return;
+    const u = getUser && getUser();
+    if (u && u.exp * 1000 > Date.now() && ['accountant','super_admin'].includes(u.role)) {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+  } catch(e) {}
+
+  // Pre-fill remembered email
+  const re = localStorage.getItem('fb_acct_email');
+  if (re) {
+    const el = document.getElementById('l-email');
+    if (el) {
+      el.value = re;
+      const cb = document.getElementById('l-remember');
+      if (cb) cb.checked = true;
+    }
+  }
+
+  // Clear login errors when user types
+  ['l-email','l-pass'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', clearLoginError);
+  });
+
+  // Browser back/forward support
+  window.addEventListener('popstate', function(e) {
+    const screen = (e.state && e.state.screen) || 'welcome';
+    showScreen(screen, false);
+  });
+})();
+</script>
+
+<!-- ── COMING SOON OVERLAY ────────────────────────────────────────────── -->
+<div id="coming-soon-overlay" style="
+  position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(160deg,#0a3042 0%,#0d4a60 45%,#092b36 100%);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  font-family:'Inter',system-ui,sans-serif;
+">
+  <div style="
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);
+    border-radius:28px;padding:40px 32px;max-width:440px;width:100%;text-align:center;
+    box-shadow:0 24px 64px rgba(0,0,0,.5);
+  ">
+    <div style="font-size:52px;margin-bottom:16px">🚧</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:.5px">
+      Σύντομα Κοντά Σας
+    </div>
+    <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px">
+      Η <strong style="color:#38BEC9">Πύλη Λογιστών</strong> βρίσκεται σε ανάπτυξη.<br>
+      Θα είναι διαθέσιμη σε επόμενη έκδοση της εφαρμογής.<br><br>
+      Για υποστήριξη επικοινωνήστε με τον διαχειριστή.
+    </div>
+    <a href="/fishbill/" style="
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(56,190,201,.18);border:1.5px solid rgba(56,190,201,.5);
+      color:#38BEC9;font-size:15px;font-weight:700;
+      padding:12px 28px;border-radius:14px;text-decoration:none;
+      transition:background .15s;
+    " onmouseover="this.style.background='rgba(56,190,201,.28)'" onmouseout="this.style.background='rgba(56,190,201,.18)'">
+      ← Επιστροφή στην Αρχική
+    </a>
+  </div>
+</div>
+</body>
+</html>

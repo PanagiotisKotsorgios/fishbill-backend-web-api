@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Ρυθμίσεις Λογαριασμού</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" /><path fill='%230D47A1' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%231976D2' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F3F4F6; min-height: 100vh; color: #111827; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+
+    /* ── HEADER ── */
+    .header { background: #1E3A5F; border-bottom: 2px solid #163058; position: sticky; top: 0; z-index: 200; }
+    .header-inner { max-width: 1400px; margin: 0 auto; padding: 0 28px; height: 62px; display: flex; align-items: center; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand-name { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+    .brand-sep { width: 1px; height: 26px; background: rgba(255,255,255,.25); margin: 0 8px; }
+    .brand-role { font-size: 12px; font-weight: 600; color: #93C5FD; letter-spacing: .08em; text-transform: uppercase; }
+    .header-nav { display: flex; align-items: center; gap: 2px; margin-left: 20px; flex: 1; }
+    .nav-link { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; color: rgba(255,255,255,.72); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .15s; white-space: nowrap; }
+    .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-link.active { background: rgba(147,197,253,.18); color: #93C5FD; }
+    .header-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    .hdr-user { display: flex; align-items: center; gap: 8px; }
+    .hdr-avatar { width: 34px; height: 34px; border-radius: 8px; background: #2563EB; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+    .hdr-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .btn-logout { display: flex; align-items: center; gap: 6px; padding: 7px 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 8px; color: rgba(255,255,255,.85); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .btn-logout:hover { background: rgba(255,255,255,.18); color: #fff; }
+    @media(max-width:900px) { .header-nav { display: none; } .hdr-name { display: none; } }
+
+    /* Page */
+    .page { max-width: 900px; margin: 0 auto; padding: 28px 24px 80px; }
+    .page-title { font-size: 24px; font-weight: 900; color: #111827; margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: #6B7280; margin-bottom: 28px; }
+
+    /* Section cards */
+    .card { background: #fff; border-radius: 20px; border: 1.5px solid #E8EDF5; padding: 28px; margin-bottom: 20px; box-shadow: 0 1px 8px rgba(0,0,0,.05); }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #F3F4F6; }
+    .card-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-icon svg { width: 20px; height: 20px; fill: currentColor; }
+    .card-title { font-size: 16px; font-weight: 800; color: #111827; }
+    .card-sub { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 0; }
+    .field-full { grid-column: 1 / -1; }
+    label { display: block; font-size: 11px; font-weight: 800; color: #6B7280; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid #F3F4F6; background: #F9FAFB; font-size: 14px; font-family: inherit; color: #111827; outline: none; transition: border-color .15s, background .15s; }
+    input:focus, select:focus, textarea:focus { border-color: #3B82F6; background: #fff; }
+    input:disabled { opacity: .5; cursor: not-allowed; }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* Buttons */
+    .btn-save { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #1E3A5F; color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s, transform .1s; }
+    .btn-save:hover { background: #163058; transform: translateY(-1px); }
+    .btn-save:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .btn-danger { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #FEF2F2; color: #DC2626; border: 2px solid #FECACA; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-danger:hover { background: #FEE2E2; border-color: #F87171; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #111827; color: #fff; padding: 14px 20px; border-radius: 14px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 999; display: none; align-items: center; gap: 10px; }
+    .toast.show { display: flex; animation: fadeUp .25s ease-out; }
+    .toast.success { background: #065F46; }
+    .toast.error   { background: #7F1D1D; }
+
+    /* Password strength */
+    .pw-strength { height: 4px; border-radius: 2px; margin-top: 8px; transition: all .3s; }
+    .pw-hint { font-size: 11px; color: #9CA3AF; margin-top: 6px; }
+
+    /* Danger zone */
+    .danger-zone { background: #FFF5F5; border: 2px solid #FECACA; border-radius: 16px; padding: 24px; }
+    .danger-title { font-size: 16px; font-weight: 800; color: #991B1B; margin-bottom: 8px; }
+    .danger-desc { font-size: 13px; color: #7F1D1D; line-height: 1.6; margin-bottom: 20px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 24px; box-shadow: 0 24px 64px rgba(0,0,0,.18); width: 100%; max-width: 440px; padding: 28px; animation: fadeUp .25s ease-out; }
+    .modal-title { font-size: 18px; font-weight: 900; color: #111827; margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: #9CA3AF; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-cancel { flex: 1; height: 48px; background: #F3F4F6; color: #374151; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .modal-cancel:hover { background: #E5E7EB; }
+    .modal-delete { flex: 1; height: 48px; background: #DC2626; color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .modal-delete:hover { background: #B91C1C; }
+    .modal-delete:disabled { opacity: .6; cursor: not-allowed; }
+
+    @media(max-width: 600px) { .page { padding: 20px 16px 60px; } .header-inner { padding: 0 16px; } }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-name">FishBill</span>
+      <span class="brand-sep"></span>
+      <span class="brand-role">Πύλη Λογιστών</span>
+    </a>
+    <nav class="header-nav">
+      <a href="dashboard.html" class="nav-link"><i class="fa-solid fa-users" style="font-size:13px"></i> Πελάτες</a>
+      <a href="analytics.html" class="nav-link"><i class="fa-solid fa-chart-bar" style="font-size:13px"></i> Αναλυτικά</a>
+      <a href="settings.html"  class="nav-link active"><i class="fa-solid fa-gear" style="font-size:13px"></i> Ρυθμίσεις</a>
+    </nav>
+    <div class="header-right">
+      <div class="hdr-user">
+        <div class="hdr-avatar" id="hdr-avatar">?</div>
+        <span class="hdr-name" id="hdr-name">—</span>
+      </div>
+      <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Έξοδος</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-title anim">Ρυθμίσεις Λογαριασμού</div>
+  <div class="page-sub anim">Διαχειριστείτε τα στοιχεία και τις προτιμήσεις του λογαριασμού σας.</div>
+
+  <!-- Profile -->
+  <div class="card anim">
+    <div class="card-header">
+      <div class="card-icon" style="background:#EFF6FF;color:#1D4ED8">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Στοιχεία Προφίλ</div>
+        <div class="card-sub">Ονοματεπώνυμο, email, τηλέφωνο</div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Ονοματεπώνυμο *</label>
+        <input id="p-name" type="text" placeholder="Γιώργης Παπαδόπουλος" />
+      </div>
+      <div class="field">
+        <label>Email *</label>
+        <input id="p-email" type="email" placeholder="giorgis@email.gr" />
+      </div>
+      <div class="field">
+        <label>Τηλέφωνο</label>
+        <input id="p-phone" type="tel" placeholder="+30 210 000 0000" />
+      </div>
+      <div class="field">
+        <label>Αρ. Μητρώου ΑΑΔΕ (προαιρετικό)</label>
+        <input id="p-tax-reg" type="text" placeholder="π.χ. ΑΜ 12345" />
+      </div>
+    </div>
+    <div style="margin-top:20px;display:flex;justify-content:flex-end">
+      <button class="btn-save" id="btn-save-profile" onclick="saveProfile()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        Αποθήκευση Στοιχείων
+      </button>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="card anim">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F0FDF4;color:#15803D">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Αλλαγή Κωδικού</div>
+        <div class="card-sub">Χρησιμοποιήστε ισχυρό κωδικό 8+ χαρακτήρων</div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field field-full">
+        <label>Τρέχων Κωδικός *</label>
+        <input id="pw-current" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="field">
+        <label>Νέος Κωδικός *</label>
+        <input id="pw-new" type="password" placeholder="••••••••" autocomplete="new-password" oninput="checkPwStrength(this.value)" />
+        <div id="pw-strength-bar" class="pw-strength" style="background:#E5E7EB"></div>
+        <div id="pw-strength-hint" class="pw-hint">Τουλάχιστον 8 χαρακτήρες, κεφαλαία, αριθμοί</div>
+      </div>
+      <div class="field">
+        <label>Επιβεβαίωση Νέου Κωδικού *</label>
+        <input id="pw-confirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+    </div>
+    <div style="margin-top:20px;display:flex;justify-content:flex-end">
+      <button class="btn-save" id="btn-save-pw" onclick="savePassword()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+        Αλλαγή Κωδικού
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification Preferences -->
+  <div class="card anim">
+    <div class="card-header">
+      <div class="card-icon" style="background:#FFF7ED;color:#C2410C">
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Ειδοποιήσεις Email</div>
+        <div class="card-sub">Επιλέξτε τι θέλετε να λαμβάνετε</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <label style="display:flex;align-items:center;gap:12px;text-transform:none;font-size:14px;color:#374151;cursor:pointer">
+        <input type="checkbox" id="notif-new-invoice" checked style="width:18px;height:18px;accent-color:#1E3A5F;cursor:pointer" />
+        Νέο τιμολόγιο από πελάτη
+      </label>
+      <label style="display:flex;align-items:center;gap:12px;text-transform:none;font-size:14px;color:#374151;cursor:pointer">
+        <input type="checkbox" id="notif-mydata-fail" checked style="width:18px;height:18px;accent-color:#1E3A5F;cursor:pointer" />
+        Αποτυχία αποστολής myDATA
+      </label>
+      <label style="display:flex;align-items:center;gap:12px;text-transform:none;font-size:14px;color:#374151;cursor:pointer">
+        <input type="checkbox" id="notif-client-new" checked style="width:18px;height:18px;accent-color:#1E3A5F;cursor:pointer" />
+        Νέος πελάτης συνδέθηκε
+      </label>
+      <label style="display:flex;align-items:center;gap:12px;text-transform:none;font-size:14px;color:#374151;cursor:pointer">
+        <input type="checkbox" id="notif-subscription" style="width:18px;height:18px;accent-color:#1E3A5F;cursor:pointer" />
+        Ενημερώσεις συνδρομής
+      </label>
+    </div>
+    <div style="margin-top:20px;display:flex;justify-content:flex-end">
+      <button class="btn-save" onclick="saveNotifications()">Αποθήκευση Προτιμήσεων</button>
+    </div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="card anim" style="border-color:#FECACA">
+    <div class="card-header" style="border-bottom-color:#FEE2E2">
+      <div class="card-icon" style="background:#FEF2F2;color:#DC2626">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      </div>
+      <div>
+        <div class="card-title" style="color:#DC2626">Ζώνη Κινδύνου</div>
+        <div class="card-sub">Μη αναστρέψιμες ενέργειες</div>
+      </div>
+    </div>
+    <div class="danger-zone">
+      <div class="danger-title">Διαγραφή Λογαριασμού</div>
+      <div class="danger-desc">
+        Η διαγραφή του λογαριασμού σας είναι <strong>μόνιμη και μη αναστρέψιμη</strong>. Όλα τα δεδομένα σας θα διαγραφούν. Οι πελάτες σας δεν θα επηρεαστούν — θα χάσουν μόνο την πρόσβαση μέσω εσάς.
+      </div>
+      <button class="btn-danger" onclick="openDeleteModal()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        Διαγραφή Λογαριασμού
+      </button>
+    </div>
+  </div>
+</main>
+
+<!-- Delete Account Modal -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:64px;height:64px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="#DC2626"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      </div>
+      <div class="modal-title">Διαγραφή Λογαριασμού;</div>
+      <div class="modal-sub">Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Εισάγετε τον κωδικό σας για επιβεβαίωση.</div>
+    </div>
+    <div id="delete-error" style="display:none;padding:10px 14px;background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;font-size:13px;color:#B91C1C;margin-bottom:14px"></div>
+    <div>
+      <label>Κωδικός Πρόσβασης *</label>
+      <input id="delete-pw" type="password" placeholder="Εισάγετε τον κωδικό σας" />
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeDeleteModal()">Άκυρο</button>
+      <button class="modal-delete" id="delete-btn" onclick="doDeleteAccount()">Διαγραφή</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  requireAuth();
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', async () => {
+    const u = getCurrentUser();
+    const name = u?.name || u?.full_name || 'Λογιστής';
+    document.getElementById('hdr-name').textContent   = name;
+    document.getElementById('hdr-avatar').textContent = name.charAt(0).toUpperCase();
+    await loadProfile();
+  });
+
+  async function loadProfile() {
+    try {
+      const res = await api.get('/accountant/me');
+      const d = res?.data || {};
+      const u = getCurrentUser();
+      document.getElementById('p-name').value  = d.full_name || u?.full_name || '';
+      document.getElementById('p-email').value = d.email || u?.email || '';
+      document.getElementById('p-phone').value = d.phone || '';
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  /* ── Save profile ── */
+  async function saveProfile() {
+    const btn   = document.getElementById('btn-save-profile');
+    const name  = document.getElementById('p-name').value.trim();
+    const email = document.getElementById('p-email').value.trim();
+    const phone = document.getElementById('p-phone').value.trim();
+    if (!name || !email) { showToast('Ονοματεπώνυμο και email είναι υποχρεωτικά.', 'error'); return; }
+    btn.disabled = true; btn.textContent = 'Αποθήκευση…';
+    try {
+      await api.patch('/accountant/me', { full_name: name, email, phone: phone || undefined });
+      showToast('Τα στοιχεία αποθηκεύτηκαν!', 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg> Αποθήκευση Στοιχείων`;
+    }
+  }
+
+  /* ── Password strength ── */
+  function checkPwStrength(pw) {
+    const bar  = document.getElementById('pw-strength-bar');
+    const hint = document.getElementById('pw-strength-hint');
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const colors = ['#EF4444','#F59E0B','#3B82F6','#22C55E'];
+    const labels = ['Πολύ αδύναμος','Αδύναμος','Μέτριος','Ισχυρός'];
+    const widths = ['25%','50%','75%','100%'];
+    bar.style.background = colors[score-1] || '#E5E7EB';
+    bar.style.width = pw ? (widths[score-1] || '5%') : '0';
+    hint.textContent = pw ? labels[score-1] : 'Τουλάχιστον 8 χαρακτήρες, κεφαλαία, αριθμοί';
+    hint.style.color = pw ? colors[score-1] : '#9CA3AF';
+  }
+
+  /* ── Save password ── */
+  async function savePassword() {
+    const btn     = document.getElementById('btn-save-pw');
+    const current = document.getElementById('pw-current').value;
+    const newPw   = document.getElementById('pw-new').value;
+    const confirm = document.getElementById('pw-confirm').value;
+    if (!current || !newPw) { showToast('Συμπληρώστε όλα τα πεδία.', 'error'); return; }
+    if (newPw.length < 8)   { showToast('Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.', 'error'); return; }
+    if (newPw !== confirm)  { showToast('Οι κωδικοί δεν ταιριάζουν.', 'error'); return; }
+    btn.disabled = true; btn.textContent = 'Αλλαγή…';
+    try {
+      await api.post('/auth/change-password', { old_password: current, new_password: newPw });
+      document.getElementById('pw-current').value = '';
+      document.getElementById('pw-new').value     = '';
+      document.getElementById('pw-confirm').value = '';
+      showToast('Ο κωδικός άλλαξε επιτυχώς!', 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg> Αλλαγή Κωδικού`;
+    }
+  }
+
+  /* ── Save notifications ── */
+  async function saveNotifications() {
+    try {
+      await api.patch('/accountant/me/notifications', {
+        notif_new_invoice:  document.getElementById('notif-new-invoice').checked,
+        notif_mydata_fail:  document.getElementById('notif-mydata-fail').checked,
+        notif_client_new:   document.getElementById('notif-client-new').checked,
+        notif_subscription: document.getElementById('notif-subscription').checked,
+      });
+      showToast('Οι ειδοποιήσεις αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  /* ── Delete account ── */
+  function openDeleteModal() {
+    document.getElementById('delete-pw').value = '';
+    document.getElementById('delete-error').style.display = 'none';
+    document.getElementById('modal-delete').classList.add('open');
+    setTimeout(() => document.getElementById('delete-pw').focus(), 60);
+  }
+  function closeDeleteModal() {
+    document.getElementById('modal-delete').classList.remove('open');
+  }
+  document.getElementById('modal-delete').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-delete')) closeDeleteModal();
+  });
+
+  async function doDeleteAccount() {
+    const pw  = document.getElementById('delete-pw').value;
+    const btn = document.getElementById('delete-btn');
+    const err = document.getElementById('delete-error');
+    err.style.display = 'none';
+    if (!pw) { err.textContent = 'Εισάγετε τον κωδικό σας.'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Διαγραφή…';
+    try {
+      await api.delete('/accountant/me', { password: pw });
+      localStorage.clear();
+      window.location.href = '../index.html';
+    } catch (e) {
+      err.textContent = e.message || 'Λάθος κωδικός.';
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Διαγραφή';
+    }
+  }
+
+  /* ── Toast ── */
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    const m = document.getElementById('toast-msg');
+    m.textContent = msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+
+<!-- ── COMING SOON OVERLAY ────────────────────────────────────────────── -->
+<div id="coming-soon-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0a3042 0%,#0d4a60 45%,#092b36 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+  <div style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);border-radius:28px;padding:40px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="font-size:52px;margin-bottom:16px">🚧</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:.5px">Σύντομα Κοντά Σας</div>
+    <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px">Η <strong style="color:#38BEC9">Πύλη Λογιστών</strong> βρίσκεται σε ανάπτυξη.<br>Θα είναι διαθέσιμη σε επόμενη έκδοση της εφαρμογής.<br><br>Για υποστήριξη επικοινωνήστε με τον διαχειριστή.</div>
+    <a href="/fishbill/" style="display:inline-flex;align-items:center;gap:8px;background:rgba(56,190,201,.18);border:1.5px solid rgba(56,190,201,.5);color:#38BEC9;font-size:15px;font-weight:700;padding:12px 28px;border-radius:14px;text-decoration:none;" onmouseover="this.style.background='rgba(56,190,201,.28)'" onmouseout="this.style.background='rgba(56,190,201,.18)'">← Επιστροφή στην Αρχική</a>
+  </div>
+</div>
+</body>
+</html>

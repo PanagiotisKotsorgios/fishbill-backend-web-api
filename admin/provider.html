@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Πάροχος myDATA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="sidebar-container"></div>
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <div class="mb-6 anim">
+        <h1 class="text-2xl font-bold text-gray-900">Πάροχος Τιμολόγησης — e-timologiera</h1>
+        <p class="text-sm text-gray-500 mt-1">Διαπιστευτήρια σύνδεσης με e-timologiera για αποστολή παραστατικών στο myDATA/ΑΑΔΕ. Τα Δελτία Αποστολής χρησιμοποιούν τα credentials myDATA κάθε επιχείρησης ξεχωριστά.</p>
+      </div>
+
+      <!-- Info banner -->
+      <div class="bg-teal-50 border border-teal-200 rounded-2xl p-5 mb-6 anim">
+        <div class="flex gap-3">
+          <div class="text-2xl flex-shrink-0 text-teal-500"><i class="fas fa-receipt"></i></div>
+          <div>
+            <h3 class="font-bold text-teal-900 mb-1">e-timologiera — BRATNET E.E. (Πιστοποιημένος Πάροχος ΑΑΔΕ)</h3>
+            <p class="text-sm text-teal-800 leading-relaxed">
+              Το FishBill αποστέλλει <strong>όλα τα παραστατικά</strong> (Τιμολόγια + Δελτία Αποστολής) μέσω <strong>e-timologiera V4 API</strong>. Ο πάροχος επικυρώνει, υπογράφει και προωθεί κάθε παραστατικό στο myDATA/ΑΑΔΕ — επιστρέφει MARK, QR Code και ψηφιακή υπογραφή. Endpoint: <code class="bg-teal-100 px-1 rounded">POST /sendInvoice</code> για όλους τους τύπους.
+            </p>
+            <div class="flex gap-4 mt-2 flex-wrap text-xs">
+              <a href="https://etimologiera.gr" target="_blank" class="text-teal-700 underline font-semibold">🌐 etimologiera.gr</a>
+              <a href="https://einvoicing-dev-api.etimologiera.gr/swagger" target="_blank" class="text-teal-700 underline font-semibold">🔬 Swagger (Dev)</a>
+              <span class="text-teal-600">📞 2310 989465 · info@etimologiera.gr</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Provider credentials -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5 anim" style="animation-delay:.05s">
+        <h2 class="text-base font-bold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-key mr-1.5 text-teal-600"></i>Credentials e-timologiera</h2>
+
+        <!-- e-timologiera info banner (shown when selected) -->
+        <div id="etim-info" class="hidden mb-4 bg-teal-50 border border-teal-200 rounded-xl p-4">
+          <div class="flex gap-3">
+            <div class="text-teal-600 flex-shrink-0 text-xl"><i class="fas fa-circle-info"></i></div>
+            <div>
+              <p class="text-sm font-bold text-teal-900 mb-1">e-timologiera — BRATNET E.E. (Πιστοποιημένος Πάροχος ΑΑΔΕ)</p>
+              <p class="text-xs text-teal-800 leading-relaxed">
+                Αποστέλλετε παραστατικά στο API του e-timologiera (Basic Auth) και αυτοί αναλαμβάνουν την επικύρωση και μετάδοση στο myDATA/ΑΑΔΕ. Επιστρέφουν MARK, QR Code και ψηφιακή υπογραφή.
+              </p>
+              <div class="flex gap-3 mt-2 flex-wrap text-xs">
+                <a href="https://etimologiera.gr/en/developers-api-electronic-invoicing-provider-in-greece/" target="_blank" class="text-teal-700 underline font-semibold">📄 API Docs</a>
+                <a href="https://einvoicing-dev-api.etimologiera.gr/swagger" target="_blank" class="text-teal-700 underline font-semibold">🔬 Swagger (Dev)</a>
+                <span class="text-teal-600">📞 2310 989465 · info@etimologiera.gr</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-xl p-4 mb-4 text-xs text-gray-600 space-y-1">
+          <p><span class="font-bold">V4 API — Production:</span> <code class="bg-white px-1 py-0.5 rounded border border-gray-200">https://einvoicing-api.etimologiera.gr/v4</code></p>
+          <p><span class="font-bold">V4 API — Sandbox:</span> <code class="bg-white px-1 py-0.5 rounded border border-gray-200">https://einvoicing-dev-api.etimologiera.gr/v4</code></p>
+          <p><span class="font-bold">Auth:</span> HTTP Basic Auth — Username + <strong>API Key</strong> (από το dashboard της e-timologiera → ΤΑ ΣΤΟΙΧΕΙΑ ΜΟΥ → API)</p>
+          <p><span class="font-bold">Endpoint:</span> <code class="bg-white px-1 py-0.5 rounded border border-gray-200">POST /sendInvoice</code> — και για Τιμολόγια και για Δελτία Αποστολής</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Username (από e-timologiera)</label>
+            <input id="f-etim-username" class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-teal-400" placeholder="client_username" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">API Key (Password) — από dashboard e-timologiera</label>
+            <input id="f-etim-password" type="password" class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-teal-400" placeholder="••••••••" />
+            <p class="text-xs text-gray-400 mt-1">Δημιουργία κωδικού: Σύνδεση → ΤΑ ΣΤΟΙΧΕΙΑ ΜΟΥ → API → «Δημιουργία κωδικού»</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 mt-4">
+          <input id="f-provider_test_mode" type="checkbox" class="w-5 h-5 rounded accent-teal-600" onchange="updateApiUrlDisplay()" />
+          <label for="f-provider_test_mode" class="text-sm text-gray-700 font-medium">Test Mode (sandbox) — χρήση dev API, δεν αποστέλλονται πραγματικά δεδομένα στη ΑΑΔΕ</label>
+        </div>
+        <div id="api-url-display" class="mt-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2"></div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide mt-4">Σημειώσεις / Οδηγίες εσωτερικές</label>
+          <textarea id="f-provider_notes" rows="3" class="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400 resize-none" placeholder="Εσωτερικές σημειώσεις για την ομάδα…"></textarea>
+        </div>
+
+        <div class="flex items-center justify-between mt-5 gap-3 flex-wrap">
+          <button onclick="testProviderConnection()" id="test-conn-btn" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-colors flex items-center gap-2">
+            <i class="fas fa-plug text-teal-500"></i>Δοκιμή Σύνδεσης
+          </button>
+          <button onclick="saveProvider()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-colors">
+            <i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Ρυθμίσεων Παρόχου
+          </button>
+        </div>
+        <div id="conn-test-result" class="hidden mt-3 rounded-xl px-4 py-3 text-sm font-medium"></div>
+      </div>
+
+      <!-- Delivery notes info -->
+      <div class="bg-green-50 border border-green-200 rounded-2xl p-5 anim" style="animation-delay:.1s">
+        <h3 class="font-bold text-green-900 mb-2 flex items-center gap-2"><i class="fas fa-truck mr-1.5 text-green-600"></i>Δελτία Αποστολής — μέσω e-timologiera (τύπος 9.3)</h3>
+        <p class="text-sm text-green-800 mb-2">Τα Δελτία Αποστολής αποστέλλονται επίσης <strong>μέσω e-timologiera</strong> (ίδια credentials παραπάνω) με τύπο παραστατικού <strong>9.3</strong>. Δεν χρειάζονται ξεχωριστά credentials myDATA ανά επιχείρηση.</p>
+        <div class="text-xs text-green-700 space-y-0.5">
+          <p>✅ Τιμολόγια Πώλησης (1.1) → <code>POST /sendInvoice</code></p>
+          <p>✅ Δελτία Αποστολής (9.3) → <code>POST /sendInvoice</code></p>
+          <p>✅ Πιστωτικά Τιμολόγια (1.3) → <code>POST /sendInvoice</code></p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl transition-all"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    initPage({ requireRole: 'super_admin' });
+
+    document.addEventListener('DOMContentLoaded', loadSettings);
+
+    function updateApiUrlDisplay() {
+      const testMode = document.getElementById('f-provider_test_mode').checked;
+      const el = document.getElementById('api-url-display');
+      if (!el) return;
+      const url = testMode
+        ? 'https://einvoicing-dev-api.etimologiera.gr/v4'
+        : 'https://einvoicing-api.etimologiera.gr/v4';
+      el.innerHTML = `<i class="fas fa-link mr-1"></i>Ενεργό URL: <code class="bg-white px-1 py-0.5 rounded border border-gray-200">${url}</code>${testMode ? ' <span class="text-orange-600 font-semibold ml-2">⚠ TEST MODE</span>' : ' <span class="text-green-600 font-semibold ml-2">✓ PRODUCTION</span>'}`;
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await api.get('/platform/settings');
+        const s = res.data || {};
+        document.getElementById('f-etim-username').value   = s.provider_username || '';
+        document.getElementById('f-provider_test_mode').checked = s.provider_test_mode === '1';
+        document.getElementById('f-provider_notes').value  = s.provider_notes    || '';
+        updateApiUrlDisplay();
+      } catch (e) { showToast('Σφάλμα φόρτωσης: ' + e.message, 'error'); }
+    }
+
+    async function saveProvider() {
+      const testMode = document.getElementById('f-provider_test_mode').checked;
+      const apiUrl   = testMode
+        ? 'https://einvoicing-dev-api.etimologiera.gr/v4'
+        : 'https://einvoicing-api.etimologiera.gr/v4';
+      try {
+        await api.post('/platform/provider', {
+          provider_name:      'etimologiera',
+          provider_api_url:   apiUrl,
+          provider_username:  document.getElementById('f-etim-username').value.trim(),
+          provider_password:  document.getElementById('f-etim-password').value || undefined,
+          provider_test_mode: testMode ? '1' : '0',
+          provider_notes:     document.getElementById('f-provider_notes').value.trim(),
+        });
+        showToast('Ρυθμίσεις e-timologiera αποθηκεύτηκαν!', 'success');
+        updateApiUrlDisplay();
+      } catch (e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function testProviderConnection() {
+      const btn = document.getElementById('test-conn-btn');
+      const resultEl = document.getElementById('conn-test-result');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin text-teal-500"></i>Δοκιμή…';
+      resultEl.className = 'hidden mt-3 rounded-xl px-4 py-3 text-sm font-medium';
+      resultEl.classList.add('hidden');
+      try {
+        await saveProvider(); // Save first so backend uses latest credentials
+        const res = await api.post('/platform/provider/test', {});
+        const d = res.data || res;
+        resultEl.className = `mt-3 rounded-xl px-4 py-3 text-sm font-medium ${d.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`;
+        resultEl.innerHTML = `<i class="fas fa-${d.ok ? 'circle-check' : 'circle-xmark'} mr-2"></i>${d.message || (d.ok ? 'Σύνδεση OK' : 'Σφάλμα σύνδεσης')}`;
+      } catch (e) {
+        resultEl.className = 'mt-3 rounded-xl px-4 py-3 text-sm font-medium bg-red-50 text-red-700 border border-red-200';
+        resultEl.innerHTML = `<i class="fas fa-circle-xmark mr-2"></i>${e.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug text-teal-500"></i>Δοκιμή Σύνδεσης';
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl ${type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+  </script>
+</body>
+</html>

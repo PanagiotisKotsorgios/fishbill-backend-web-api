@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Συντήρηση | FishBill</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #092B36 0%, #0B4A5C 45%, #0D3544 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .wrap { max-width: 540px; width: 100%; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%  { transform: translateY(-14px); }
+    }
+    .fish-icon {
+      display: inline-block;
+      animation: float 3.2s ease-in-out infinite;
+      margin-bottom: 8px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .65; transform: scale(.93); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim-1 { animation: fadeUp .5s ease-out .1s both; }
+    .anim-2 { animation: fadeUp .5s ease-out .25s both; }
+    .anim-3 { animation: fadeUp .5s ease-out .4s both; }
+    .anim-4 { animation: fadeUp .5s ease-out .55s both; }
+
+    .badge-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(56,190,201,.15);
+      border: 1.5px solid rgba(56,190,201,.45);
+      border-radius: 100px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #38BEC9;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .badge-dot {
+      width: 8px; height: 8px;
+      background: #38BEC9;
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .main-title {
+      font-size: clamp(26px, 6vw, 42px);
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 14px;
+      line-height: 1.15;
+    }
+    .main-title span { color: #38BEC9; }
+
+    .desc {
+      font-size: clamp(16px, 3vw, 19px);
+      color: rgba(255,255,255,.78);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .safe-card {
+      background: rgba(56,190,201,.10);
+      border: 1.5px solid rgba(56,190,201,.30);
+      border-radius: 18px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+    .safe-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .safe-icon {
+      width: 36px; height: 36px;
+      background: rgba(56,190,201,.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .safe-card-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #38BEC9;
+    }
+    .safe-card-body {
+      font-size: 14px;
+      color: rgba(255,255,255,.75);
+      line-height: 1.65;
+    }
+    .safe-card-body strong { color: #fff; font-weight: 700; }
+
+    .custom-msg {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+      font-size: 15px;
+      color: rgba(255,255,255,.8);
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 400px;
+      margin: 0 auto 36px;
+    }
+    .btn-home {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      height: 64px;
+      background: #38BEC9;
+      color: #092B36;
+      border: none;
+      border-radius: 18px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 6px 24px rgba(56,190,201,.35);
+      transition: transform .12s, box-shadow .12s;
+    }
+    .btn-home:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(56,190,201,.45); }
+    .btn-home svg { width: 22px; height: 22px; fill: #092B36; flex-shrink: 0; }
+
+    .footer-note {
+      font-size: 13px;
+      color: rgba(255,255,255,.32);
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Fish logo -->
+  <div class="fish-icon anim-1">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="160" height="107">
+      <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+      <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+      <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+      <path stroke="#065666" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+      <path stroke="#065666" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+      <path fill="#0A5568" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+      <path fill="#0A5568" d="M80,88 C88,108 102,108 110,86 Z"/>
+      <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+      <circle cx="138" cy="60" r="5"  fill="#064E60"/>
+      <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+      <path stroke="#0A5568" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+    </svg>
+  </div>
+
+  <!-- Badge -->
+  <div class="badge-wrap anim-1">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      Συντήρηση Συστήματος
+    </div>
+  </div>
+
+  <!-- Title (simplified) -->
+  <h1 class="main-title anim-2">
+    Σύντομα<br><span>επιστρέφουμε</span>
+  </h1>
+
+  <!-- Description (short) -->
+  <p class="desc anim-2">
+    Εκτελούμε προγραμματισμένες εργασίες συντήρησης.<br>
+    Σας ευχαριστούμε για την υπομονή σας.
+  </p>
+
+  <!-- Data safety assurance – concise -->
+  <div class="safe-card anim-3">
+    <div class="safe-card-header">
+      <div class="safe-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="#38BEC9">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+        </svg>
+      </div>
+      <div class="safe-card-title">Τα δεδομένα σας παραμένουν ασφαλή</div>
+    </div>
+    <div class="safe-card-body">
+      <strong>Καμία απώλεια.</strong> Όλα τα τιμολόγια και τα στοιχεία σας διατηρούνται ακέραια.
+    </div>
+  </div>
+
+  <!-- Admin custom message (shown if set) -->
+  <div class="custom-msg anim-3" id="customMsg" style="display:none"></div>
+
+  <!-- Button to return to home -->
+  <div class="btn-group anim-4">
+    <button class="btn-home" onclick="goHome()">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Επιστροφή στην Αρχική
+    </button>
+  </div>
+
+  <div class="footer-note">
+    FishBill &copy; 2026 · Ηλεκτρονική Τιμολόγιση για Ψαράδες
+  </div>
+</div>
+
+<script>
+  // Load custom admin message from API
+  (async () => {
+    try {
+      const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:4000'
+        : '';
+      const r = await fetch(API + '/api/status');
+      const d = await r.json();
+      if (d.message) {
+        const el = document.getElementById('customMsg');
+        el.textContent = '"' + d.message + '"';
+        el.style.display = 'block';
+      }
+    } catch { /* ignore */ }
+  })();
+
+  function goHome() {
+    window.location.href = '/fishbill/';
+  }
+
+  // Auto-check every 30 seconds — redirect back when maintenance ends
+  setInterval(async () => {
+    try {
+      const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:4000'
+        : '';
+      const r = await fetch(API + '/api/status');
+      const d = await r.json();
+      if (!d.maintenance) {
+        window.location.href = '/fishbill/app/';
+      }
+    } catch { /* server still down, stay here */ }
+  }, 30000);
+</script>
+</body>
+</html>

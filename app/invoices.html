@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>FishBill – Τιμολόγια</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue-dark:  #0D47A1;
+      --blue-mid:   #1565C0;
+      --blue:       #1976D2;
+      --blue-light: #42A5F5;
+      --border-blue: #90CAF9;
+      --card-bg:    #ffffff;
+      --green:      #2E7D32;
+      --red:        #B71C1C;
+      --orange:     #E65100;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #0D47A1 0%, #1565C0 40%, #1976D2 70%, #42A5F5 100%);
+      min-height: 100vh;
+      padding-bottom: 94px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .anim { animation: fadeUp .35s ease-out both; }
+
+    /* ── LAYOUT ── */
+    .page {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 0 16px 20px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 40px 0 20px;
+    }
+    .header-logo-wrap {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+    }
+    .header-title {
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1.5px;
+      flex: 1;
+    }
+
+    /* Mobile new button row (below header) */
+    .btn-new-header-row { display: none; margin-bottom: 18px; }
+
+    .btn-new-header {
+      width: 100%; background: rgba(255,255,255,.95); border: none;
+      border-radius: 16px; padding: 0 20px 0 16px; height: 56px;
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      transition: background .15s; color: #0D47A1; font-size: 17px;
+      font-weight: 800; font-family: inherit; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    }
+    .btn-new-header:hover { background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+    .btn-new-header svg { width: 24px; height: 24px; fill: #0D47A1; flex-shrink: 0; }
+
+    /* ── SEARCH ── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 18px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      fill: #9E9E9E;
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      height: 58px;
+      background: rgba(255,255,255,.95);
+      border: 2.5px solid var(--border-blue);
+      border-radius: 24px;
+      padding: 0 56px;
+      font-size: 17px;
+      font-family: inherit;
+      color: #111;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      outline: none;
+    }
+    .search-input::placeholder { color: #999; }
+    .search-clear {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      background: #e0e0e0;
+      border: none;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .search-clear svg { width: 18px; height: 18px; fill: #555; }
+
+    /* ── FILTER PILLS (now wrap on mobile) ── */
+    .pills-scroll {
+      overflow-x: visible;
+      margin: 0 0 18px;
+    }
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 4px 0 12px;
+    }
+    .pill {
+      flex-shrink: 0;
+      padding: 10px 20px;
+      background: rgba(255,255,255,.2);
+      border: 2.5px solid rgba(255,255,255,.35);
+      border-radius: 99px;
+      color: rgba(255,255,255,.95);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .pill.active {
+      background: #fff;
+      color: #0D47A1;
+      border-color: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+    .pill:hover:not(.active) { background: rgba(255,255,255,.3); }
+
+    /* ── COUNT LABEL ── */
+    .count-label {
+      font-size: 14px;
+      font-weight: 800;
+      color: rgba(255,255,255,.85);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+
+    /* ── INVOICE CARD ── */
+    .invoice-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      border: 2.5px solid var(--border-blue);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .12s;
+    }
+    .invoice-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.15); }
+    .status-bar { width: 6px; height: 56px; border-radius: 99px; flex-shrink: 0; }
+    .invoice-info { flex: 1; min-width: 0; }
+    .inv-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .inv-number { font-size: 18px; font-weight: 800; color: #111; }
+    .inv-amount { font-size: 18px; font-weight: 800; color: #0D47A1; }
+    .inv-mid { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .inv-customer { font-size: 15px; font-weight: 600; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+    .status-badge { font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 99px; white-space: nowrap; }
+    .inv-date { font-size: 14px; color: #64748b; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .inv-date i { font-size: 14px; color: #94a3b8; }
+    .chevron-icon { width: 20px; height: 20px; fill: #94a3b8; flex-shrink: 0; }
+
+    /* ── EMPTY / ERROR ── */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: rgba(255,255,255,.75);
+    }
+    .empty-icon { width: 72px; height: 72px; fill: rgba(255,255,255,.4); margin: 0 auto 20px; display: block; }
+    .empty-state .empty-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .empty-state .empty-sub   { font-size: 16px; opacity: .75; }
+    .err-card {
+      background: #FFEBEE;
+      border-radius: 24px;
+      padding: 28px 24px;
+      color: #B71C1C;
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      border: 2px solid #ef9a9a;
+    }
+    .err-icon { width: 40px; height: 40px; fill: #B71C1C; }
+
+    /* ── LOAD MORE ── */
+    .load-more-btn {
+      width: 100%;
+      padding: 18px;
+      background: rgba(255,255,255,.15);
+      border: 3px solid rgba(255,255,255,.4);
+      border-radius: 20px;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: background .15s;
+    }
+    .load-more-btn:hover { background: rgba(255,255,255,.22); }
+    .load-more-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 44px; height: 44px; display: block; margin: 0 auto;
+      border: 4px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+
+    /* ── FAB (visible only on desktop) ── */
+    .fab {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;
+      height: 80px;
+      padding: 0 36px;
+      background: #0D47A1;
+      border: 3px solid #1565C0;
+      border-radius: 24px;
+      box-shadow: 0 10px 36px rgba(13,71,161,.45);
+      cursor: pointer;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      gap: 14px;
+      transition: transform .15s, box-shadow .15s;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 800;
+      font-family: inherit;
+    }
+    .fab:hover { transform: translateY(-3px); box-shadow: 0 18px 48px rgba(13,71,161,.55); }
+    .fab svg { width: 30px; height: 30px; fill: #fff; flex-shrink: 0; }
+
+    /* ── DRAFT ACTIONS ── */
+    .draft-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 3px solid #f0f0f0;
+    }
+    .draft-btn {
+      width: 100%;
+      height: 58px;
+      border: none;
+      border-radius: 18px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all .15s;
+    }
+    .draft-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .draft-btn.submit { background: #0D47A1; color: #fff; }
+    .draft-btn.submit:hover { background: #1565C0; }
+    .draft-btn.edit   { background: #EFF6FF; color: #0D47A1; border: 3px solid #BFDBFE; }
+    .draft-btn.edit:hover { background: #DBEAFE; }
+    .draft-btn.delete { background: #FFF1F2; color: #BE123C; border: 3px solid #FECDD3; }
+    .draft-btn.delete:hover { background: #FFE4E6; }
+    .draft-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 82px;
+      background: #0D47A1;
+      display: flex;
+      align-items: stretch;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.3);
+      z-index: 100;
+    }
+    .nav-item {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      color: rgba(255,255,255,.6);
+      font-size: 14px;
+      font-weight: 700;
+      transition: all .15s;
+    }
+    .nav-item.active {
+      color: #fff;
+      background: rgba(255,255,255,.2);
+    }
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 18%;
+      right: 18%;
+      height: 4px;
+      background: #fff;
+      border-radius: 0 0 4px 4px;
+    }
+    .nav-icon-wrap { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+    .nav-icon-wrap svg { width: 28px; height: 28px; fill: currentColor; }
+
+    /* ── BOTTOM SHEET ── */
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      display: none;
+      align-items: flex-end;
+      z-index: 200;
+    }
+    .sheet {
+      background: #fff;
+      width: 100%;
+      max-height: 85vh;
+      border-radius: 24px 24px 0 0;
+      padding: 16px 24px 40px;
+      overflow-y: auto;
+    }
+    .sheet-handle {
+      width: 48px;
+      height: 5px;
+      background: #e0e0e0;
+      border-radius: 99px;
+      margin: 0 auto 20px;
+    }
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .sheet-title { font-size: 24px; font-weight: 800; color: #0D47A1; }
+    .close-btn {
+      width: 42px; height: 42px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-btn svg { width: 20px; height: 20px; fill: #555; }
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .detail-icon {
+      width: 44px; height: 44px;
+      background: #EFF6FF;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .detail-icon svg { width: 22px; height: 22px; fill: #1565C0; }
+    .detail-label { font-size: 13px; color: #999; margin-bottom: 4px; }
+    .detail-value { font-size: 18px; font-weight: 600; color: #111; }
+    .detail-section {
+      font-size: 14px;
+      font-weight: 700;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin: 20px 0 12px;
+    }
+    .item-row { padding: 12px 0; border-bottom: 1px solid #f9fafb; }
+    .item-desc { font-size: 16px; font-weight: 600; color: #111; margin-bottom: 4px; }
+    .item-sub { font-size: 14px; color: #777; }
+
+    /* ═══════════════ DESKTOP ≥900px ═══════════════ */
+    @media (min-width: 900px) {
+      body { padding-bottom: 0; }
+
+      .page {
+        max-width: 1200px;
+        padding: 0 40px 40px;
+      }
+
+      .header {
+        padding: 36px 0 28px;
+      }
+      .header-title { font-size: 38px; }
+      .header-logo-wrap { width: 72px; height: 72px; }
+
+      /* Hide mobile button row, show FAB */
+      .btn-new-header-row { display: none; }
+      .fab { display: flex; }
+
+      .search-input { height: 64px; font-size: 18px; border-radius: 26px; }
+
+      /* Pills stay inline on desktop */
+      .filter-pills {
+        flex-wrap: nowrap;
+        padding: 4px 0 12px;
+      }
+      .pill { padding: 12px 24px; font-size: 16px; }
+
+      #list-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        align-items: start;
+      }
+      #list-area .load-more-btn { grid-column: 1 / -1; }
+
+      .invoice-card { border-radius: 26px; padding: 22px 24px; }
+      .inv-number, .inv-amount { font-size: 20px; }
+      .inv-customer { font-size: 16px; }
+      .inv-date { font-size: 15px; }
+
+      .bottom-nav { display: none; }
+      .desktop-nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: 16px;
+      }
+      .desktop-nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 22px;
+        border-radius: 16px;
+        color: rgba(255,255,255,.8);
+        text-decoration: none;
+        font-size: 17px;
+        font-weight: 700;
+        transition: background .15s, color .15s;
+      }
+      .desktop-nav a:hover { background: rgba(255,255,255,.18); color: #fff; }
+      .desktop-nav a.active { background: rgba(255,255,255,.25); color: #fff; }
+      .desktop-nav a svg { width: 22px; height: 22px; fill: currentColor; flex-shrink: 0; }
+
+      .sheet { max-width: 640px; margin: auto auto 0; border-radius: 28px 28px 0 0; }
+    }
+
+    @media (max-width: 899px) {
+      .desktop-nav { display: none; }
+      .btn-new-header-row { display: block; }
+      .fab { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="62" height="41">
+        <path fill="#0D47A1" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <path fill="#1976D2" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <path fill="#42A5F5" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <path stroke="#1565C0" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+        <path stroke="#1565C0" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+        <path fill="#0D47A1" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+        <path fill="#0D47A1" d="M80,88 C88,108 102,108 110,86 Z"/>
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <circle cx="138" cy="60" r="5" fill="#1A237E"/>
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+        <path stroke="#0D47A1" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+      </svg>
+    </div>
+    <div class="header-title">Τιμολόγια</div>
+
+    <nav class="desktop-nav">
+      <a href="dashboard.html">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Αρχική
+      </a>
+      <a href="invoices.html" class="active">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2zm0-4h5v2H8V7z"/></svg>Τιμολόγια
+      </a>
+      <a href="delivery-notes.html">
+        <svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zm-.5 1.5l1.96 2.5H17V9.5h2.5zM6 18c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2.22-3c-.55-.61-1.33-1-2.22-1s-1.67.39-2.22 1H3V6h12v9H8.22zm9.78 3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>ΔΑ
+      </a>
+      <a href="customers.html" id="nav-customers-desktop" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Πελάτες
+      </a>
+      <a href="profile.html">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>Προφίλ
+      </a>
+      <a href="settings.html">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Ρυθμίσεις
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- MOBILE NEW BUTTON -->
+  <div class="btn-new-header-row">
+    <button class="btn-new-header" onclick="location.href='invoice-create.html'">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <span>ΝΕΟ ΤΙΜΟΛΟΓΙΟ</span>
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <input id="search" class="search-input" type="text" placeholder="Αναζήτηση αριθμού ή πελάτη…" oninput="onSearch(this.value)" />
+    <button class="search-clear" id="search-clear" onclick="clearSearch()">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+
+  <!-- Filter pills (now wrap on mobile) -->
+  <div class="pills-scroll">
+    <div class="filter-pills" id="filter-pills">
+      <button class="pill active" data-filter="all" onclick="setFilter('all', this)">Όλα</button>
+      <button class="pill" data-filter="draft" onclick="setFilter('draft', this)">Πρόχειρα</button>
+      <button class="pill" data-filter="issued" onclick="setFilter('issued', this)">Εκδοθέντα</button>
+      <button class="pill" data-filter="transmitted" onclick="setFilter('transmitted', this)">Διαβιβάστηκαν</button>
+      <button class="pill" data-filter="pending" onclick="setFilter('pending', this)">Εκκρεμεί</button>
+      <button class="pill" data-filter="failed" onclick="setFilter('failed', this)">Αποτυχία</button>
+      <button class="pill" style="background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7" onclick="exportCsv()">⬇ CSV</button>
+    </div>
+  </div>
+
+  <div id="count-label" class="count-label" style="display:none"></div>
+  <div id="list-area"><div class="spinner" style="margin:60px auto"></div></div>
+</div>
+
+<!-- FAB (desktop only) -->
+<button class="fab" onclick="location.href='invoice-create.html'">
+  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  Νέο Τιμολόγιο
+</button>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="nav-item">
+    <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span>
+    <span>Αρχική</span>
+  </a>
+  <a href="invoices.html" class="nav-item active">
+    <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2zm0-4h5v2H8V7z"/></svg></span>
+    <span>Τιμολόγια</span>
+  </a>
+  <a href="delivery-notes.html" class="nav-item">
+    <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zm-.5 1.5l1.96 2.5H17V9.5h2.5zM6 18c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2.22-3c-.55-.61-1.33-1-2.22-1s-1.67.39-2.22 1H3V6h12v9H8.22zm9.78 3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg></span>
+    <span>ΔΑ</span>
+  </a>
+  <a href="customers.html" class="nav-item" id="nav-customers-bottom" style="display:none">
+    <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
+    <span>Πελάτες</span>
+  </a>
+  <a href="profile.html" class="nav-item">
+    <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg></span>
+    <span>Προφίλ</span>
+  </a>
+  <a href="settings.html" class="nav-item">
+    <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span>
+    <span>Ρυθμίσεις</span>
+  </a>
+</nav>
+
+<!-- Detail sheet -->
+<div id="detail-overlay" class="sheet-overlay" onclick="closeDetail(event)">
+  <div class="sheet" id="detail-sheet"></div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+  if (!requireAuth()) throw 0;
+  initCustomersNav();
+
+  let allInvoices=[], page=1, hasMore=false, searchQuery='', activeFilter='all', searchTimer=null;
+
+  const STATUS_COLOR={transmitted:'#2E7D32',sent:'#2E7D32',approved:'#2E7D32',failed:'#B71C1C',rejected:'#B71C1C',pending:'#E65100',pending_retry:'#E65100',draft:'#555555',cancelled:'#9ca3af',issued:'#1565C0'};
+  const STATUS_LABEL={transmitted:'Διαβιβάστηκε',sent:'Διαβιβάστηκε',approved:'Διαβιβάστηκε',failed:'Αποτυχία',rejected:'Αποτυχία',pending:'Εκκρεμεί',pending_retry:'Εκ νέου',draft:'Πρόχειρο',cancelled:'Ακυρώθηκε',issued:'Εκδόθηκε'};
+  const FILTER_MAP={all:undefined,draft:'draft',issued:'issued',transmitted:'transmitted',pending:'pending',failed:'failed'};
+
+  function setFilter(f,el){activeFilter=f;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');page=1;loadInvoices();}
+
+  async function loadInvoices(append=false){
+    if(!append){page=1;document.getElementById('list-area').innerHTML='<div class="spinner" style="margin:60px auto"></div>';document.getElementById('count-label').style.display='none';}
+    try{
+      const params={page,limit:30};
+      if(searchQuery)params.search=searchQuery;
+      if(activeFilter!=='all')params.status=FILTER_MAP[activeFilter];
+      const res=await api.get('/invoices',params);
+      const list=res.data||res.invoices||[];
+      hasMore=list.length===30;
+      if(append)allInvoices=[...allInvoices,...list];
+      else allInvoices=list;
+      renderList();
+    }catch(e){
+      document.getElementById('list-area').innerHTML=`<div class="err-card"><svg class="err-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>${e.message}<br><button onclick="loadInvoices()" style="margin-top:12px;padding:14px 28px;background:#c62828;color:#fff;border:none;border-radius:16px;cursor:pointer;font-weight:700;font-size:18px">Δοκιμή ξανά</button></div>`;
+    }
+  }
+
+  function renderList(){
+    const lbl=document.getElementById('count-label');
+    if(allInvoices.length===0){
+      lbl.style.display='none';
+      document.getElementById('list-area').innerHTML=`<div class="empty-state"><svg class="empty-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg><div class="empty-title">${searchQuery?'Δεν βρέθηκαν αποτελέσματα':'Δεν υπάρχουν τιμολόγια ακόμα'}</div><div class="empty-sub">${searchQuery?'Δοκιμάστε διαφορετική αναζήτηση':'Δημιουργήστε το πρώτο σας τιμολόγιο'}</div></div>`;
+      return;
+    }
+    lbl.style.display='block';
+    lbl.textContent=`${allInvoices.length} παραστατικά`;
+    let html=allInvoices.map((inv,i)=>{
+      const st=inv.status?.toLowerCase()||'draft';
+      const sc=STATUS_COLOR[st]||'#555';
+      const sl=STATUS_LABEL[st]||st;
+      return `<div class="invoice-card anim" style="animation-delay:${i*0.03}s" onclick="openDetail('${inv.id}')">
+        <div class="status-bar" style="background:${sc}"></div>
+        <div class="invoice-info">
+          <div class="inv-top"><span class="inv-number">${inv.invoice_number||'—'}</span><span class="inv-amount">${fmtMoney(inv.total_amount)}</span></div>
+          <div class="inv-mid"><span class="inv-customer">${inv.customer_name||'Άγνωστος πελάτης'}</span><span class="status-badge" style="background:${sc}22;color:${sc}">${sl}</span></div>
+          <div class="inv-date"><i class="fa-solid fa-calendar-days"></i> ${fmtDate(inv.issue_date)}</div>
+        </div>
+        <svg class="chevron-icon" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </div>`;
+    }).join('');
+    if(hasMore&&!searchQuery){
+      html+=`<button class="load-more-btn" onclick="loadMore()"><svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>Φόρτωση περισσότερων…</button>`;
+    }
+    document.getElementById('list-area').innerHTML=html;
+  }
+
+  function loadMore(){page++;loadInvoices(true);}
+  function onSearch(v){searchQuery=v.trim();document.getElementById('search-clear').style.display=searchQuery?'flex':'none';clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadInvoices(),350);}
+  function clearSearch(){document.getElementById('search').value='';document.getElementById('search-clear').style.display='none';searchQuery='';loadInvoices();}
+
+  async function openDetail(id){
+    const overlay=document.getElementById('detail-overlay');
+    document.getElementById('detail-sheet').innerHTML='<div class="spinner" style="margin:60px auto;border-top-color:#1976D2;border-color:#e0e0e0"></div>';
+    overlay.style.display='flex';
+    try{
+      const inv=await api.get(`/invoices/${id}`);
+      const d=inv.invoice||inv;
+      const st=d.status?.toLowerCase()||'draft';
+      const sc=STATUS_COLOR[st]||'#555';
+      const sl=STATUS_LABEL[st]||st;
+      const items=d.items||d.invoice_items||[];
+      const iconRow=(svg,label,val,extra='')=>`<div class="detail-row"><div class="detail-icon"><svg viewBox="0 0 24 24">${svg}</svg></div><div><div class="detail-label">${label}</div><div class="detail-value" ${extra}>${val}</div></div></div>`;
+      document.getElementById('detail-sheet').innerHTML=`
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <span class="sheet-title">${d.invoice_number||'—'}</span>
+          <button class="close-btn" onclick="document.getElementById('detail-overlay').style.display='none'"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        </div>
+        <div style="margin-bottom:20px"><span class="status-badge" style="background:${sc}22;color:${sc};font-size:14px;padding:6px 16px">${sl}</span></div>
+        ${iconRow('<path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>','Πελάτης',d.customer_name||'—')}
+        ${iconRow('<path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>','Ημερομηνία',fmtDate(d.issue_date))}
+        ${iconRow('<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>','Σύνολο',fmtMoney(d.total_amount),'style="font-size:24px;color:#0D47A1;font-weight:900"')}
+        ${d.net_amount?iconRow('<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/>','Καθαρό ποσό',fmtMoney(d.net_amount)):''}
+        ${d.vat_amount?iconRow('<path d="M12.5 6.9c1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-.39.08-.75.21-1.1.36l1.51 1.51c.32-.08.69-.13 1.09-.13zM4.27 3L3 4.27l3.67 3.67c-.03.19-.06.39-.06.59C6.61 11.27 9.38 13 12 13c.73 0 1.42-.13 2.06-.35l1.22 1.22c-.96.42-2.04.66-3.28.66-2.92 0-6.17-1.56-6.38-5H3.5c.23 3.49 3.01 5.47 5.5 6.19V19h3v-2.15c1.16-.26 2.19-.8 2.96-1.52l2.44 2.44L18 17.27 5.27 4.54 4.27 3z"/>','ΦΠΑ',fmtMoney(d.vat_amount)):''}
+        ${d.mark?iconRow('<path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/>','MARK',d.mark,'style="font-size:14px;word-break:break-all"'):''}
+        ${items.length>0?`<div class="detail-section">Γραμμές τιμολογίου</div>${items.map(it=>`<div class="item-row"><div class="item-desc">${it.description||it.item_name||'—'}</div><div class="item-sub">Ποσ: ${it.quantity||1} × ${fmtMoney(it.unit_price||it.price)} = <strong>${fmtMoney(it.total_price||it.line_total)}</strong></div></div>`).join('')}`:''}
+        ${st==='draft'?`
+        <div class="draft-actions">
+          <button class="draft-btn submit" id="btn-submit-mydata" onclick="submitToMydata('${d.id}')">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            Οριστική Υποβολή & myDATA
+          </button>
+          <button class="draft-btn edit" onclick="editDraft('${d.id}')">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            Επεξεργασία Πρόχειρου
+          </button>
+          <button class="draft-btn delete" onclick="deleteDraft('${d.id}')">
+            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            Διαγραφή Πρόχειρου
+          </button>
+        </div>`:''}
+        ${st!=='draft'&&st!=='cancelled'?`
+        <div class="draft-actions" style="margin-top:16px">
+          <button class="draft-btn" style="background:#1565C0;color:#fff;border:none" onclick="downloadPdf('${d.id}','${d.invoice_number||'invoice'}')">
+            <svg viewBox="0 0 24 24" style="fill:#fff"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+            Λήψη PDF
+          </button>
+        </div>`:''}`;
+    }catch(e){
+      document.getElementById('detail-sheet').innerHTML=`<div class="sheet-handle"></div><div style="text-align:center;padding:40px;color:#c62828"><svg style="width:44px;height:44px;fill:#c62828;display:block;margin:0 auto 16px" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>${e.message}</div>`;
+    }
+  }
+
+  function closeDetail(e){if(e.target.id==='detail-overlay')e.target.style.display='none';}
+
+  async function submitToMydata(id){
+    const btn=document.getElementById('btn-submit-mydata');
+    if(!btn)return;
+    btn.disabled=true;
+    btn.innerHTML='<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff;animation:spin .8s linear infinite"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Υποβολή…';
+    try{
+      await api.post(`/invoices/${id}/issue`);
+      const r=await api.post('/integrations/provider/transmit',{invoice_id:id});
+      const mark=r?.data?.mark;
+      document.getElementById('detail-overlay').style.display='none';
+      loadInvoices();
+      toast(mark?`Μεταδόθηκε! MARK: ${mark}`:'Υποβλήθηκε στο myDATA','success');
+    }catch(e){
+      toast('Σφάλμα: '+e.message,'error');
+      if(btn){btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> Οριστική Υποβολή & myDATA';}
+    }
+  }
+
+  function editDraft(id){
+    document.getElementById('detail-overlay').style.display='none';
+    location.href=`invoice-create.html?edit=${id}`;
+  }
+
+  async function deleteDraft(id){
+    if(!confirm('Διαγραφή αυτού του πρόχειρου τιμολογίου;'))return;
+    try{
+      await api.delete(`/invoices/${id}`);
+      document.getElementById('detail-overlay').style.display='none';
+      allInvoices=allInvoices.filter(i=>i.id!==id);
+      renderList();
+      toast('Πρόχειρο διαγράφηκε','success');
+    }catch(e){
+      toast('Σφάλμα: '+e.message,'error');
+    }
+  }
+
+  async function downloadPdf(id, invNum){
+    try{
+      const token=localStorage.getItem('token')||sessionStorage.getItem('token');
+      const base=window.API_BASE||'http://localhost:4000/api';
+      const url=`${base}/invoices/${id}/pdf`;
+      const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+      if(!res.ok)throw new Error('Σφάλμα λήψης PDF ('+res.status+')');
+      const blob=await res.blob();
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=`invoice_${invNum}.pdf`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }catch(e){
+      toast('Σφάλμα: '+e.message,'error');
+    }
+  }
+
+  async function exportCsv() {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const base  = window.API_BASE || 'http://localhost:4000/api';
+      const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+      const res   = await fetch(`${base}/exports/invoices`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Σφάλμα εξαγωγής (' + res.status + ')');
+      const blob  = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `invoices_export_${today}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch(e) { toast('Σφάλμα: ' + e.message, 'error'); }
+  }
+
+  if(new URLSearchParams(location.search).get('create')==='1')location.href='invoice-create.html';
+  loadInvoices();
+</script>
+</body>
+</html>

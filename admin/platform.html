@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Πλατφόρμα (Super Admin)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .tab-btn { border-bottom: 2px solid transparent; transition: all .15s; }
+    .tab-btn.active { border-color: #2563eb; color: #2563eb; font-weight: 700; }
+    .section-panel { display: none; }
+    .section-panel.active { display: block; }
+    .input-field { width:100%; border:1.5px solid #e5e7eb; border-radius:10px; padding:9px 13px; font-size:14px; color:#111; background:#fafafa; transition:border-color .15s, background .15s; outline:none; }
+    .input-field:focus { border-color:#3b82f6; background:#fff; box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+    .save-btn { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:10px; padding:10px 24px; font-size:14px; font-weight:700; cursor:pointer; transition:all .15s; }
+    .save-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+    .label-text { display:block; font-size:12px; font-weight:600; color:#6b7280; margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="sidebar-container"></div>
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Header -->
+      <div class="mb-6 anim">
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2"><i class="fas fa-server mr-2 text-blue-600"></i>Διαχείριση Πλατφόρμας</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Ρυθμίσεις συστήματος για Super Admin — επηρεάζουν όλη την πλατφόρμα</p>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-sm font-semibold"></div>
+
+      <!-- Stats banner -->
+      <div id="platform-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.04s">
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm animate-pulse"><div class="h-3 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-6 bg-gray-200 rounded w-1/2"></div></div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm animate-pulse"><div class="h-3 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-6 bg-gray-200 rounded w-1/2"></div></div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm animate-pulse"><div class="h-3 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-6 bg-gray-200 rounded w-1/2"></div></div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm animate-pulse"><div class="h-3 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-6 bg-gray-200 rounded w-1/2"></div></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 anim" style="animation-delay:.08s">
+        <div class="flex overflow-x-auto border-b border-gray-100 px-4 gap-1">
+          <button class="tab-btn active px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('general')"><i class="fas fa-gear mr-1.5"></i>Γενικά</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('bank')"><i class="fas fa-university mr-1.5"></i>Τράπεζα &amp; IRIS</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('email')"><i class="fas fa-envelope mr-1.5"></i>Email Platform</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('pricing')"><i class="fas fa-coins mr-1.5"></i>Τιμολόγηση</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('announcements')"><i class="fas fa-bullhorn mr-1.5"></i>Ανακοινώσεις</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('maintenance')"><i class="fas fa-triangle-exclamation mr-1.5 text-orange-500"></i>Συντήρηση</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('system')"><i class="fas fa-screwdriver-wrench mr-1.5"></i>Σύστημα</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('businesses')"><i class="fas fa-building mr-1.5"></i>Επιχειρήσεις</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('sms')"><i class="fas fa-comment-sms mr-1.5"></i>SMS</button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('mydata')"><i class="fas fa-satellite-dish mr-1.5"></i>myDATA &amp; Πάροχος</button>
+        </div>
+
+        <div class="p-6">
+
+          <!-- General -->
+          <div id="tab-general" class="section-panel active">
+            <h2 class="text-base font-bold text-gray-900 mb-4">Γενικές Ρυθμίσεις Πλατφόρμας</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="label-text">Όνομα Πλατφόρμας</label>
+                <input id="p-platform_name" class="input-field" placeholder="FishBill" />
+              </div>
+              <div>
+                <label class="label-text">Υπότιτλος / Tagline</label>
+                <input id="p-platform_tagline" class="input-field" placeholder="Ηλεκτρονική τιμολόγηση για αλιείς" />
+              </div>
+              <div>
+                <label class="label-text">Support Email</label>
+                <input id="p-support_email" class="input-field" type="email" placeholder="support@fishbill.gr" />
+              </div>
+              <div>
+                <label class="label-text">Support Phone</label>
+                <input id="p-support_phone" class="input-field" placeholder="+30 210 0000000" />
+              </div>
+              <div>
+                <label class="label-text">Εταιρεία / Κατασκευαστής</label>
+                <input id="p-company_name" class="input-field" placeholder="FishBill Technologies IKE" />
+              </div>
+              <div>
+                <label class="label-text">ΑΦΜ Εταιρείας</label>
+                <input id="p-company_afm" class="input-field" placeholder="123456789" />
+              </div>
+              <div>
+                <label class="label-text">Έτος Ίδρυσης</label>
+                <input id="p-company_year" class="input-field" placeholder="2025" />
+              </div>
+              <div>
+                <label class="label-text">Δοκιμαστική Περίοδος (ημέρες)</label>
+                <input id="p-trial_days" class="input-field" type="number" min="1" max="90" placeholder="30" />
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="label-text">Διεύθυνση Εταιρείας</label>
+              <input id="p-company_address" class="input-field" placeholder="Οδός Αριθμός, ΤΚ, Πόλη" />
+            </div>
+            <button onclick="saveSection('general')" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση</button>
+          </div>
+
+          <!-- Bank & IRIS -->
+          <div id="tab-bank" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1">Τραπεζικά Στοιχεία Εταιρείας</h2>
+            <p class="text-sm text-gray-400 mb-2">Εμφανίζονται στους αλιείς στη σελίδα Συνδρομής όταν επιλέγουν πλάνο πληρωμής.</p>
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4 text-sm text-blue-800 font-medium">
+              <i class="fas fa-circle-info text-blue-500"></i>
+              Συμπληρώστε τουλάχιστον <strong class="mx-1">Τράπεζα</strong> και <strong class="mx-1">IBAN</strong> — εμφανίζονται αυτόματα στη σελίδα Συνδρομής του αλιέα.
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="label-text">Τράπεζα</label>
+                <input id="p-bank_name" class="input-field" placeholder="Εθνική Τράπεζα" />
+              </div>
+              <div>
+                <label class="label-text">Όνομα Δικαιούχου</label>
+                <input id="p-bank_account_name" class="input-field" placeholder="FishBill Technologies IKE" />
+              </div>
+              <div>
+                <label class="label-text">IBAN</label>
+                <input id="p-bank_iban" class="input-field" placeholder="GR16 0110 1250 0000 0001 2300 695" />
+              </div>
+              <div>
+                <label class="label-text">BIC / SWIFT</label>
+                <input id="p-bank_bic" class="input-field" placeholder="ETHNGRAA" />
+              </div>
+            </div>
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+              <h3 class="text-sm font-semibold text-blue-800 mb-2">IRIS για Πληρωμές Συνδρομής</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="label-text">IRIS IBAN</label>
+                  <input id="p-iris_iban" class="input-field" placeholder="GR16..." />
+                </div>
+                <div>
+                  <label class="label-text">IRIS Τράπεζα</label>
+                  <input id="p-iris_bank" class="input-field" placeholder="Εθνική" />
+                </div>
+              </div>
+            </div>
+            <button onclick="saveSection('bank')" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση</button>
+          </div>
+
+          <!-- Email Platform -->
+          <div id="tab-email" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1">Ρυθμίσεις Email Πλατφόρμας</h2>
+            <p class="text-sm text-gray-400 mb-4">Αυτά χρησιμοποιούνται για emails συστήματος (καλωσορίσματος, ειδοποιήσεων)</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="label-text">Πάροχος Email</label>
+                <select id="p-platform_email_provider" onchange="onPlatformEmailProviderChange()" class="input-field">
+                  <option value="smtp">SMTP</option>
+                  <option value="brevo">Brevo (Sendinblue)</option>
+                  <option value="sendgrid">SendGrid</option>
+                  <option value="mailgun">Mailgun</option>
+                </select>
+              </div>
+              <div>
+                <label class="label-text">From Email</label>
+                <input id="p-platform_email_from" class="input-field" placeholder="noreply@fishbill.gr" />
+              </div>
+              <div>
+                <label class="label-text">From Name</label>
+                <input id="p-platform_email_from_name" class="input-field" placeholder="FishBill" />
+              </div>
+            </div>
+            <!-- SMTP -->
+            <div id="pe-smtp" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div>
+                <label class="label-text">SMTP Host</label>
+                <input id="p-platform_smtp_host" class="input-field" placeholder="smtp.gmail.com" />
+              </div>
+              <div>
+                <label class="label-text">SMTP Port</label>
+                <input id="p-platform_smtp_port" class="input-field" placeholder="587" />
+              </div>
+              <div>
+                <label class="label-text">SMTP User</label>
+                <input id="p-platform_smtp_user" class="input-field" placeholder="user@gmail.com" />
+              </div>
+              <div>
+                <label class="label-text">SMTP Password</label>
+                <input id="p-platform_smtp_pass" class="input-field" type="password" placeholder="••••••••" />
+              </div>
+            </div>
+            <!-- Brevo -->
+            <div id="pe-brevo" class="hidden mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <label class="label-text">Brevo API Key</label>
+              <input id="p-platform_brevo_key" class="input-field" placeholder="xkeysib-..." />
+            </div>
+
+            <!-- Admin Notification Email -->
+            <div class="mb-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-bell text-amber-600 text-sm"></i>
+                <h3 class="text-sm font-bold text-amber-800">Email Ειδοποιήσεων Διαχειριστή</h3>
+              </div>
+              <p class="text-xs text-amber-700 mb-3">Σε αυτή τη διεύθυνση αποστέλλονται όλες οι ειδοποιήσεις συστήματος (αιτήματα επαλήθευσης λογιστών, νέες εγγραφές, ειδοποιήσεις ασφαλείας κ.λπ.).</p>
+              <div>
+                <label class="label-text">Email Παραλήπτη Ειδοποιήσεων</label>
+                <input id="p-admin_notification_email" class="input-field" type="email" placeholder="admin@fishbill.gr" />
+              </div>
+            </div>
+            <!-- SendGrid -->
+            <div id="pe-sendgrid" class="hidden mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <label class="label-text">SendGrid API Key</label>
+              <input id="p-platform_sendgrid_key" class="input-field" placeholder="SG...." />
+            </div>
+            <!-- Mailgun -->
+            <div id="pe-mailgun" class="hidden mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200 grid grid-cols-2 gap-3">
+              <div>
+                <label class="label-text">Mailgun API Key</label>
+                <input id="p-platform_mailgun_key" class="input-field" placeholder="key-..." />
+              </div>
+              <div>
+                <label class="label-text">Mailgun Domain</label>
+                <input id="p-platform_mailgun_domain" class="input-field" placeholder="mg.fishbill.gr" />
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button onclick="saveSection('email')" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση</button>
+              <button onclick="testPlatformEmail()" class="px-4 py-2 border border-blue-300 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-50 transition-colors"><i class="fas fa-paper-plane mr-1.5"></i>Δοκιμή</button>
+            </div>
+
+            <!-- ═══ EMAIL CONSUMPTION & CONTROLS ═══ -->
+            <hr class="my-6 border-gray-100" />
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-bold text-gray-900">Κατανάλωση Email & Τύποι</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Στατιστικά αποστολής και διακόπτες ανά κατηγορία — απενεργοποιήστε τύπους για να μειώσετε κόστος Brevo.</p>
+              </div>
+              <button onclick="loadEmailStats()" class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                <i class="fas fa-rotate-right text-gray-400"></i>Ανανέωση
+              </button>
+            </div>
+
+            <!-- Usage meter -->
+            <div id="email-usage-meter" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-5">
+              <div class="flex items-end justify-between mb-2">
+                <div>
+                  <span class="text-xs font-700 text-blue-700 uppercase tracking-wide">Αυτόν τον μήνα</span>
+                  <div class="text-2xl font-900 text-blue-900 mt-0.5" id="stat-month-count">—</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-blue-600 font-600">Σύνολο όλων των εποχών</div>
+                  <div class="text-lg font-800 text-blue-800" id="stat-total-count">—</div>
+                </div>
+              </div>
+              <div class="w-full bg-blue-200 rounded-full h-2 mb-1">
+                <div id="usage-bar" class="h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500" style="width:0%"></div>
+              </div>
+              <div class="flex justify-between text-xs text-blue-600">
+                <span id="usage-bar-label">0 / 9.000 (δωρεάν tier)</span>
+                <span id="cost-estimate" class="font-700"></span>
+              </div>
+            </div>
+
+            <!-- Brevo cost config -->
+            <div class="grid grid-cols-2 gap-3 mb-5">
+              <div>
+                <label class="label-text">Δωρεάν tier (emails/μήνα)</label>
+                <input id="brevo-free-tier" type="number" class="input-field" placeholder="9000" value="9000" />
+              </div>
+              <div>
+                <label class="label-text">Κόστος ανά email (€ πάνω από tier)</label>
+                <input id="brevo-cost-per-email" type="number" step="0.0001" class="input-field" placeholder="0.0010" />
+              </div>
+            </div>
+
+            <!-- Per-type toggle cards -->
+            <div id="email-type-toggles" class="space-y-2 mb-5">
+              <!-- rendered by JS -->
+              <div class="animate-pulse h-14 bg-gray-100 rounded-xl"></div>
+              <div class="animate-pulse h-14 bg-gray-100 rounded-xl"></div>
+              <div class="animate-pulse h-14 bg-gray-100 rounded-xl"></div>
+            </div>
+
+            <div class="flex gap-3 flex-wrap">
+              <button onclick="saveEmailToggles()" class="save-btn text-sm px-5 py-2.5">
+                <i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Διακοπτών
+              </button>
+              <button onclick="resetEmailStats()" class="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 transition-all flex items-center gap-1.5">
+                <i class="fas fa-trash-can"></i>Μηδενισμός Στατιστικών
+              </button>
+            </div>
+          </div>
+
+          <!-- Pricing -->
+          <div id="tab-pricing" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1">Τιμολόγιο Πλατφόρμας</h2>
+            <p class="text-sm text-gray-400 mb-4">Τιμές πλάνων (εμφανίζονται στη σελίδα συνδρομής)</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div class="border border-gray-200 rounded-xl p-4">
+                <p class="text-sm font-bold text-blue-600 mb-3">Basic</p>
+                <div class="space-y-2">
+                  <div><label class="label-text">Τιμή/μήνα (€)</label><input id="p-price_basic" class="input-field" type="number" step="0.01" placeholder="8" /></div>
+                  <div><label class="label-text">Όριο παραστατικών</label><input id="p-limit_basic" class="input-field" type="number" placeholder="50" /></div>
+                </div>
+              </div>
+              <div class="border border-purple-200 rounded-xl p-4 bg-purple-50">
+                <p class="text-sm font-bold text-purple-600 mb-3">Pro ⭐</p>
+                <div class="space-y-2">
+                  <div><label class="label-text">Τιμή/μήνα (€)</label><input id="p-price_pro" class="input-field" type="number" step="0.01" placeholder="12" /></div>
+                  <div><label class="label-text">Όριο παραστατικών</label><input id="p-limit_pro" class="input-field" type="number" placeholder="200" /></div>
+                </div>
+              </div>
+              <div class="border border-gray-200 rounded-xl p-4">
+                <p class="text-sm font-bold text-gray-700 mb-3">Business</p>
+                <div class="space-y-2">
+                  <div><label class="label-text">Τιμή/μήνα (€)</label><input id="p-price_business" class="input-field" type="number" step="0.01" placeholder="30" /></div>
+                  <div><label class="label-text">Όριο παραστατικών</label><input id="p-limit_business" class="input-field" type="number" placeholder="1000" /></div>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="label-text">Χρέωση ανά επιπλέον παρ. (€)</label>
+                <input id="p-overage_price" class="input-field" type="number" step="0.001" placeholder="0.05" />
+              </div>
+              <div>
+                <label class="label-text">Χρέωση ανά SMS (€)</label>
+                <input id="p-sms_price" class="input-field" type="number" step="0.001" placeholder="0.02" />
+              </div>
+            </div>
+            <button onclick="saveSection('pricing')" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση</button>
+          </div>
+
+          <!-- Announcements -->
+          <div id="tab-announcements" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1">Ανακοινώσεις & Broadcast</h2>
+            <p class="text-sm text-gray-400 mb-4">Αποστολή μηνύματος σε όλους τους χρήστες ή σε επιλεγμένα πλάνα</p>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+              <h3 class="font-semibold text-amber-800 mb-3 flex items-center gap-2"><i class="fas fa-bullhorn mr-1.5"></i>Αποστολή Ανακοίνωσης</h3>
+              <div class="space-y-3">
+                <div>
+                  <label class="label-text">Στόχος</label>
+                  <select id="ann-target" class="input-field">
+                    <option value="all">Όλοι οι χρήστες</option>
+                    <option value="owners">Μόνο ιδιοκτήτες (owner)</option>
+                    <option value="trial">Δοκιμαστική περίοδος</option>
+                    <option value="basic">Basic plan</option>
+                    <option value="pro">Pro plan</option>
+                    <option value="business">Business plan</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label-text">Τίτλος</label>
+                  <input id="ann-title" class="input-field" placeholder="Νέα ενημέρωση FishBill v2.0" />
+                </div>
+                <div>
+                  <label class="label-text">Μήνυμα</label>
+                  <textarea id="ann-body" rows="4" class="input-field" style="resize:vertical" placeholder="Αγαπητοί χρήστες..."></textarea>
+                </div>
+                <div>
+                  <label class="label-text">Τύπος</label>
+                  <select id="ann-type" class="input-field">
+                    <option value="info">Πληροφορία</option>
+                    <option value="success">Επιτυχία / Νέο</option>
+                    <option value="warning">Προειδοποίηση</option>
+                  </select>
+                </div>
+                <button onclick="sendAnnouncement()" class="save-btn"><i class="fas fa-bullhorn mr-1.5"></i>Αποστολή Ανακοίνωσης</button>
+              </div>
+            </div>
+
+            <!-- Maintenance mode -->
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+              <h3 class="font-semibold text-red-800 mb-3"><i class="fas fa-screwdriver-wrench mr-2 text-red-600"></i>Λειτουργία Συντήρησης</h3>
+              <div class="flex items-center gap-4 flex-wrap">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input id="p-maintenance_mode" type="checkbox" class="w-5 h-5 accent-red-600" />
+                  <span class="text-sm font-medium text-red-700">Ενεργοποίηση λειτουργίας συντήρησης</span>
+                </label>
+                <input id="p-maintenance_message" class="input-field" style="max-width:360px" placeholder="Η πλατφόρμα είναι προσωρινά εκτός λειτουργίας..." />
+                <button onclick="saveSection('maintenance')" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors">Αποθήκευση</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Maintenance Mode -->
+          <div id="tab-maintenance" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <span class="text-orange-500">⚠️</span> Λειτουργία Συντήρησης
+            </h2>
+            <p class="text-sm text-gray-500 mb-5">Όταν είναι ενεργοποιημένη, όλοι οι χρήστες (web &amp; mobile) ανακατευθύνονται στη σελίδα συντήρησης. Τα δεδομένα τους παραμένουν ασφαλή.</p>
+
+            <!-- Status card -->
+            <div id="maint-status-card" class="rounded-2xl border-2 p-5 mb-5 flex items-center gap-4" style="border-color:#e5e7eb;background:#f9fafb;">
+              <div id="maint-status-icon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style="background:#e5e7eb;">🔧</div>
+              <div class="flex-1">
+                <div id="maint-status-label" class="font-bold text-gray-700 text-base">Ανενεργή</div>
+                <div class="text-sm text-gray-400">Η πλατφόρμα λειτουργεί κανονικά</div>
+              </div>
+              <div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="maint-toggle" class="sr-only peer" onchange="toggleMaintenance(this.checked)">
+                  <div class="w-14 h-7 bg-gray-200 rounded-full peer peer-checked:bg-orange-500 peer-focus:ring-2 peer-focus:ring-orange-300 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:after:translate-x-7"></div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Custom message -->
+            <div class="mb-5">
+              <label class="label-text">Μήνυμα Συντήρησης (εμφανίζεται στους χρήστες)</label>
+              <textarea id="maint-message" rows="3" class="input-field resize-none"
+                placeholder="π.χ. Εκτελούνται εργασίες βελτίωσης. Θα είμαστε πάλι κοντά σας σε λίγη ώρα. Σας ευχαριστούμε!"></textarea>
+              <p class="text-xs text-gray-400 mt-1">Αφήστε κενό για το προεπιλεγμένο μήνυμα.</p>
+            </div>
+
+            <button onclick="saveMaintSettings()" class="save-btn flex items-center gap-2">
+              <i class="fas fa-save"></i> Αποθήκευση Ρυθμίσεων Συντήρησης
+            </button>
+          </div>
+
+          <!-- System -->
+          <div id="tab-system" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-4">Πληροφορίες Συστήματος</h2>
+
+            <div id="system-health" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p class="text-xs text-gray-400 font-semibold uppercase mb-1">API Status</p>
+                <p id="sys-api" class="text-lg font-extrabold text-green-600">— —</p>
+              </div>
+              <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Database</p>
+                <p id="sys-db" class="text-lg font-extrabold text-gray-400">— —</p>
+              </div>
+              <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Έκδοση API</p>
+                <p id="sys-ver" class="text-lg font-extrabold text-gray-400">— —</p>
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <h3 class="text-sm font-bold text-gray-700 mb-3">Ρυθμίσεις Rate Limiting</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="label-text">Max requests / 15 λεπτά</label>
+                  <input id="p-rate_limit_general" class="input-field" type="number" placeholder="100" />
+                </div>
+                <div>
+                  <label class="label-text">Max login attempts / ώρα</label>
+                  <input id="p-rate_limit_login" class="input-field" type="number" placeholder="10" />
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <h3 class="text-sm font-bold text-gray-700 mb-3">JWT & Ασφάλεια</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="label-text">Access Token Διάρκεια</label>
+                  <input id="p-jwt_access_ttl" class="input-field" placeholder="7d" />
+                </div>
+                <div>
+                  <label class="label-text">Refresh Token Διάρκεια</label>
+                  <input id="p-jwt_refresh_ttl" class="input-field" placeholder="30d" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 flex-wrap mb-8">
+              <button onclick="saveSection('system')" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση</button>
+              <button onclick="checkHealth()" class="px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"><i class="fas fa-bolt mr-1.5"></i>Έλεγχος Health</button>
+              <button onclick="clearCache()" class="px-4 py-2 border border-orange-300 text-orange-600 rounded-xl text-sm font-medium hover:bg-orange-50 transition-colors"><i class="fas fa-broom mr-1.5"></i>Εκκαθάριση Cache</button>
+            </div>
+
+            <!-- Mobile App Config -->
+            <div class="border-t border-gray-100 pt-6 mb-6">
+              <h3 class="text-sm font-bold text-gray-700 mb-1 flex items-center gap-2">
+                <i class="fas fa-mobile-screen text-blue-500"></i> Ρυθμίσεις Mobile Εφαρμογής
+              </h3>
+              <p class="text-xs text-gray-400 mb-3">Η mobile εφαρμογή διαβάζει αυτές τις τιμές αυτόματα κατά την εκκίνηση. Αν αλλάξετε το <strong>Base URL</strong>, η εφαρμογή θα επανεκκινήσει μετά τη φόρτωση για να χρησιμοποιήσει τη νέα διεύθυνση.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                <div class="sm:col-span-2">
+                  <label class="label-text">API Base URL <span class="text-blue-500">(π.χ. https://api.fishbill.gr/)</span></label>
+                  <input id="p-app_base_url" class="input-field font-mono text-sm" placeholder="https://api.fishbill.gr/" />
+                  <p class="text-xs text-gray-400 mt-1">Αφήστε κενό για να χρησιμοποιηθεί η προεπιλεγμένη διεύθυνση του build. Πρέπει να τελειώνει σε <code>/</code>.</p>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="label-text">Web Base URL <span class="text-blue-500">(π.χ. https://fishbill.gr/fishbill)</span></label>
+                  <input id="p-web_base_url" class="input-field font-mono text-sm" placeholder="https://fishbill.gr/fishbill" />
+                  <p class="text-xs text-gray-400 mt-1">Χρησιμοποιείται για τα links στα emails (επαναφορά κωδικού κ.λπ.). Αφήστε κενό για αυτόματη ανίχνευση.</p>
+                </div>
+                <div>
+                  <label class="label-text">Ελάχιστη Έκδοση App <span class="text-gray-400">(προαιρετικό)</span></label>
+                  <input id="p-app_min_version" class="input-field" placeholder="1.0.0" />
+                </div>
+              </div>
+              <button onclick="saveMobileConfig()" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Mobile Config</button>
+            </div>
+
+            <!-- Firebase Push Notifications -->
+            <div class="border-t border-gray-100 pt-6 mb-6">
+              <h3 class="text-sm font-bold text-gray-700 mb-1 flex items-center gap-2">
+                <i class="fas fa-bell text-orange-500"></i> Firebase Push Notifications (FCM)
+              </h3>
+              <p class="text-xs text-gray-400 mb-3">Επικολλήστε το Service Account JSON από το Firebase Console (Project Settings → Service accounts → Generate new private key).</p>
+              <div id="firebase-status" class="text-xs text-gray-400 mb-3"></div>
+              <textarea id="firebase-sa-json" class="input-field resize-none font-mono text-xs" rows="6" placeholder='{ "type": "service_account", "project_id": "...", "private_key": "-----BEGIN PRIVATE KEY-----\n...", "client_email": "firebase-adminsdk-...@....iam.gserviceaccount.com", ... }'></textarea>
+              <button onclick="saveFirebase()" class="save-btn mt-3"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Firebase</button>
+            </div>
+
+            <!-- GSIS info — per-business only -->
+            <div class="border-t border-gray-100 pt-6">
+              <h3 class="text-sm font-bold text-gray-700 mb-1 flex items-center gap-2">
+                <i class="fas fa-search text-indigo-500"></i> ΓΓΠΣ — Αναζήτηση ΑΦΜ
+              </h3>
+              <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 leading-relaxed">
+                <p class="font-semibold mb-1">⚠ Δεν υπάρχουν κοινά (platform-level) credentials ΓΓΠΣ.</p>
+                <p>Το <strong>rgWsPublic2</strong> της ΑΑΔΕ καταγράφει κάθε αναζήτηση και συνδέει το αίτημα με το ΑΦΜ του καλούντος (<code>afmCalledBy</code>). Η χρήση ενός κοινού λογαριασμού για όλες τις επιχειρήσεις είναι νομικά μη-συμμορφούμενη.</p>
+                <p class="mt-2">Κάθε επιχείρηση ορίζει τους δικούς της κωδικούς TAXISnet στις <strong>Ρυθμίσεις → ΓΓΠΣ</strong> της εφαρμογής της.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Businesses -->
+          <div id="tab-businesses" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-4">Γρήγορη Διαχείριση Επιχειρήσεων</h2>
+            <div class="flex gap-3 mb-4 flex-wrap">
+              <input id="biz-search" class="input-field" style="max-width:300px" placeholder="Αναζήτηση επωνυμία / ΑΦΜ..." oninput="searchBiz(this.value)" />
+              <a href="businesses.html" class="px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors flex items-center gap-1"><i class="fas fa-building mr-1.5"></i>Πλήρης Λίστα →</a>
+              <a href="subscriptions.html" class="px-4 py-2 border border-blue-200 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-50 transition-colors flex items-center gap-1"><i class="fas fa-credit-card mr-1.5"></i>Συνδρομές →</a>
+            </div>
+            <div id="biz-table" class="overflow-x-auto">
+              <p class="text-sm text-gray-400 py-4 text-center">Πληκτρολογήστε για αναζήτηση…</p>
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-gray-100">
+              <h3 class="text-sm font-bold text-gray-700 mb-3">Μαζικές Ενέργειες</h3>
+              <div class="flex gap-3 flex-wrap">
+                <button onclick="bulkExtendTrials()" class="px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors">⏱ Επέκταση trial +30 ημέρες (όλοι)</button>
+                <button onclick="exportAllBusinesses()" class="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors">⬇ Εξαγωγή όλων (CSV)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SMS Platform -->
+          <div id="tab-sms" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1">SMS Πάροχος Πλατφόρμας</h2>
+            <p class="text-sm text-gray-500 mb-5">Αποστολή SMS ειδοποιήσεων για τιμολόγια &amp; IRIS σε όλες τις επιχειρήσεις.</p>
+
+            <div class="bg-gray-50 rounded-xl border border-gray-200 p-5 mb-5">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <p class="text-sm font-bold text-gray-800">Ενεργοποίηση SMS</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Ενεργοποιεί αποστολή SMS μέσω του παρακάτω παρόχου</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="p-sms_enabled" onchange="toggleSmsFields()" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <div id="sms-fields" class="opacity-50 pointer-events-none">
+                <div class="mb-4">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Πάροχος SMS</label>
+                  <select id="p-sms_provider" class="input-field" onchange="onSmsProviderChange()">
+                    <optgroup label="Ελληνικοί Πάροχοι (Προτεινόμενοι)">
+                      <option value="infobip">Infobip — Δημοφιλής στην Ελλάδα</option>
+                      <option value="apifon">Apifon — Ελληνικός πάροχος</option>
+                      <option value="routee">Routee — OTE/COSMOTE θυγατρική</option>
+                      <option value="bsms">BSMS (bsms.gr) — Ελληνικός</option>
+                      <option value="yuboto">Yuboto — Ελληνικός</option>
+                    </optgroup>
+                    <optgroup label="Διεθνείς Πάροχοι">
+                      <option value="vonage">Vonage (Nexmo)</option>
+                      <option value="twilio">Twilio</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Sender ID (Αποστολέας)</label>
+                  <input id="p-sms_from" type="text" class="input-field" placeholder="FishBill" maxlength="11" />
+                  <p class="text-xs text-gray-400 mt-1">Μέγιστο 11 χαρακτήρες, χωρίς ειδικά σύμβολα.</p>
+                </div>
+
+                <!-- Infobip -->
+                <div id="sms-prov-infobip">
+                  <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 text-xs text-orange-700 mb-3"><i class="fas fa-bolt text-orange-500 mr-1"></i><strong>Infobip</strong> — Δημιουργήστε λογαριασμό, πάρτε API Key και base URL από το dashboard.</div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-semibold text-gray-500 mb-1.5">Infobip API Key</label>
+                      <div class="relative"><input id="p-infobip_api_key" type="password" class="input-field pr-10" placeholder="••••••••••••" /><button type="button" onclick="toggleSmsPwd('p-infobip_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-gray-500 mb-1.5">Infobip Base URL</label>
+                      <input id="p-infobip_base_url" type="text" class="input-field" placeholder="xxxxxx.api.infobip.com" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Apifon -->
+                <div id="sms-prov-apifon" class="hidden">
+                  <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 mb-3"><i class="fas fa-satellite-dish text-blue-600 mr-1"></i><strong>Apifon</strong> — Ελληνικός πάροχος. API key από το dashboard.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Apifon API Key</label>
+                  <div class="relative"><input id="p-apifon_api_key" type="password" class="input-field pr-10" placeholder="••••••••••••" /><button type="button" onclick="toggleSmsPwd('p-apifon_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div>
+                </div>
+
+                <!-- Routee -->
+                <div id="sms-prov-routee" class="hidden">
+                  <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-xs text-green-700 mb-3"><i class="fas fa-satellite-dish text-green-600 mr-1"></i><strong>Routee</strong> — Θυγατρική OTE/COSMOTE. Application Key από Routee Dashboard.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Routee Application Key (AppID:AppSecret)</label>
+                  <div class="relative"><input id="p-routee_api_key" type="password" class="input-field pr-10" placeholder="appId:appSecret" /><button type="button" onclick="toggleSmsPwd('p-routee_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div>
+                </div>
+
+                <!-- BSMS -->
+                <div id="sms-prov-bsms" class="hidden">
+                  <div class="bg-purple-50 border border-purple-100 rounded-xl p-3 text-xs text-purple-700 mb-3"><i class="fas fa-satellite-dish text-purple-600 mr-1"></i><strong>BSMS</strong> (bsms.gr) — Ελληνικός πάροχος SMS.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">BSMS API Key</label>
+                  <div class="relative"><input id="p-bsms_api_key" type="password" class="input-field pr-10" placeholder="••••••••••••" /><button type="button" onclick="toggleSmsPwd('p-bsms_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div>
+                </div>
+
+                <!-- Yuboto -->
+                <div id="sms-prov-yuboto" class="hidden">
+                  <div class="bg-teal-50 border border-teal-100 rounded-xl p-3 text-xs text-teal-700 mb-3"><i class="fas fa-satellite-dish text-teal-600 mr-1"></i><strong>Yuboto</strong> — Ελληνικός πάροχος SMS &amp; Viber.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Yuboto API Key</label>
+                  <div class="relative"><input id="p-yuboto_api_key" type="password" class="input-field pr-10" placeholder="••••••••••••" /><button type="button" onclick="toggleSmsPwd('p-yuboto_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div>
+                </div>
+
+                <!-- Vonage -->
+                <div id="sms-prov-vonage" class="hidden">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Vonage API Key</label><input id="p-vonage_api_key" type="text" class="input-field" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Vonage API Secret</label><div class="relative"><input id="p-vonage_api_secret" type="password" class="input-field pr-10" /><button type="button" onclick="toggleSmsPwd('p-vonage_api_secret')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div></div>
+                  </div>
+                </div>
+
+                <!-- Twilio -->
+                <div id="sms-prov-twilio" class="hidden">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Twilio Account SID</label><input id="p-twilio_account_sid" type="text" class="input-field" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Auth Token</label><div class="relative"><input id="p-twilio_auth_token" type="password" class="input-field pr-10" /><button type="button" onclick="toggleSmsPwd('p-twilio_auth_token')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button></div></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Αριθμός Twilio (+1xxx)</label><input id="p-twilio_from_number" type="text" class="input-field" placeholder="+15005550006" /></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex gap-3 mt-5">
+                <button onclick="saveSmsSettings()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"><i class="fas fa-floppy-disk"></i>Αποθήκευση</button>
+                <button onclick="testSmsSettings()" class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"><i class="fas fa-paper-plane text-blue-500"></i>Test SMS</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- myDATA & Provider -->
+          <div id="tab-mydata" class="section-panel">
+            <h2 class="text-base font-bold text-gray-900 mb-1">myDATA &amp; Πάροχος Μετάδοσης</h2>
+            <p class="text-sm text-gray-500 mb-5">Ρυθμίστε τα διαπιστευτήρια myDATA και τον τρόπο μετάδοσης παραστατικών.</p>
+
+            <!-- myDATA credentials -->
+            <div class="bg-gray-50 rounded-xl border border-gray-200 p-5 mb-5">
+              <p class="text-sm font-bold text-gray-800 mb-1">Διαπιστευτήρια myDATA (ΑΑΔΕ)</p>
+              <p class="text-xs text-gray-500 mb-4">Τα credentials από το myDATA portal της ΑΑΔΕ — χρησιμοποιούνται για άμεση μετάδοση.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">myDATA User ID</label>
+                  <input id="p-mydata_user_id" type="text" class="input-field" placeholder="User ID από AADE" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Subscription Key</label>
+                  <div class="relative">
+                    <input id="p-mydata_subscription_key" type="password" class="input-field pr-10" placeholder="••••••••••••" />
+                    <button type="button" onclick="toggleSmsPwd('p-mydata_subscription_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 mb-4 flex gap-2">
+                <i class="fas fa-lock mr-1 flex-shrink-0 mt-0.5"></i>Τα credentials αποθηκεύονται στον server και δεν εμφανίζονται ξανά.
+              </div>
+              <button onclick="saveMydataSettings()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"><i class="fas fa-floppy-disk"></i>Αποθήκευση myDATA</button>
+            </div>
+
+            <!-- Provider selection -->
+            <div class="bg-gray-50 rounded-xl border border-gray-200 p-5">
+              <div class="flex items-center gap-2 mb-1">
+                <i class="fas fa-plug text-blue-600"></i>
+                <p class="text-sm font-bold text-gray-800">Τρόπος Μετάδοσης στο myDATA</p>
+              </div>
+              <p class="text-xs text-gray-500 mb-5">Επιλέξτε <strong>έναν</strong> τρόπο. Μόνο ο ενεργός θα χρησιμοποιείται.</p>
+
+              <style>
+                .prov-card { border: 2px solid #e5e7eb; background: #f9fafb; border-radius: 12px; padding: 16px; cursor: pointer; transition: all .15s; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 14px; }
+                .prov-card.selected { border-color: #2563eb; background: #eff6ff; }
+              </style>
+
+              <div id="provider-cards">
+                <label class="prov-card" data-provider="none" onclick="selectMydataProvider('none')">
+                  <input type="radio" name="provider_mode" value="none" class="mt-1 accent-blue-600" />
+                  <div>
+                    <p class="text-sm font-bold text-gray-800"><i class="fas fa-ban text-gray-400 mr-1.5"></i>Ανενεργό</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Δεν γίνεται μετάδοση. Τα παραστατικά εκδίδονται χωρίς MARK.</p>
+                  </div>
+                </label>
+
+                <label class="prov-card" data-provider="direct" onclick="selectMydataProvider('direct')">
+                  <input type="radio" name="provider_mode" value="direct" class="mt-1 accent-blue-600" />
+                  <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-800"><i class="fas fa-satellite-dish text-blue-600 mr-1.5"></i>Άμεση Σύνδεση ΑΑΔΕ (myDATA API)</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Η εφαρμογή στέλνει απευθείας στο myDATA χρησιμοποιώντας τα credentials κάθε επιχείρησης. Δωρεάν, χωρίς ενδιάμεσο.</p>
+                  </div>
+                </label>
+
+                <label class="prov-card" data-provider="etimologiera" onclick="selectMydataProvider('etimologiera')">
+                  <input type="radio" name="provider_mode" value="etimologiera" class="mt-1 accent-blue-600" />
+                  <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-800"><i class="fas fa-file-contract text-green-600 mr-1.5"></i>e-Τιμολογιέρα (Πάροχος ΥΠΑΗΕΣ)</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Πιστοποιημένος πάροχος (BRATNET E.E.) με REST API. Διαχειρίζεται την πολυπλοκότητα του myDATA XML/XSD.</p>
+                    <div id="etimologiera-fields" class="hidden mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4" onclick="event.stopPropagation()">
+                      <div class="sm:col-span-2">
+                        <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-xs text-green-700 mb-3 flex gap-2">
+                          <i class="fas fa-circle-info flex-shrink-0 mt-0.5"></i>
+                          <span>Λαμβάνετε API Key από e-Τιμολογιέρα μετά τη συμφωνία συνεργασίας. Επικοινωνία: info@etimologiera.gr | 2310 989465</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">API Key *</label>
+                        <div class="relative">
+                          <input id="p-et_api_key" type="password" class="input-field pr-10" placeholder="••••••••••••••••••" />
+                          <button type="button" onclick="toggleSmsPwd('p-et_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Subscription ID</label>
+                        <input id="p-et_subscription_id" type="text" class="input-field" placeholder="Από dashboard e-Τιμολογιέρα" />
+                      </div>
+                      <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">API URL</label>
+                        <select id="p-et_api_url" class="input-field">
+                          <option value="https://app.etimologiera.gr/api/v1">Production — app.etimologiera.gr</option>
+                          <option value="https://sandbox.etimologiera.gr/api/v1">Sandbox — sandbox.etimologiera.gr</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <div class="flex gap-3 mt-2">
+                <button onclick="saveMydataProvider()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"><i class="fas fa-floppy-disk"></i>Αποθήκευση</button>
+                <button onclick="testMydataProvider()" class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"><i class="fas fa-bolt text-yellow-500"></i>Test Σύνδεσης</button>
+              </div>
+              <p class="text-xs text-amber-600 mt-3"><i class="fas fa-triangle-exclamation mr-1"></i>Μόνο ένας τρόπος μπορεί να είναι ενεργός ταυτόχρονα.</p>
+            </div>
+          </div>
+
+        </div><!-- /p-6 -->
+      </div><!-- /bg-white card -->
+
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    requireAuth();
+    requireRole('super_admin');
+    buildSidebar();
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    function toast(msg, type = 'ok') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-sm font-semibold ${
+        type === 'ok' ? 'bg-green-600 text-white' : 'bg-red-500 text-white'
+      }`;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    // ── Tabs ──────────────────────────────────────────────────────────────────
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+      if (name === 'system') checkHealth();
+      if (name === 'businesses') searchBiz('');
+      if (name === 'maintenance') loadMaintSettings();
+      if (name === 'sms' || name === 'mydata') loadMydataSettings();
+      if (name === 'email') loadEmailStats();
+    }
+
+    // ── Maintenance mode ──────────────────────────────────────────────────────
+    async function loadMaintSettings() {
+      try {
+        const r = await fetch(CONFIG.API_URL.replace('/api', '') + '/api/status');
+        const d = await r.json();
+        const isOn = !!d.maintenance;
+        document.getElementById('maint-toggle').checked = isOn;
+        document.getElementById('maint-message').value = d.message || '';
+        updateMaintCard(isOn);
+        // Also load custom message from settings
+        const sr = await api.get('/platform/settings');
+        const msg = (sr.data || {}).maintenance_message || '';
+        document.getElementById('maint-message').value = msg;
+      } catch(e) { console.warn('Could not load maintenance settings', e); }
+    }
+
+    function updateMaintCard(isOn) {
+      const card  = document.getElementById('maint-status-card');
+      const icon  = document.getElementById('maint-status-icon');
+      const label = document.getElementById('maint-status-label');
+      if (isOn) {
+        card.style.borderColor  = '#f97316';
+        card.style.background   = '#fff7ed';
+        icon.style.background   = '#fed7aa';
+        icon.textContent        = '⚠️';
+        label.style.color       = '#c2410c';
+        label.textContent       = 'ΕΝΕΡΓΗ — Χρήστες σε λειτουργία συντήρησης';
+      } else {
+        card.style.borderColor  = '#bbf7d0';
+        card.style.background   = '#f0fdf4';
+        icon.style.background   = '#bbf7d0';
+        icon.textContent        = '✅';
+        label.style.color       = '#15803d';
+        label.textContent       = 'Ανενεργή — Πλατφόρμα λειτουργεί κανονικά';
+      }
+    }
+
+    async function toggleMaintenance(enabled) {
+      updateMaintCard(enabled);
+      try {
+        await api.patch('/platform/settings', { maintenance_mode: enabled ? '1' : '0' });
+        toast(enabled ? '⚠️ Λειτουργία συντήρησης ΕΝΕΡΓΟΠΟΙΗΘΗΚΕ' : '✅ Λειτουργία συντήρησης ΑΠΕΝΕΡΓΟΠΟΙΗΘΗΚΕ',
+              enabled ? 'warning' : 'success');
+      } catch(e) {
+        toast(`Σφάλμα: ${e.message}`, 'error');
+        document.getElementById('maint-toggle').checked = !enabled;
+        updateMaintCard(!enabled);
+      }
+    }
+
+    async function saveMaintSettings() {
+      const message = document.getElementById('maint-message').value.trim();
+      const enabled = document.getElementById('maint-toggle').checked;
+      try {
+        await api.patch('/platform/settings', {
+          maintenance_mode: enabled ? '1' : '0',
+          maintenance_message: message,
+        });
+        toast('Ρυθμίσεις συντήρησης αποθηκεύτηκαν', 'success');
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'error'); }
+    }
+
+    // ── Load platform settings ────────────────────────────────────────────────
+    async function loadSettings() {
+      try {
+        const r = await api.get('/platform/settings');
+        const s = r.data || {};
+        Object.entries(s).forEach(([k, v]) => {
+          const el = document.getElementById(`p-${k}`);
+          if (!el) return;
+          if (el.type === 'checkbox') el.checked = v === '1' || v === true;
+          else el.value = v || '';
+        });
+        onPlatformEmailProviderChange();
+      } catch(e) {
+        toast(`Σφάλμα φόρτωσης: ${e.message}`, 'err');
+      }
+    }
+
+    // ── Load platform stats ───────────────────────────────────────────────────
+    async function loadPlatformStats() {
+      try {
+        const r = await api.get('/dashboard/stats');
+        const s = r.stats || r.data || {};
+        document.getElementById('platform-stats').innerHTML = `
+          <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Επιχειρήσεις</p>
+            <p class="text-2xl font-extrabold text-gray-900">${s.totalBusinesses ?? s.activeBusinesses ?? '—'}</p>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Ενεργές Συνδρομές</p>
+            <p class="text-2xl font-extrabold text-green-600">${s.activeBusinesses ?? '—'}</p>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Σύνολο Παρ.</p>
+            <p class="text-2xl font-extrabold text-blue-600">${s.totalInvoices ?? '—'}</p>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Αποτυχίες myDATA</p>
+            <p class="text-2xl font-extrabold ${(s.failedTransmissions||0)>0?'text-red-500':'text-gray-400'}">${s.failedTransmissions ?? '0'}</p>
+          </div>
+        `;
+      } catch(e) {
+        document.getElementById('platform-stats').innerHTML = '<div class="col-span-4 text-xs text-red-400 py-2">Σφάλμα φόρτωσης stats</div>';
+      }
+    }
+
+    // ── Save section ──────────────────────────────────────────────────────────
+    const sectionKeys = {
+      general:     ['platform_name','platform_tagline','support_email','support_phone','company_name','company_afm','company_year','trial_days','company_address'],
+      bank:        ['bank_name','bank_account_name','bank_iban','bank_bic','iris_iban','iris_bank'],
+      email:       ['platform_email_provider','platform_email_from','platform_email_from_name','platform_smtp_host','platform_smtp_port','platform_smtp_user','platform_smtp_pass','platform_brevo_key','platform_sendgrid_key','platform_mailgun_key','platform_mailgun_domain','admin_notification_email'],
+      pricing:     ['price_basic','limit_basic','price_pro','limit_pro','price_business','limit_business','overage_price','sms_price'],
+      maintenance: ['maintenance_mode','maintenance_message'],
+      system:      ['rate_limit_general','rate_limit_login','jwt_access_ttl','jwt_refresh_ttl'],
+    };
+
+    async function saveSection(section) {
+      const keys = sectionKeys[section] || [];
+      const body = {};
+      keys.forEach(k => {
+        const el = document.getElementById(`p-${k}`);
+        if (!el) return;
+        body[k] = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+      });
+      try {
+        await api.post('/platform/settings', body);
+        toast('✓ Αποθηκεύτηκε!');
+      } catch(e) {
+        toast(`Σφάλμα: ${e.message}`, 'err');
+      }
+    }
+
+    // ── Email provider toggle ─────────────────────────────────────────────────
+    function onPlatformEmailProviderChange() {
+      const p = document.getElementById('p-platform_email_provider')?.value || 'smtp';
+      ['smtp','brevo','sendgrid','mailgun'].forEach(x => {
+        const el = document.getElementById(`pe-${x}`);
+        if (el) el.classList.toggle('hidden', x !== p);
+      });
+    }
+
+    // ── Test email ────────────────────────────────────────────────────────────
+    async function testPlatformEmail() {
+      const to = prompt('Αποστολή δοκιμαστικού email σε:');
+      if (!to) return;
+      try {
+        await api.post('/platform/settings/test-email', { to });
+        toast('✓ Δοκιμαστικό email στάλθηκε!');
+      } catch(e) {
+        toast(`Σφάλμα: ${e.message}`, 'err');
+      }
+    }
+
+    // ── Health check ──────────────────────────────────────────────────────────
+    async function checkHealth() {
+      try {
+        const t0 = Date.now();
+        const r = await fetch(CONFIG.API_URL.replace('/api', '/health'));
+        const j = await r.json();
+        const ms = Date.now() - t0;
+        document.getElementById('sys-api').textContent = `✓ OK (${ms}ms)`;
+        document.getElementById('sys-api').className = 'text-lg font-extrabold text-green-600';
+        document.getElementById('sys-db').textContent = j.status === 'ok' ? '✓ Συνδεδεμένη' : '✗ Σφάλμα';
+        document.getElementById('sys-db').className = `text-lg font-extrabold ${j.status==='ok'?'text-green-600':'text-red-500'}`;
+        document.getElementById('sys-ver').textContent = j.environment || 'development';
+        document.getElementById('sys-ver').className = 'text-lg font-extrabold text-blue-600';
+      } catch(e) {
+        document.getElementById('sys-api').textContent = '✗ Εκτός λειτουργίας';
+        document.getElementById('sys-api').className = 'text-lg font-extrabold text-red-500';
+      }
+    }
+
+    async function clearCache() {
+      toast('Cache εκκαθαρίστηκε (client-side localStorage clean)', 'ok');
+    }
+
+    // ── Announcement ─────────────────────────────────────────────────────────
+    async function sendAnnouncement() {
+      const title  = document.getElementById('ann-title').value.trim();
+      const body   = document.getElementById('ann-body').value.trim();
+      const target = document.getElementById('ann-target').value;
+      const type   = document.getElementById('ann-type').value;
+      if (!title || !body) { toast('Συμπληρώστε τίτλο και μήνυμα', 'err'); return; }
+      if (!confirm(`Αποστολή ανακοίνωσης σε: ${target}?`)) return;
+      try {
+        await api.post('/notifications/broadcast', { title, body, target, type });
+        toast('✓ Ανακοίνωση στάλθηκε!');
+        document.getElementById('ann-title').value = '';
+        document.getElementById('ann-body').value = '';
+      } catch(e) {
+        toast(`Σφάλμα: ${e.message}`, 'err');
+      }
+    }
+
+    // ── Businesses quick search ────────────────────────────────────────────────
+    let bizTimer = null;
+    async function searchBiz(q) {
+      clearTimeout(bizTimer);
+      bizTimer = setTimeout(async () => {
+        try {
+          const r = await api.get('/platform/subscriptions', { limit: 10, filter: 'all' });
+          let rows = r.data || [];
+          if (q) rows = rows.filter(b =>
+            (b.name||'').toLowerCase().includes(q.toLowerCase()) ||
+            (b.afm||'').includes(q)
+          );
+          if (!rows.length) {
+            document.getElementById('biz-table').innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">Δεν βρέθηκαν</p>';
+            return;
+          }
+          document.getElementById('biz-table').innerHTML = `
+            <table class="w-full text-sm">
+              <thead><tr class="text-left text-xs font-semibold text-gray-400 uppercase border-b border-gray-100">
+                <th class="pb-2 pr-4">Επωνυμία</th>
+                <th class="pb-2 pr-4">ΑΦΜ</th>
+                <th class="pb-2 pr-4">Πλάνο</th>
+                <th class="pb-2 pr-4">Κατάσταση</th>
+                <th class="pb-2">Ενέργειες</th>
+              </tr></thead>
+              <tbody>
+                ${rows.map(b => `<tr class="border-b border-gray-50 hover:bg-gray-50">
+                  <td class="py-2 pr-4 font-medium text-gray-800">${b.name||'—'}</td>
+                  <td class="py-2 pr-4 text-gray-500 font-mono text-xs">${b.afm||'—'}</td>
+                  <td class="py-2 pr-4"><span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">${b.plan||'trial'}</span></td>
+                  <td class="py-2 pr-4">
+                    ${b.subscription_active
+                      ? '<span class="text-xs text-green-600 font-semibold">✓ Ενεργή</span>'
+                      : '<span class="text-xs text-red-500 font-semibold">✗ Ανενεργή</span>'}
+                  </td>
+                  <td class="py-2">
+                    <div class="flex gap-1">
+                      <a href="subscriptions.html" class="px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 font-semibold">Διαχείριση →</a>
+                      <button onclick="quickExtendTrial('${b.id}','${b.name}')" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">Trial</button>
+                    </div>
+                  </td>
+                </tr>`).join('')}
+              </tbody>
+            </table>`;
+        } catch(e) {
+          document.getElementById('biz-table').innerHTML = `<p class="text-sm text-red-400 py-4">Σφάλμα: ${e.message}</p>`;
+        }
+      }, 300);
+    }
+
+    async function quickExtendTrial(bizId, name) {
+      const days = prompt(`Επέκταση trial για "${name}" (ημέρες):`, '30');
+      if (!days) return;
+      try {
+        await api.post(`/platform/subscriptions/${bizId}/extend-trial`, { days: parseInt(days) });
+        toast(`✓ Trial επεκτάθηκε κατά ${days} ημέρες`);
+      } catch(e) { toast(e.message, 'err'); }
+    }
+
+    async function bulkExtendTrials() {
+      if (!confirm('Επέκταση trial +30 ημέρες για ΟΛΕΣ τις επιχειρήσεις σε trial;')) return;
+      try {
+        const r = await api.get('/platform/subscriptions', { limit: 100, filter: 'all' });
+        const trials = (r.data || []).filter(b => b.plan === 'trial');
+        let count = 0;
+        for (const b of trials) {
+          await api.post(`/platform/subscriptions/${b.id}/extend-trial`, { days: 30 });
+          count++;
+        }
+        toast(`✓ Επεκτάθηκε το trial για ${count} επιχειρήσεις`);
+      } catch(e) { toast(e.message, 'err'); }
+    }
+
+    async function exportAllBusinesses() {
+      window.location.href = 'exports.html';
+    }
+
+    // ── Firebase ─────────────────────────────────────────────────────────────
+    async function loadFirebaseStatus() {
+      try {
+        const r = await api.get('/platform/settings/firebase');
+        const d = r.data || {};
+        const el = document.getElementById('firebase-status');
+        if (el) el.innerHTML = d.configured
+          ? `<span class="text-green-600 font-semibold">✓ Ρυθμισμένο — Project: ${d.project_id || '—'}</span>`
+          : `<span class="text-orange-500">⚠ Δεν έχει ρυθμιστεί — push notifications ανενεργά</span>`;
+      } catch(_) {}
+    }
+
+    async function saveMobileConfig() {
+      const url     = (document.getElementById('p-app_base_url').value || '').trim();
+      const webUrl  = (document.getElementById('p-web_base_url').value || '').trim();
+      const ver     = (document.getElementById('p-app_min_version').value || '').trim();
+      if (url && !url.endsWith('/')) {
+        toast('Το API Base URL πρέπει να τελειώνει σε /', 'err');
+        return;
+      }
+      try {
+        await api.post('/platform/settings', { app_base_url: url, web_base_url: webUrl, app_min_version: ver });
+        toast('✓ Mobile config αποθηκεύτηκε! Η εφαρμογή θα το εφαρμόσει στην επόμενη εκκίνηση.');
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
+    async function saveFirebase() {
+      const raw = (document.getElementById('firebase-sa-json').value || '').trim();
+      if (!raw) { toast('Επικολλήστε το Service Account JSON', 'err'); return; }
+      try {
+        JSON.parse(raw);
+      } catch {
+        toast('Μη έγκυρο JSON', 'err');
+        return;
+      }
+      try {
+        await api.patch('/platform/settings/firebase', { service_account: raw });
+        toast('✓ Firebase αποθηκεύτηκε!', 'ok');
+        document.getElementById('firebase-sa-json').value = '';
+        loadFirebaseStatus();
+      } catch(e) { toast('Σφάλμα: ' + e.message, 'err'); }
+    }
+
+    // ── Email consumption stats & toggles ─────────────────────────────────────
+
+    const EMAIL_TYPE_META = [
+      { key: 'invoice_created',     label: 'Δημιουργία Τιμολογίου', icon: 'fa-file-invoice',     color: 'teal',   desc: 'Αποστέλλεται κάθε φορά που δημιουργείται νέο παραστατικό.' },
+      { key: 'invoice_transmitted', label: 'Επιτυχής Διαβίβαση',    icon: 'fa-satellite-dish',   color: 'green',  desc: 'Αποστέλλεται μετά από επιτυχή αποστολή στο myDATA.' },
+      { key: 'invoice_failed',      label: 'Αποτυχία Διαβίβασης',   icon: 'fa-circle-xmark',     color: 'red',    desc: 'Αποστέλλεται όταν αποτύχει η μετάδοση στο myDATA.' },
+      { key: 'daily_summary',       label: 'Ημερήσια Σύνοψη',       icon: 'fa-chart-bar',        color: 'blue',   desc: 'Cron 07:00 — μόνο σε ψαράδες που έχουν ενεργοποιήσει τη ρύθμιση.' },
+      { key: 'lifecycle',           label: 'Λήξη Trial/Συνδρομής',  icon: 'fa-hourglass-half',   color: 'amber',  desc: 'Cron 08:00 — υπενθυμίσεις λήξης (3ημ, 1ημ, ημέρα λήξης).' },
+      { key: 'campaigns',           label: 'Campaigns (Μαζική)',     icon: 'fa-bullhorn',         color: 'purple', desc: 'Μαζικά emails από σελίδα Email & Campaigns.' },
+      { key: 'direct',              label: 'Άμεσα (Direct)',         icon: 'fa-envelope',         color: 'indigo', desc: 'Απευθείας email σε συγκεκριμένο ψαρά.' },
+      { key: 'system',              label: 'Συστήματος',             icon: 'fa-gear',             color: 'gray',   desc: 'Welcome, reset κωδικού, επαλήθευση λογιστή κ.λπ.' },
+    ];
+
+    const COLOR_MAP = {
+      teal:   { bg: 'bg-teal-50',   border: 'border-teal-200',   icon: 'text-teal-600',   badge: 'bg-teal-100 text-teal-700' },
+      green:  { bg: 'bg-green-50',  border: 'border-green-200',  icon: 'text-green-600',  badge: 'bg-green-100 text-green-700' },
+      red:    { bg: 'bg-red-50',    border: 'border-red-200',    icon: 'text-red-500',    badge: 'bg-red-100 text-red-600' },
+      blue:   { bg: 'bg-blue-50',   border: 'border-blue-200',   icon: 'text-blue-600',   badge: 'bg-blue-100 text-blue-700' },
+      amber:  { bg: 'bg-amber-50',  border: 'border-amber-200',  icon: 'text-amber-600',  badge: 'bg-amber-100 text-amber-700' },
+      purple: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+      indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', icon: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+      gray:   { bg: 'bg-gray-50',   border: 'border-gray-200',   icon: 'text-gray-500',   badge: 'bg-gray-100 text-gray-600' },
+    };
+
+    let _emailStats = null;
+
+    async function loadEmailStats() {
+      try {
+        const res = await api.get('/platform/email/stats');
+        _emailStats = res.data;
+        renderEmailStats(_emailStats);
+      } catch(e) {
+        console.warn('Could not load email stats', e);
+      }
+    }
+
+    function renderEmailStats(s) {
+      if (!s) return;
+
+      // Update meter
+      document.getElementById('stat-month-count').textContent = s.this_month.toLocaleString('el-GR') + ' emails';
+      document.getElementById('stat-total-count').textContent = s.total.toLocaleString('el-GR');
+
+      const freeTier = s.brevo_free_tier || 9000;
+      const pct = Math.min(100, Math.round((s.this_month / freeTier) * 100));
+      document.getElementById('usage-bar').style.width = pct + '%';
+      document.getElementById('usage-bar').className = `h-2 rounded-full transition-all duration-500 ${
+        pct >= 90 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+        pct >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                    'bg-gradient-to-r from-blue-500 to-indigo-500'
+      }`;
+      document.getElementById('usage-bar-label').textContent = `${s.this_month.toLocaleString('el-GR')} / ${freeTier.toLocaleString('el-GR')} (δωρεάν tier)`;
+
+      const over = Math.max(0, s.this_month - freeTier);
+      const costPerEmail = s.brevo_monthly_cost && freeTier > 0 ? s.brevo_monthly_cost / freeTier : 0.001;
+      const estCost = (over * costPerEmail).toFixed(2);
+      document.getElementById('cost-estimate').textContent = over > 0 ? `~€${estCost} κόστος` : '✓ Εντός δωρεάν tier';
+      document.getElementById('cost-estimate').className = over > 0 ? 'font-700 text-red-600' : 'font-700 text-green-600';
+
+      // Pre-fill cost inputs
+      if (document.getElementById('brevo-free-tier')) {
+        document.getElementById('brevo-free-tier').value = freeTier;
+      }
+
+      // Render toggle cards
+      const container = document.getElementById('email-type-toggles');
+      const totalSent = Object.values(s.by_type).reduce((a, b) => a + b, 0) || 1;
+
+      container.innerHTML = EMAIL_TYPE_META.map(t => {
+        const count = s.by_type[t.key] || 0;
+        const enabled = s.toggles[t.key] !== false;
+        const pctBar = Math.round((count / totalSent) * 100);
+        const c = COLOR_MAP[t.color];
+        return `
+        <div class="flex items-start gap-3 p-3 rounded-xl border ${enabled ? c.border + ' ' + c.bg : 'border-gray-200 bg-gray-50 opacity-60'} transition-all">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${enabled ? c.bg : 'bg-gray-100'} border ${enabled ? c.border : 'border-gray-200'}">
+            <i class="fas ${t.icon} text-sm ${enabled ? c.icon : 'text-gray-400'}"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+              <span class="text-sm font-700 text-gray-900" style="font-weight:700">${t.label}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full font-600 ${c.badge}">${count.toLocaleString('el-GR')} αποστολές</span>
+              ${!enabled ? '<span class="text-xs px-2 py-0.5 rounded-full font-600 bg-red-100 text-red-600">ΑΠΕΝΕΡΓ.</span>' : ''}
+            </div>
+            <div class="text-xs text-gray-400 mb-1.5">${t.desc}</div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5">
+              <div class="h-1.5 rounded-full ${enabled ? 'bg-gradient-to-r from-blue-400 to-blue-600' : 'bg-gray-300'}" style="width:${pctBar}%"></div>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
+            <input type="checkbox" id="toggle-${t.key}" class="sr-only peer" ${enabled ? 'checked' : ''} onchange="onToggleChange('${t.key}', this.checked)">
+            <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+          </label>
+        </div>`;
+      }).join('');
+    }
+
+    function onToggleChange(key, enabled) {
+      // Live visual feedback — full save on button click
+      const card = document.getElementById(`toggle-${key}`)?.closest('.flex');
+      if (card) {
+        const c = COLOR_MAP[EMAIL_TYPE_META.find(t => t.key === key)?.color || 'gray'];
+        if (!enabled) {
+          card.classList.remove(...Object.values(COLOR_MAP).flatMap(x => [x.border, x.bg]));
+          card.classList.add('border-gray-200', 'bg-gray-50', 'opacity-60');
+        } else {
+          card.classList.remove('border-gray-200', 'bg-gray-50', 'opacity-60');
+          card.classList.add(c.border, c.bg);
+        }
+      }
+    }
+
+    async function saveEmailToggles() {
+      const body = {};
+      EMAIL_TYPE_META.forEach(t => {
+        const el = document.getElementById(`toggle-${t.key}`);
+        if (el) body[t.key] = el.checked;
+      });
+      const freeTier = parseInt(document.getElementById('brevo-free-tier')?.value || '9000', 10);
+      const costPerEmail = parseFloat(document.getElementById('brevo-cost-per-email')?.value || '0');
+      body.brevo_free_tier = freeTier;
+      body.brevo_monthly_cost = freeTier > 0 ? (costPerEmail * freeTier) : 0;
+
+      try {
+        await api.patch('/platform/email/toggles', body);
+        toast('✓ Ρυθμίσεις email αποθηκεύτηκαν!');
+        await loadEmailStats();
+      } catch(e) {
+        toast(`Σφάλμα: ${e.message}`, 'err');
+      }
+    }
+
+    async function resetEmailStats() {
+      if (!confirm('Να μηδενιστούν όλοι οι μετρητές email; Αυτή η ενέργεια δεν αναιρείται.')) return;
+      try {
+        await api.post('/platform/email/stats/reset', {});
+        toast('✓ Στατιστικά μηδενίστηκαν!');
+        await loadEmailStats();
+      } catch(e) {
+        toast(`Σφάλμα: ${e.message}`, 'err');
+      }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    loadSettings();
+    loadPlatformStats();
+    loadEmailStats();
+    loadFirebaseStatus();
+
+    window.switchTab = switchTab;
+    window.saveSection = saveSection;
+    window.onPlatformEmailProviderChange = onPlatformEmailProviderChange;
+    window.testPlatformEmail = testPlatformEmail;
+    window.checkHealth = checkHealth;
+    window.clearCache = clearCache;
+    window.sendAnnouncement = sendAnnouncement;
+    window.searchBiz = searchBiz;
+    window.quickExtendTrial = quickExtendTrial;
+    window.bulkExtendTrials = bulkExtendTrials;
+    window.exportAllBusinesses = exportAllBusinesses;
+    window.saveFirebase = saveFirebase;
+    window.saveGsisPlatform = saveGsisPlatform;
+    window.toggleGsisPwd = toggleGsisPwd;
+    window.toggleMaintenance = toggleMaintenance;
+    window.saveMaintSettings = saveMaintSettings;
+    window.loadMaintSettings = loadMaintSettings;
+    window.loadEmailStats = loadEmailStats;
+    window.saveEmailToggles = saveEmailToggles;
+    window.resetEmailStats = resetEmailStats;
+    window.onToggleChange = onToggleChange;
+
+    // ── SMS ───────────────────────────────────────────────────────────────────
+    function toggleSmsFields() {
+      const enabled = document.getElementById('p-sms_enabled').checked;
+      const fields = document.getElementById('sms-fields');
+      if (enabled) {
+        fields.classList.remove('opacity-50', 'pointer-events-none');
+      } else {
+        fields.classList.add('opacity-50', 'pointer-events-none');
+      }
+    }
+
+    function onSmsProviderChange() {
+      const prov = document.getElementById('p-sms_provider')?.value || 'infobip';
+      ['infobip','apifon','routee','bsms','yuboto','vonage','twilio'].forEach(p => {
+        const el = document.getElementById(`sms-prov-${p}`);
+        if (el) el.classList.toggle('hidden', p !== prov);
+      });
+    }
+
+    function toggleSmsPwd(id) {
+      const inp = document.getElementById(id);
+      if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    async function saveSmsSettings() {
+      const prov = document.getElementById('p-sms_provider')?.value || 'infobip';
+      const body = {
+        sms_enabled: document.getElementById('p-sms_enabled').checked ? '1' : '0',
+        sms_provider: prov,
+        sms_from: document.getElementById('p-sms_from')?.value?.trim() || '',
+      };
+      const provIds = {
+        infobip: ['infobip_api_key','infobip_base_url'],
+        apifon:  ['apifon_api_key'],
+        routee:  ['routee_api_key'],
+        bsms:    ['bsms_api_key'],
+        yuboto:  ['yuboto_api_key'],
+        vonage:  ['vonage_api_key','vonage_api_secret'],
+        twilio:  ['twilio_account_sid','twilio_auth_token','twilio_from_number'],
+      };
+      (provIds[prov] || []).forEach(k => {
+        const el = document.getElementById(`p-${k}`);
+        if (el && el.value) body[k] = el.value;
+      });
+      try {
+        await api.post('/platform/settings', body);
+        toast('✓ SMS αποθηκεύτηκε!');
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
+    async function testSmsSettings() {
+      const to = prompt('Αποστολή δοκιμαστικού SMS σε (αριθμός +30xxx):');
+      if (!to) return;
+      try {
+        await api.post('/platform/settings/test-sms', { to });
+        toast('✓ Δοκιμαστικό SMS στάλθηκε!');
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
+    // ── myDATA & Provider ──────────────────────────────────────────────────────
+    function selectMydataProvider(prov) {
+      document.querySelectorAll('.prov-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.provider === prov);
+        const radio = c.querySelector('input[type=radio]');
+        if (radio) radio.checked = c.dataset.provider === prov;
+      });
+      const etFields = document.getElementById('etimologiera-fields');
+      if (etFields) etFields.classList.toggle('hidden', prov !== 'etimologiera');
+    }
+
+    async function loadMydataSettings() {
+      try {
+        const r = await api.get('/platform/settings');
+        const s = r.data || {};
+        if (s.mydata_user_id) { const el = document.getElementById('p-mydata_user_id'); if (el) el.value = s.mydata_user_id; }
+        const prov = s.provider_mode || 'none';
+        selectMydataProvider(prov);
+        if (prov === 'etimologiera') {
+          if (s.et_subscription_id) { const el = document.getElementById('p-et_subscription_id'); if (el) el.value = s.et_subscription_id; }
+          if (s.et_api_url) { const el = document.getElementById('p-et_api_url'); if (el) el.value = s.et_api_url; }
+        }
+        // Load SMS settings
+        if (s.sms_enabled) { const el = document.getElementById('p-sms_enabled'); if (el) { el.checked = s.sms_enabled === '1'; toggleSmsFields(); } }
+        if (s.sms_provider) { const el = document.getElementById('p-sms_provider'); if (el) { el.value = s.sms_provider; onSmsProviderChange(); } }
+        if (s.sms_from) { const el = document.getElementById('p-sms_from'); if (el) el.value = s.sms_from; }
+      } catch(e) { console.warn('Could not load mydata/sms settings', e); }
+    }
+
+    async function saveMydataSettings() {
+      const body = {
+        mydata_user_id: document.getElementById('p-mydata_user_id')?.value?.trim() || '',
+      };
+      const key = document.getElementById('p-mydata_subscription_key')?.value?.trim();
+      if (key) body.mydata_subscription_key = key;
+      try {
+        await api.post('/platform/settings', body);
+        toast('✓ myDATA αποθηκεύτηκε!');
+        document.getElementById('p-mydata_subscription_key').value = '';
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
+    async function saveMydataProvider() {
+      const prov = document.querySelector('input[name="provider_mode"]:checked')?.value || 'none';
+      const body = { provider_mode: prov };
+      if (prov === 'etimologiera') {
+        const key = document.getElementById('p-et_api_key')?.value?.trim();
+        if (key) body.et_api_key = key;
+        body.et_subscription_id = document.getElementById('p-et_subscription_id')?.value?.trim() || '';
+        body.et_api_url = document.getElementById('p-et_api_url')?.value || '';
+      }
+      try {
+        await api.post('/platform/settings', body);
+        toast('✓ Πάροχος αποθηκεύτηκε!');
+        if (prov === 'etimologiera') document.getElementById('p-et_api_key').value = '';
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
+    async function testMydataProvider() {
+      try {
+        await api.post('/platform/settings/test-provider', {});
+        toast('✓ Σύνδεση επιτυχής!');
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
+    window.toggleSmsFields = toggleSmsFields;
+    window.onSmsProviderChange = onSmsProviderChange;
+    window.toggleSmsPwd = toggleSmsPwd;
+    window.saveSmsSettings = saveSmsSettings;
+    window.testSmsSettings = testSmsSettings;
+    window.selectMydataProvider = selectMydataProvider;
+    window.saveMydataSettings = saveMydataSettings;
+    window.saveMydataProvider = saveMydataProvider;
+    window.testMydataProvider = testMydataProvider;
+  </script>
+</body>
+</html>

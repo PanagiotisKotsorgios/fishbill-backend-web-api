@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+keystore.properties
+*.keystore
+*.jks
+
+# Runtime logs
+*.log
+npm-debug.log*
+server.log
+server-error.log
+logs/
+
+# Generated PDFs (temp output)
+pdfs/
+
+# User avatar uploads (binary, user-specific)
+public/avatars/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude local settings
+.claude/

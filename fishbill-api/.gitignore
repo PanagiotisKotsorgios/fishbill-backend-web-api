@@ -1,0 +1,7 @@
+node_modules/
+.env
+logs/
+pdfs/
+public/avatars/
+*.log
+npm-debug.log*

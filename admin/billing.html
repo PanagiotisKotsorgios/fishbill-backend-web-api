@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Χρεώσεις & Συνδρομές</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .25s ease-out both; }
+    .biz-row { cursor:pointer; transition: background .15s; }
+    .biz-row:hover { background: #f0f9ff; }
+    .biz-row.selected { background: #e0f2fe; border-left: 3px solid #0284c7; }
+    #detail-panel { transition: transform .25s ease, opacity .25s ease; }
+    #detail-panel.hidden-panel { transform: translateX(100%); opacity:0; pointer-events:none; }
+    .tag { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+    .filter-chip { cursor:pointer; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; transition:all .15s; border:1.5px solid transparent; }
+    .filter-chip.active { background:#0284c7; color:#fff; border-color:#0284c7; }
+    .filter-chip:not(.active) { background:#f1f5f9; color:#475569; border-color:#e2e8f0; }
+    .filter-chip:not(.active):hover { background:#e0f2fe; color:#0284c7; }
+    .plan-chip.active-trial      { background:#f1f5f9; color:#374151; border-color:#6b7280; }
+    .plan-chip.active-basic      { background:#dbeafe; color:#1d4ed8; border-color:#3b82f6; }
+    .plan-chip.active-pro        { background:#ede9fe; color:#6d28d9; border-color:#8b5cf6; }
+    .plan-chip.active-enterprise { background:#fef3c7; color:#92400e; border-color:#f59e0b; }
+    .inv-row:hover { background:#f8fafc; }
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-track { background:#f1f5f9; border-radius:3px; }
+    ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+    .toggle-switch { position:relative; display:inline-block; width:36px; height:20px; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#cbd5e1; border-radius:20px; transition:.3s; }
+    .toggle-slider:before { position:absolute; content:""; height:14px; width:14px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+    input:checked + .toggle-slider { background:#0284c7; }
+    input:checked + .toggle-slider:before { transform:translateX(16px); }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="sidebar-container"></div>
+
+  <div class="pt-14 lg:pt-0 min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col p-4 lg:p-6 gap-3 overflow-hidden" style="min-height:0">
+
+      <!-- ── Header ── -->
+      <div class="anim flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-2xl font-extrabold text-gray-900">Χρεώσεις & Συνδρομές</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Διαχείριση αλιέων, τιμολογίων, πληρωμών & συνδρομών</p>
+        </div>
+        <button onclick="exportCSV()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
+          <i class="fas fa-file-csv text-green-600"></i> Εξαγωγή CSV
+        </button>
+      </div>
+
+      <!-- ── Filter bar ── -->
+      <div class="anim bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-wrap gap-3 items-center" style="animation-delay:.03s">
+
+        <!-- Status filter -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Κατάσταση:</span>
+          <div class="flex gap-1">
+            <button onclick="setFilter('pending')" data-f="pending" class="filter-btn filter-chip px-3 py-1">Εκκρεμείς</button>
+            <button onclick="setFilter('active')"  data-f="active"  class="filter-btn filter-chip px-3 py-1">Ενεργές</button>
+            <button onclick="setFilter('all')"     data-f="all"     class="filter-btn filter-chip px-3 py-1">Όλες</button>
+          </div>
+        </div>
+
+        <div class="w-px h-6 bg-gray-200"></div>
+
+        <!-- Plan filter -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Πλάνο:</span>
+          <div class="flex gap-1 flex-wrap">
+            <button onclick="setPlan('all')"        data-p="all"        class="plan-btn filter-chip px-3 py-1">Όλα</button>
+            <button onclick="setPlan('trial')"      data-p="trial"      class="plan-btn filter-chip px-3 py-1">Trial</button>
+            <button onclick="setPlan('basic')"      data-p="basic"      class="plan-btn filter-chip px-3 py-1">Basic</button>
+            <button onclick="setPlan('pro')"        data-p="pro"        class="plan-btn filter-chip px-3 py-1">Pro</button>
+            <button onclick="setPlan('enterprise')" data-p="enterprise" class="plan-btn filter-chip px-3 py-1">Enterprise</button>
+          </div>
+        </div>
+
+        <div class="w-px h-6 bg-gray-200"></div>
+
+        <!-- Debt toggle -->
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <span class="text-xs font-semibold text-gray-600">Μόνο με οφειλή</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="debt-toggle" onchange="applyClientFilters()" />
+            <span class="toggle-slider"></span>
+          </label>
+        </label>
+
+        <!-- Sort -->
+        <div class="flex items-center gap-2 ml-auto">
+          <i class="fas fa-sort text-gray-400 text-xs"></i>
+          <select id="sort-select" onchange="applyClientFilters()" class="text-xs font-semibold text-gray-600 bg-transparent border-none outline-none cursor-pointer">
+            <option value="pending_first">Εκκρεμείς πρώτα</option>
+            <option value="debt_desc">Μεγαλύτερη οφειλή</option>
+            <option value="name_asc">Αλφαβητικά</option>
+            <option value="plan">Κατά πλάνο</option>
+            <option value="invoices_desc">Περισσότερα τιμολόγια</option>
+          </select>
+
+          <!-- Search -->
+          <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+            <input id="search-input" type="text" placeholder="Αναζήτηση ονόματος, ΑΦΜ, email, πόλη…" oninput="onSearch()"
+              class="pl-8 pr-3 py-2 rounded-xl border border-gray-200 text-xs w-64 focus:outline-none focus:border-blue-400 bg-white" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Stats ── -->
+      <div id="stats-row" class="grid grid-cols-3 sm:grid-cols-6 gap-2 anim" style="animation-delay:.06s"></div>
+
+      <!-- ── Split view ── -->
+      <div class="flex gap-4 flex-1 min-h-0" style="min-height:0">
+
+        <!-- Left: list -->
+        <div class="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden anim flex-shrink-0" style="animation-delay:.09s; width:400px; min-width:300px;">
+          <div id="list-count" class="px-4 py-2 text-xs text-gray-400 border-b border-gray-50 font-semibold"></div>
+          <div id="biz-list" class="flex-1 overflow-y-auto divide-y divide-gray-50">
+            <div class="flex justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+          </div>
+          <div id="pagination" class="border-t border-gray-100"></div>
+        </div>
+
+        <!-- Right: detail panel -->
+        <div id="detail-panel" class="hidden-panel flex-1 flex flex-col gap-4 overflow-y-auto pb-6">
+        </div>
+
+        <!-- Placeholder -->
+        <div id="detail-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-300 anim" style="animation-delay:.12s">
+          <div class="text-6xl mb-3">👆</div>
+          <p class="text-base font-semibold">Επιλέξτε αλιέα από τη λίστα</p>
+          <p class="text-sm mt-1 text-gray-200">για πλήρη προβολή προφίλ, τιμολογίων & πληρωμών</p>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    initPage({ requireRole: 'super_admin' });
+
+    const PRICING = {
+      basic:      { monthly: 8,   semi_annual: 35,  annual: 60  },
+      pro:        { monthly: 12,  semi_annual: 65,  annual: 120 },
+      enterprise: { monthly: 30,  semi_annual: 130, annual: 240 },
+    };
+    const CYCLE_MONTHS  = { monthly: 1, semi_annual: 6, annual: 12 };
+    const CYCLE_LABELS  = { monthly: 'Μηνιαίο', semi_annual: 'Εξαμηνιαίο', annual: 'Ετήσιο' };
+    const PLAN_LABELS   = { trial: 'Trial', basic: 'Basic', pro: 'Pro', enterprise: 'Enterprise' };
+    const PLAN_COLORS   = {
+      trial:      'bg-gray-100 text-gray-600',
+      basic:      'bg-blue-100 text-blue-700',
+      pro:        'bg-purple-100 text-purple-700',
+      enterprise: 'bg-amber-100 text-amber-700',
+    };
+    const GR_MONTHS = ['','Ιαν','Φεβ','Μάρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοε','Δεκ'];
+
+    let currentFilter = 'pending';
+    let currentPlan   = 'all';
+    let currentPage   = 1;
+    let searchTimer   = null;
+    let selectedBiz   = null;
+    let irisInfo      = null;
+    let allRows       = [];
+    let displayRows   = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setFilter('pending');
+      setPlan('all');
+      loadIris();
+    });
+
+    // ── Filter/sort/search ─────────────────────────────────────────────────────
+    function setFilter(f) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        const active = b.dataset.f === f;
+        b.classList.toggle('active', active);
+      });
+      loadList(1);
+    }
+
+    function setPlan(p) {
+      currentPlan = p;
+      document.querySelectorAll('.plan-btn').forEach(b => {
+        const active = b.dataset.p === p;
+        b.classList.remove('active','active-trial','active-basic','active-pro','active-enterprise');
+        if (active) {
+          b.classList.add('active');
+          if (p !== 'all') b.classList.add(`active-${p}`);
+        }
+      });
+      applyClientFilters();
+    }
+
+    function onSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        // search is client-side for instant results, but also reloads server if query changes substantially
+        applyClientFilters();
+      }, 200);
+    }
+
+    function applyClientFilters() {
+      const search   = document.getElementById('search-input').value.toLowerCase().trim();
+      const debtOnly = document.getElementById('debt-toggle').checked;
+      const sort     = document.getElementById('sort-select').value;
+
+      let rows = allRows.filter(r => {
+        if (currentPlan !== 'all' && r.plan !== currentPlan) return false;
+        if (debtOnly && !(parseFloat(r.outstanding_balance) > 0)) return false;
+        if (search) {
+          const haystack = [r.name, r.afm, r.owner_email, r.city].filter(Boolean).join(' ').toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+
+      // sort
+      rows = [...rows].sort((a, b) => {
+        if (sort === 'debt_desc')      return (parseFloat(b.outstanding_balance)||0) - (parseFloat(a.outstanding_balance)||0);
+        if (sort === 'name_asc')       return (a.name||'').localeCompare(b.name||'', 'el');
+        if (sort === 'plan')           return ['trial','basic','pro','enterprise'].indexOf(a.plan) - ['trial','basic','pro','enterprise'].indexOf(b.plan);
+        if (sort === 'invoices_desc')  return (parseInt(b.invoice_count)||0) - (parseInt(a.invoice_count)||0);
+        // default: pending first
+        const aPending = !a.subscription_active && a.plan !== 'trial' ? 0 : 1;
+        const bPending = !b.subscription_active && b.plan !== 'trial' ? 0 : 1;
+        return aPending - bPending;
+      });
+
+      displayRows = rows;
+      renderStats(allRows);
+      renderList(rows);
+      document.getElementById('list-count').textContent =
+        rows.length < allRows.length ? `${rows.length} από ${allRows.length} εγγραφές` : `${rows.length} εγγραφές`;
+    }
+
+    // ── Load list from server ──────────────────────────────────────────────────
+    async function loadList(page = 1) {
+      currentPage = page;
+      document.getElementById('biz-list').innerHTML =
+        '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+      try {
+        const res = await api.get('/platform/subscriptions', { page, limit: 200, filter: currentFilter });
+        allRows = res.data || [];
+        renderPagination(page, res.total, 200);
+        applyClientFilters();
+      } catch (e) {
+        document.getElementById('biz-list').innerHTML = `<div class="text-center py-10 text-red-400 text-sm px-4">${e.message}</div>`;
+      }
+    }
+
+    // ── Stats ──────────────────────────────────────────────────────────────────
+    function renderStats(rows) {
+      let active = 0, pending = 0, withDebt = 0, totalDebt = 0, trial = 0, pro = 0;
+      rows.forEach(r => {
+        if (r.subscription_active)                           active++;
+        if (!r.subscription_active && r.plan !== 'trial')   pending++;
+        if (r.plan === 'trial')                              trial++;
+        if (r.plan === 'pro' || r.plan === 'enterprise')     pro++;
+        const d = parseFloat(r.outstanding_balance) || 0;
+        if (d > 0) { withDebt++; totalDebt += d; }
+      });
+      document.getElementById('stats-row').innerHTML = [
+        { label:'Σύνολο',      value: rows.length,             icon:'🏢', cls:'text-gray-700'  },
+        { label:'Ενεργές',     value: active,                  icon:'✅', cls:'text-emerald-600'},
+        { label:'Εκκρεμείς',   value: pending,                 icon:'⏳', cls:'text-orange-500'},
+        { label:'Trial',       value: trial,                   icon:'🎯', cls:'text-gray-500'  },
+        { label:'Με Οφειλή',   value: withDebt,                icon:'💳', cls:'text-red-500'   },
+        { label:'Σύν. Οφειλή', value:'€'+totalDebt.toFixed(2), icon:'💰', cls:'text-red-600 text-xl'},
+      ].map(s => `
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-2">
+          <span class="text-lg">${s.icon}</span>
+          <div class="min-w-0"><p class="text-xs text-gray-400 leading-none mb-0.5 truncate">${s.label}</p><p class="text-xl font-extrabold ${s.cls} leading-none">${s.value}</p></div>
+        </div>`).join('');
+    }
+
+    // ── Business list ──────────────────────────────────────────────────────────
+    function renderList(rows) {
+      if (!rows.length) {
+        document.getElementById('biz-list').innerHTML =
+          '<div class="text-center py-12 text-gray-300 text-sm">Δεν βρέθηκαν εγγραφές</div>';
+        return;
+      }
+      document.getElementById('biz-list').innerHTML = rows.map(r => {
+        const debt    = parseFloat(r.outstanding_balance) || 0;
+        const active  = !!r.subscription_active;
+        const pending = !active && r.plan !== 'trial';
+        const statusDot = active
+          ? '<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block flex-shrink-0"></span>'
+          : pending
+            ? '<span class="w-2 h-2 rounded-full bg-orange-400 inline-block animate-pulse flex-shrink-0"></span>'
+            : '<span class="w-2 h-2 rounded-full bg-gray-300 inline-block flex-shrink-0"></span>';
+        return `
+          <div class="biz-row px-4 py-3 flex items-center gap-3 ${selectedBiz?.id === r.id ? 'selected' : ''}" onclick="selectBiz('${r.id}', this)">
+            <div class="flex-shrink-0 mt-0.5">${statusDot}</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-gray-900 text-sm truncate">${r.name}</div>
+              <div class="text-xs text-gray-400 truncate">${r.afm||'—'}${r.city?' · '+r.city:''}${r.owner_email?' · '+r.owner_email:''}</div>
+              <div class="text-xs text-gray-300 mt-0.5">${r.invoice_count||0} τιμολόγια</div>
+            </div>
+            <div class="flex-shrink-0 flex flex-col items-end gap-1">
+              <span class="tag ${PLAN_COLORS[r.plan]||'bg-gray-100 text-gray-600'}">${PLAN_LABELS[r.plan]||r.plan}</span>
+              ${debt > 0 ? `<span class="tag bg-red-100 text-red-600">€${debt.toFixed(2)}</span>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Pagination ─────────────────────────────────────────────────────────────
+    function renderPagination(page, total, limit) {
+      const pages = Math.ceil(total / limit);
+      const el = document.getElementById('pagination');
+      if (pages <= 1) { el.innerHTML = ''; return; }
+      el.innerHTML = `<div class="flex gap-1 justify-center p-2 flex-wrap">
+        ${Array.from({length:Math.min(pages,10)}, (_,i) => `
+          <button onclick="loadList(${i+1})" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${i+1===page?'bg-blue-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}">${i+1}</button>
+        `).join('')}
+      </div>`;
+    }
+
+    // ── Select business ────────────────────────────────────────────────────────
+    async function selectBiz(id, el) {
+      const r = allRows.find(x => x.id === id);
+      if (!r) return;
+      selectedBiz = r;
+      document.querySelectorAll('.biz-row').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('detail-placeholder').classList.add('hidden');
+      const panel = document.getElementById('detail-panel');
+      panel.classList.remove('hidden-panel');
+      panel.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+      const [payments, features] = await Promise.all([
+        api.get(`/businesses/${id}/payments`).then(r => r.data || []).catch(() => []),
+        api.get(`/businesses/${id}/features`).then(r => r.data || []).catch(() => []),
+      ]);
+      r.addon_ospa      = features.find(f => f.key === 'feature_ospa')?.enabled           ? 1 : 0;
+      r.addon_weighing  = features.find(f => f.key === 'feature_weighing_slips')?.enabled  ? 1 : 0;
+      selectedBiz = r;
+      renderDetail(r, payments);
+    }
+
+    // ── Render detail panel ────────────────────────────────────────────────────
+    function renderDetail(r, payments) {
+      const panel   = document.getElementById('detail-panel');
+      const debt    = parseFloat(r.outstanding_balance) || 0;
+      const active  = !!r.subscription_active;
+      const pending = !active && r.plan !== 'trial';
+
+      const hasOspa     = parseInt(r.addon_ospa)     === 1;
+      const hasWeighing = parseInt(r.addon_weighing) === 1;
+      const cycleMonths   = CYCLE_MONTHS[r.billing_cycle] ?? 1;
+      const basePrice     = PRICING[r.plan]?.[r.billing_cycle] ?? 0;
+      const addonTotal    = (hasOspa ? 10 * cycleMonths : 0) + (hasWeighing ? 2 * cycleMonths : 0);
+      const totalExpected = basePrice + addonTotal;
+
+      const statusBadge = active
+        ? '<span class="tag bg-emerald-100 text-emerald-700 text-sm px-3 py-1">✅ Ενεργή</span>'
+        : pending
+          ? '<span class="tag bg-orange-100 text-orange-700 text-sm px-3 py-1 animate-pulse">⏳ Εκκρεμεί</span>'
+          : '<span class="tag bg-gray-100 text-gray-500 text-sm px-3 py-1">Trial</span>';
+
+      let irisLines = [];
+      if (irisInfo?.iris_iban)        irisLines.push(`<p><span class="font-semibold">IBAN:</span> ${irisInfo.iris_iban}</p>`);
+      if (irisInfo?.iris_beneficiary) irisLines.push(`<p><span class="font-semibold">Δικαιούχος:</span> ${irisInfo.iris_beneficiary}</p>`);
+      if (irisInfo?.iris_mobile)      irisLines.push(`<p><span class="font-semibold">Κινητό IRIS:</span> ${irisInfo.iris_mobile}</p>`);
+      if (irisInfo?.iris_bank_name)   irisLines.push(`<p><span class="font-semibold">Τράπεζα:</span> ${irisInfo.iris_bank_name}</p>`);
+      const irisBox = (irisInfo?.iris_enabled === '1' && irisLines.length) ? `
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs text-purple-800 space-y-0.5">
+          <p class="font-bold text-purple-900">💳 IRIS Πλατφόρμας — στοιχεία λήψης πληρωμής</p>
+          ${irisLines.join('')}
+          <p class="text-purple-500 italic pt-1">Επιβεβαιώστε ότι λάβατε την πληρωμή πριν ενεργοποιήσετε.</p>
+        </div>` : '';
+
+      const paymentsHtml = payments.length ? payments.slice(0,10).map(p => `
+        <div class="flex items-center justify-between py-2 border-b border-gray-50 text-sm">
+          <div>
+            <span class="font-semibold text-gray-800">€${parseFloat(p.amount).toFixed(2)}</span>
+            <span class="text-xs text-gray-400 ml-2">${p.description||''}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="tag ${p.status==='paid'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${p.status==='paid'?'Εξοφλήθηκε':'Μερική'}</span>
+            <span class="text-xs text-gray-400">${fmtDate(p.created_at)}</span>
+          </div>
+        </div>`).join('') :
+        '<p class="text-xs text-gray-400 py-3">Δεν υπάρχουν καταχωρημένες πληρωμές.</p>';
+
+      panel.innerHTML = `
+
+        <!-- ── Profile card ── -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-xl font-extrabold text-gray-900">${r.name}</h2>
+              <div class="text-sm text-gray-500 mt-0.5">${r.afm||'—'}${r.city?' · '+r.city:''}</div>
+              ${r.owner_email ? `<div class="text-xs text-gray-400 mt-0.5 flex items-center gap-1">📧 <a href="mailto:${r.owner_email}" class="hover:text-blue-600">${r.owner_email}</a></div>` : ''}
+              ${r.contact_phone||r.phone ? `<div class="text-xs text-gray-400 mt-0.5 flex items-center gap-1">📞 <a href="tel:${r.contact_phone||r.phone}" class="hover:text-blue-600">${r.contact_phone||r.phone}</a></div>` : ''}
+              ${r.fishing_license ? `<div class="text-xs text-blue-500 font-medium mt-0.5">🎣 Άδεια: ${r.fishing_license}</div>` : ''}
+              ${r.address ? `<div class="text-xs text-gray-400 mt-0.5">📍 ${r.address}</div>` : ''}
+            </div>
+            <div class="flex flex-col items-end gap-2">
+              ${statusBadge}
+              ${debt > 0 ? `<span class="tag bg-red-100 text-red-600 text-sm px-3 py-1">💳 Οφειλή €${debt.toFixed(2)}</span>` : `<span class="tag bg-emerald-100 text-emerald-700 text-sm px-3 py-1">✓ Εξοφλημένος</span>`}
+            </div>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
+            ${r.subscription_ends_at ? `<span>Συνδρομή έως: <strong class="text-gray-600">${fmtDate(r.subscription_ends_at)}</strong></span>` : ''}
+            ${r.trial_ends_at && !active ? `<span>Trial έως: <strong class="text-gray-600">${fmtDate(r.trial_ends_at)}</strong></span>` : ''}
+            <span>Τιμολόγια: <strong class="text-gray-600">${r.invoice_count||0}</strong></span>
+            <span>Μήνας: <strong class="text-gray-600">${r.invoices_this_month||0} τιμ. / ${r.dn_this_month||0} δελτία</strong></span>
+          </div>
+        </div>
+
+        <!-- ── User selection (plan/cycle) ── -->
+        ${pending || active ? `
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Επιλογή χρήστη από app</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-gray-50 rounded-xl p-3">
+              <p class="text-xs text-gray-400 mb-1">Χρέωση</p>
+              <p class="font-extrabold text-lg ${['text-blue-700','text-purple-700','text-amber-700'][['basic','pro','enterprise'].indexOf(r.plan)]||'text-gray-700'}">${PLAN_LABELS[r.plan]||r.plan}</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3">
+              <p class="text-xs text-gray-400 mb-1">Πλάνο</p>
+              <p class="font-bold text-gray-800">${CYCLE_LABELS[r.billing_cycle]||r.billing_cycle||'—'}</p>
+              <p class="text-xs text-gray-400">${cycleMonths} μήνες</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3">
+              <p class="text-xs text-gray-400 mb-1">Add-ons</p>
+              ${hasOspa     ? `<p class="text-xs font-semibold text-indigo-700">✓ OSPA (+€${10 * cycleMonths})</p>`   : '<p class="text-xs text-gray-300">✗ OSPA</p>'}
+              ${hasWeighing ? `<p class="text-xs font-semibold text-teal-700">✓ Δελτία Ζύγισης (+€${2 * cycleMonths})</p>` : '<p class="text-xs text-gray-300">✗ Δελτία Ζύγισης</p>'}
+            </div>
+            <div class="bg-blue-50 rounded-xl p-3">
+              <p class="text-xs text-gray-400 mb-1">Συνολικό ποσό</p>
+              <p class="font-extrabold text-2xl text-blue-700">€${totalExpected}</p>
+              <p class="text-xs text-gray-400">πλάνο €${basePrice}${addonTotal > 0 ? ` + add-ons €${addonTotal}` : ''}</p>
+            </div>
+          </div>
+        </div>` : ''}
+
+        <!-- ── Action card ── -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">${active ? 'Καταχώρηση Πληρωμής' : 'Ενεργοποίηση Συνδρομής'}</h3>
+          <div class="space-y-3" id="action-form">
+            ${!active ? `
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Πλάνο</label>
+                <select id="act-plan" onchange="updateActPreview()" class="w-full px-3 py-2 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400">
+                  <option value="basic"      ${r.plan==='basic'      ?'selected':''}>Basic</option>
+                  <option value="pro"        ${r.plan==='pro'        ?'selected':''}>Pro</option>
+                  <option value="enterprise" ${r.plan==='enterprise' ?'selected':''}>Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Κύκλος</label>
+                <select id="act-cycle" onchange="updateActPreview()" class="w-full px-3 py-2 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400">
+                  <option value="monthly"    ${r.billing_cycle==='monthly'    ?'selected':''}>Μηνιαίο</option>
+                  <option value="semi_annual"${r.billing_cycle==='semi_annual'?'selected':''}>Εξαμηνιαίο</option>
+                  <option value="annual"     ${r.billing_cycle==='annual'     ?'selected':''}>Ετήσιο</option>
+                </select>
+              </div>
+            </div>
+            <div id="act-preview" class="text-sm font-semibold text-blue-700 bg-blue-50 rounded-xl px-3 py-2"></div>
+            ` : ''}
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Ποσό πληρωμής (€)</label>
+                <input type="number" id="act-paid" step="0.01" min="0" placeholder="0.00" oninput="updatePayPreview()"
+                  class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Αναμενόμενο (€) <span class="text-gray-300 font-normal">(αυτόματο)</span></label>
+                <input type="number" id="act-expected" step="0.01" min="0" placeholder="αυτόματο" oninput="updatePayPreview()"
+                  class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Τρόπος πληρωμής</label>
+              <select id="act-type" class="w-full px-3 py-2 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400">
+                <option value="bank">Τράπεζα</option>
+                <option value="iris">IRIS</option>
+                <option value="cash">Μετρητά</option>
+                <option value="manual">Χειροκίνητο</option>
+              </select>
+            </div>
+            <div id="pay-preview" class="hidden text-sm font-semibold rounded-xl px-3 py-2"></div>
+            <div id="partial-row" class="hidden items-center gap-2">
+              <input type="checkbox" id="act-partial" class="rounded" />
+              <label for="act-partial" class="text-xs font-semibold text-amber-700 cursor-pointer">Αποδοχή μερικής πληρωμής — η διαφορά καταγράφεται ως οφειλή</label>
+            </div>
+            ${irisBox}
+            <div class="flex gap-2 pt-1">
+              ${!active ? `
+              <button onclick="doActivate()" id="btn-activate"
+                class="flex-1 py-3 rounded-xl font-bold text-white text-sm bg-blue-600 hover:bg-blue-700 transition-colors">
+                ✅ Ενεργοποίηση${r.plan !== 'trial' ? ' + Πληρωμή' : ''}
+              </button>` : `
+              <button onclick="doRecordPayment()" id="btn-pay"
+                class="flex-1 py-3 rounded-xl font-bold text-white text-sm bg-emerald-600 hover:bg-emerald-700 transition-colors">
+                💰 Καταχώρηση Πληρωμής
+              </button>`}
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
+            ${!active ? `
+            <button onclick="extendTrial('${r.id}')" class="px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
+              <i class="fas fa-clock mr-1"></i>Επέκταση Trial
+            </button>` : `
+            <button onclick="deactivate('${r.id}')" class="px-3 py-2 rounded-xl text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+              <i class="fas fa-ban mr-1"></i>Απενεργοποίηση
+            </button>`}
+            <a href="configure.html?bizId=${r.id}" target="_blank" class="px-3 py-2 rounded-xl text-xs font-bold bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+              <i class="fas fa-gear mr-1"></i>Ρυθμίσεις Επιχείρησης
+            </a>
+          </div>
+        </div>
+
+        <!-- ── Parametrisation ── -->
+        ${active ? `
+        <div class="bg-white rounded-2xl border-2 ${r.is_parametrised ? 'border-emerald-200' : 'border-orange-200'} shadow-sm p-5">
+          ${r.is_parametrised ? `
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-circle-check text-emerald-600 text-lg"></i>
+              </div>
+              <div>
+                <p class="font-extrabold text-emerald-700 text-base">Παραμετροποίηση ολοκληρώθηκε</p>
+                <p class="text-xs text-gray-400 mt-0.5">Ο χρήστης έχει πρόσβαση στο πλήρες dashboard.</p>
+              </div>
+            </div>
+          ` : `
+            <div class="flex items-start gap-3 mb-4">
+              <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i class="fas fa-gear text-orange-500 text-lg"></i>
+              </div>
+              <div>
+                <p class="font-extrabold text-gray-900 text-base">Απαιτείται Παραμετροποίηση</p>
+                <p class="text-sm text-gray-500 mt-0.5 leading-snug">Η εφαρμογή στο κινητό του χρήστη περιμένει να ολοκληρωθεί η ρύθμιση.</p>
+              </div>
+            </div>
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0">1</span>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-700">Ρύθμιση επιχείρησης</p>
+                  <p class="text-xs text-gray-400">myDATA, GSIS, OSPA, στοιχεία επιχείρησης</p>
+                </div>
+                <a href="configure.html?bizId=${r.id}" target="_blank"
+                   class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors whitespace-nowrap">
+                  <i class="fas fa-arrow-up-right-from-square mr-1"></i>Άνοιγμα
+                </a>
+              </div>
+              <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+                <span class="w-6 h-6 rounded-full bg-gray-300 text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0">2</span>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-700">Επιβεβαίωση παραμετροποίησης</p>
+                  <p class="text-xs text-gray-400">Μόλις ολοκληρωθεί η ρύθμιση, πατήστε το κουμπί</p>
+                </div>
+              </div>
+            </div>
+            <button onclick="markParametrised('${r.id}')" id="btn-parametrise"
+              class="w-full py-3.5 rounded-xl font-extrabold text-white text-sm bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
+              <i class="fas fa-circle-check text-base"></i>
+              Παραμετροποίηση ΟΚ — Ενεργοποίηση App
+            </button>
+            <p class="text-xs text-gray-400 text-center mt-2">Ο χρήστης θα αποκτήσει αμέσως πρόσβαση στο πλήρες dashboard.</p>
+          `}
+        </div>` : ''}
+
+        <!-- ── Invoices of this fisherman ── -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5" id="inv-section">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide">Τιμολόγια & Δελτία</h3>
+            <span class="text-xs text-gray-400">${r.invoice_count||0} σύνολο</span>
+          </div>
+          <!-- Search + filters -->
+          <div class="flex gap-2 mb-3 flex-wrap">
+            <div class="relative flex-1 min-w-0">
+              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+              <input id="inv-search" type="text" placeholder="Αναζήτηση αρ. ή πελάτη…" oninput="loadBizInvoices(1)"
+                class="pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs w-full focus:outline-none focus:border-blue-400" />
+            </div>
+            <input id="inv-month" type="month" onchange="loadBizInvoices(1)"
+              class="px-2 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-blue-400" />
+            <select id="inv-status" onchange="loadBizInvoices(1)"
+              class="px-2 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-blue-400 bg-white">
+              <option value="">Όλες</option>
+              <option value="transmitted">Διαβιβάστηκαν</option>
+              <option value="pending">Εκκρεμείς</option>
+            </select>
+          </div>
+          <div id="inv-list">
+            <div class="flex justify-center py-6"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div></div>
+          </div>
+          <div id="inv-pagination" class="mt-2"></div>
+        </div>
+
+        <!-- ── Payment history ── -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Ιστορικό Πληρωμών</h3>
+          ${paymentsHtml}
+        </div>
+      `;
+
+      updateActPreview();
+      loadBizInvoices(1);
+    }
+
+    // ── Business invoices sub-list ─────────────────────────────────────────────
+    let invPage = 1;
+    async function loadBizInvoices(page = 1) {
+      if (!selectedBiz) return;
+      invPage = page;
+      const search = document.getElementById('inv-search')?.value?.trim() || '';
+      const month  = document.getElementById('inv-month')?.value || '';
+      const status = document.getElementById('inv-status')?.value || '';
+      document.getElementById('inv-list').innerHTML =
+        '<div class="flex justify-center py-6"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div></div>';
+      try {
+        const res = await api.get(`/platform/businesses/${selectedBiz.id}/invoices`, {
+          page, limit: 20,
+          search: search || undefined,
+          month:  month  || undefined,
+          status: status || undefined,
+        });
+        const invs = res.data || [];
+        if (!invs.length) {
+          document.getElementById('inv-list').innerHTML = '<p class="text-xs text-gray-400 py-3 text-center">Δεν βρέθηκαν τιμολόγια</p>';
+          document.getElementById('inv-pagination').innerHTML = '';
+          return;
+        }
+        document.getElementById('inv-list').innerHTML = `
+          <div class="divide-y divide-gray-50">
+            ${invs.map(inv => {
+              const transmitted = inv.mydata_mark && inv.mydata_mark !== '';
+              const isCredit = inv.invoice_type === '1.3';
+              const amt = parseFloat(inv.total_value);
+              return `
+              <div class="inv-row flex items-center gap-3 py-2.5 px-1 rounded-lg text-sm cursor-default">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-gray-800 text-xs">${inv.full_number}</span>
+                    ${isCredit ? '<span class="tag bg-purple-100 text-purple-700" style="font-size:10px">Πιστωτικό</span>' : ''}
+                    <span class="tag ${transmitted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}" style="font-size:10px">${transmitted ? '✓ Διαβιβ.' : 'Εκκρεμεί'}</span>
+                  </div>
+                  <div class="text-xs text-gray-400 truncate">${inv.customer_name||'—'} · ${inv.issue_date||''}</div>
+                </div>
+                <div class="flex-shrink-0 font-bold ${amt < 0 ? 'text-red-600' : 'text-gray-800'} text-xs">
+                  ${amt < 0 ? '−' : ''}€${Math.abs(amt).toFixed(2)}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`;
+        // pagination
+        const pages = Math.ceil(res.total / 20);
+        document.getElementById('inv-pagination').innerHTML = pages > 1 ? `
+          <div class="flex gap-1 flex-wrap">
+            ${Array.from({length:Math.min(pages,8)}, (_,i) => `
+              <button onclick="loadBizInvoices(${i+1})" class="px-2 py-1 rounded text-xs font-bold ${i+1===page?'bg-blue-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}">${i+1}</button>
+            `).join('')}
+          </div>` : '';
+      } catch(e) {
+        document.getElementById('inv-list').innerHTML = `<p class="text-xs text-red-400 py-3">${e.message}</p>`;
+      }
+    }
+
+    // ── Preview helpers ────────────────────────────────────────────────────────
+    function updateActPreview() {
+      const el = document.getElementById('act-preview');
+      if (!el || !selectedBiz) return;
+      const plan  = document.getElementById('act-plan')?.value;
+      const cycle = document.getElementById('act-cycle')?.value;
+      if (!plan || !cycle) return;
+      const baseP  = PRICING[plan]?.[cycle] ?? 0;
+      const months = CYCLE_MONTHS[cycle] ?? 1;
+      const hasO   = parseInt(selectedBiz.addon_ospa)    === 1;
+      const hasW   = parseInt(selectedBiz.addon_weighing) === 1;
+      const addons = (hasO ? 10 * months : 0) + (hasW ? 2 * months : 0);
+      const total  = baseP + addons;
+      let preview  = `Χρέωση: €${baseP}`;
+      if (addons > 0) preview += ` + add-ons €${addons} = €${total} σύνολο`;
+      preview += ` · ${months} μήνες · ${CYCLE_LABELS[cycle]}`;
+      el.textContent = preview;
+      const expEl = document.getElementById('act-expected');
+      if (expEl) expEl.value = total;
+      updatePayPreview();
+    }
+
+    function updatePayPreview() {
+      const paid    = parseFloat(document.getElementById('act-paid')?.value) || 0;
+      const exp     = parseFloat(document.getElementById('act-expected')?.value) || 0;
+      const preview = document.getElementById('pay-preview');
+      const partRow = document.getElementById('partial-row');
+      if (!preview) return;
+      if (!paid) { preview.classList.add('hidden'); partRow.classList.add('hidden'); return; }
+      if (exp > 0 && paid < exp) {
+        preview.className = 'text-sm font-semibold rounded-xl px-3 py-2 bg-amber-50 text-amber-700';
+        preview.textContent = `Μερική πληρωμή — οφειλή €${(exp-paid).toFixed(2)} θα προστεθεί`;
+        preview.classList.remove('hidden');
+        partRow.classList.remove('hidden'); partRow.style.display = 'flex';
+      } else {
+        preview.className = 'text-sm font-semibold rounded-xl px-3 py-2 bg-emerald-50 text-emerald-700';
+        preview.textContent = 'Πλήρης πληρωμή ✓';
+        preview.classList.remove('hidden');
+        partRow.classList.add('hidden');
+      }
+    }
+
+    // ── Actions ────────────────────────────────────────────────────────────────
+    async function doActivate() {
+      if (!selectedBiz) return;
+      const btn   = document.getElementById('btn-activate');
+      const plan  = document.getElementById('act-plan')?.value || selectedBiz.plan;
+      const cycle = document.getElementById('act-cycle')?.value || selectedBiz.billing_cycle;
+      const months = CYCLE_MONTHS[cycle] ?? 1;
+      const paid   = parseFloat(document.getElementById('act-paid')?.value) || 0;
+      const expRaw = document.getElementById('act-expected')?.value;
+      const exp    = expRaw ? parseFloat(expRaw) : (PRICING[plan]?.[cycle] ?? 0);
+      const partial = document.getElementById('act-partial')?.checked || false;
+      const payType = document.getElementById('act-type')?.value || 'manual';
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        await api.post(`/platform/subscriptions/${selectedBiz.id}/activate`, { plan, billing_cycle: cycle, months });
+        if (paid > 0) {
+          try {
+            await api.post(`/platform/subscriptions/${selectedBiz.id}/record-payment`, {
+              amount: paid, expected_amount: exp || undefined,
+              description: `Ενεργοποίηση ${plan} (${CYCLE_LABELS[cycle]}) — ${months} μήνες`,
+              payment_type: payType, allow_partial: partial,
+            });
+          } catch(pe) { showToast('Ενεργοποιήθηκε, αλλά η πληρωμή δεν καταχωρήθηκε: ' + pe.message, 'error'); reload(); return; }
+        }
+        showToast('✅ Συνδρομή ενεργοποιήθηκε!', 'success');
+        reload();
+      } catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); btn.disabled = false; btn.textContent = '✅ Ενεργοποίηση'; }
+    }
+
+    async function doRecordPayment() {
+      if (!selectedBiz) return;
+      const btn    = document.getElementById('btn-pay');
+      const paid   = parseFloat(document.getElementById('act-paid')?.value) || 0;
+      if (!paid) { showToast('Εισάγετε ποσό πληρωμής', 'error'); return; }
+      const expRaw = document.getElementById('act-expected')?.value;
+      const exp    = expRaw ? parseFloat(expRaw) : 0;
+      const partial = document.getElementById('act-partial')?.checked || false;
+      const payType = document.getElementById('act-type')?.value || 'manual';
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        await api.post(`/platform/subscriptions/${selectedBiz.id}/record-payment`, {
+          amount: paid, expected_amount: exp || undefined,
+          description: `Πληρωμή ${PLAN_LABELS[selectedBiz.plan]||selectedBiz.plan}`,
+          payment_type: payType, allow_partial: partial,
+        });
+        showToast('💰 Πληρωμή καταχωρήθηκε!', 'success');
+        reload();
+      } catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); btn.disabled = false; btn.textContent = '💰 Καταχώρηση Πληρωμής'; }
+    }
+
+    async function deactivate(bizId) {
+      if (!confirm('Απενεργοποίηση συνδρομής;')) return;
+      try { await api.post(`/platform/subscriptions/${bizId}/deactivate`); showToast('Απενεργοποιήθηκε.', 'success'); reload(); }
+      catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function markParametrised(bizId) {
+      const btn = document.getElementById('btn-parametrise');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Αποθήκευση…'; }
+      try {
+        await api.post(`/platform/subscriptions/${bizId}/mark-parametrised`);
+        showToast('✅ Παραμετροποίηση ολοκληρώθηκε!', 'success');
+        reload();
+      } catch(e) {
+        showToast('Σφάλμα: ' + e.message, 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-circle-check text-base"></i> Παραμετροποίηση ΟΚ — Ενεργοποίηση App'; }
+      }
+    }
+
+    async function extendTrial(bizId) {
+      const d = parseInt(prompt('Ημέρες επέκτασης trial (π.χ. 30, 180, 365):', '30'));
+      if (!d || isNaN(d) || d < 1) return;
+      try { await api.post(`/platform/subscriptions/${bizId}/extend-trial`, { days: d }); showToast(`Trial επεκτάθηκε κατά ${d} ημέρες!`, 'success'); reload(); }
+      catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function reload() {
+      await loadList(currentPage);
+      if (selectedBiz) {
+        const updated = allRows.find(x => x.id === selectedBiz.id);
+        if (updated) {
+          const [payments, features] = await Promise.all([
+            api.get(`/businesses/${updated.id}/payments`).then(r => r.data || []).catch(() => []),
+            api.get(`/businesses/${updated.id}/features`).then(r => r.data || []).catch(() => []),
+          ]);
+          updated.addon_ospa     = features.find(f => f.key === 'feature_ospa')?.enabled          ? 1 : 0;
+          updated.addon_weighing = features.find(f => f.key === 'feature_weighing_slips')?.enabled ? 1 : 0;
+          selectedBiz = updated;
+          renderDetail(updated, payments);
+        }
+      }
+    }
+
+    async function loadIris() {
+      try { irisInfo = (await api.get('/iris/platform')).data || {}; } catch(_) {}
+    }
+
+    // ── CSV Export ─────────────────────────────────────────────────────────────
+    function exportCSV() {
+      const rows = displayRows.length ? displayRows : allRows;
+      if (!rows.length) { showToast('Δεν υπάρχουν δεδομένα για εξαγωγή', 'error'); return; }
+      const headers = ['Επωνυμία','ΑΦΜ','Email','Πόλη','Πλάνο','Κατάσταση','Οφειλή (€)','Τιμολόγια','Συνδρομή έως'];
+      const csvRows = [headers.join(',')];
+      rows.forEach(r => {
+        csvRows.push([
+          `"${(r.name||'').replace(/"/g,'""')}"`,
+          r.afm||'',
+          r.owner_email||'',
+          r.city||'',
+          r.plan||'',
+          r.subscription_active ? 'Ενεργή' : (r.plan === 'trial' ? 'Trial' : 'Εκκρεμεί'),
+          (parseFloat(r.outstanding_balance)||0).toFixed(2),
+          r.invoice_count||0,
+          fmtDate(r.subscription_ends_at),
+        ].join(','));
+      });
+      const blob = new Blob(['﻿' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a'); a.href = url;
+      a.download = `fishbill_subscriptions_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function fmtDate(d) {
+      if (!d) return '—';
+      const dt = new Date(d);
+      return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+    }
+
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl ${type==='error'?'bg-red-500':'bg-emerald-500'}`;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+  </script>
+</body>
+</html>

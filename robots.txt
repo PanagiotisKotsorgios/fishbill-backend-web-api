@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /app/
+Disallow: /accountant/
+Disallow: /assets/
+Disallow: /uploads/
+Disallow: /avatars/
+Disallow: /pdfs/
+Disallow: /api/
+Disallow: /reset-password.html
+Disallow: /maintenance.html
+
+Allow: /legal/
+Allow: /

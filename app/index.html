@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>FishBill – Εφαρμογή</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #0D47A1 0%, #1565C0 40%, #1976D2 70%, #42A5F5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0 16px 40px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-wrap {
+      width: 100%;
+      max-width: 460px;
+      animation: fadeUp .35s ease-out;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 44px 0 22px;
+    }
+    .back-btn {
+      background: rgba(255,255,255,.18);
+      border: none;
+      border-radius: 12px;
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,.28); }
+    .back-btn svg { width: 22px; height: 22px; fill: #fff; }
+    .header-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* ── WELCOME SCREEN ── */
+    #screen-welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 70px;
+    }
+    .fish-logo-wrap {
+      margin-bottom: 20px;
+    }
+    .app-title {
+      font-size: 52px;
+      font-weight: 900;
+      color: #fff;
+      text-align: center;
+      letter-spacing: 2px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .app-sub {
+      font-size: 19px;
+      color: rgba(255,255,255,.88);
+      text-align: center;
+      line-height: 1.55;
+      margin-bottom: 40px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+      padding: 28px 24px 28px;
+    }
+
+    .card-greeting {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0D47A1;
+      margin-bottom: 4px;
+    }
+    .card-sub {
+      font-size: 17px;
+      color: #888;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    /* ── FIELDS ── */
+    .field-wrap { margin-bottom: 14px; }
+
+    .outlined-field {
+      position: relative;
+      border: 2px solid #BDBDBD;
+      border-radius: 14px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      transition: border-color .15s;
+    }
+    .outlined-field:focus-within { border-color: #1976D2; }
+    .outlined-field .field-icon {
+      flex-shrink: 0;
+      width: 48px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .outlined-field .field-icon svg { width: 22px; height: 22px; fill: #9E9E9E; transition: fill .15s; }
+    .outlined-field:focus-within .field-icon svg { fill: #1976D2; }
+
+    .outlined-field .floating-label {
+      position: absolute;
+      left: 48px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 17px;
+      color: #666;
+      pointer-events: none;
+      transition: all .15s;
+      background: #fff;
+      padding: 0 4px;
+    }
+    .outlined-field.active .floating-label,
+    .outlined-field input:not(:placeholder-shown) ~ .floating-label {
+      top: 0;
+      font-size: 12px;
+      color: #1976D2;
+    }
+    .outlined-field textarea:not(:placeholder-shown) ~ .floating-label {
+      top: 0;
+      font-size: 12px;
+      color: #1976D2;
+    }
+
+    .outlined-field input,
+    .outlined-field select {
+      flex: 1;
+      padding: 16px 14px 14px 0;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      font-family: inherit;
+      color: #111;
+      background: transparent;
+      min-width: 0;
+    }
+    .outlined-field input::placeholder { color: transparent; }
+
+    .pw-toggle {
+      flex-shrink: 0;
+      width: 48px;
+      height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+    }
+    .pw-toggle svg { width: 22px; height: 22px; fill: #9E9E9E; }
+
+    /* ── CHECKBOX ROW ── */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 6px 0;
+      margin-bottom: 4px;
+    }
+    .check-row input[type=checkbox] {
+      width: 22px; height: 22px;
+      accent-color: #1976D2;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .check-row label {
+      font-size: 19px;
+      color: #333;
+      cursor: pointer;
+      line-height: 1.3;
+    }
+
+    /* ── FORGOT LINK ── */
+    .forgot-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      padding: 8px 0;
+    }
+    .forgot-btn svg { width: 20px; height: 20px; fill: #1565C0; }
+    .forgot-btn span {
+      font-size: 18px;
+      font-weight: 500;
+      color: #1565C0;
+    }
+
+    /* ── PRIMARY BUTTON ── */
+    .btn-primary {
+      width: 100%;
+      height: 62px;
+      background: #0D47A1;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .15s, transform .12s;
+      margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: .92; transform: translateY(-1px); }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* ── ALERT CARDS ── */
+    .alert-warn {
+      background: #FFF3E0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .alert-warn .alert-icon { font-size: 20px; flex-shrink: 0; }
+    .alert-warn p { font-size: 17px; color: #E65100; line-height: 1.45; }
+
+    .alert-err {
+      background: #FFEBEE;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .alert-err .alert-icon { font-size: 20px; flex-shrink: 0; }
+    .alert-err p { font-size: 17px; color: #B71C1C; line-height: 1.45; }
+
+    .alert-ok {
+      background: #E8F5E9;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .alert-ok .alert-icon { font-size: 20px; flex-shrink: 0; }
+    .alert-ok p { font-size: 17px; color: #1B5E20; line-height: 1.45; }
+
+    .hidden { display: none !important; }
+
+    /* ── REGISTER LINK ROW ── */
+    .register-link-row {
+      text-align: center;
+      margin-top: 16px;
+    }
+    .register-link-row p { font-size: 18px; color: #555; margin-bottom: 4px; }
+    .register-link-row button {
+      background: none; border: none; cursor: pointer;
+      font-size: 18px;
+      font-weight: 700;
+      color: #1565C0;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin: 18px 0 10px;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+
+    /* ── TERMS ── */
+    .terms-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 14px 0 4px;
+    }
+    .terms-row input[type=checkbox] {
+      width: 20px; height: 20px;
+      accent-color: #1976D2;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .terms-row label {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+    }
+    .terms-row a { color: #1976D2; }
+
+    /* ── FIELD VALIDATION ERRORS ── */
+    .outlined-field.field-error {
+      border-color: #D32F2F !important;
+      transition: border-color .2s;
+    }
+    .outlined-field.field-error .field-icon svg { fill: #D32F2F !important; }
+    .outlined-field.field-error .floating-label  { color: #D32F2F !important; }
+    .outlined-field.field-error:focus-within     { border-color: #D32F2F !important; }
+    .outlined-field.field-error:focus-within .floating-label { color: #D32F2F !important; }
+    .outlined-field.field-error:focus-within .field-icon svg { fill: #D32F2F !important; }
+
+    /* Animated slide-down error text under a field */
+    .field-err-msg {
+      font-size: 13px;
+      color: #D32F2F;
+      padding: 4px 0 0 16px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height .22s ease, opacity .18s ease;
+    }
+    .field-err-msg.visible {
+      max-height: 40px;
+      opacity: 1;
+    }
+
+    /* Terms row error highlight */
+    .terms-row.terms-error label { color: #D32F2F; }
+    .terms-row.terms-error a     { color: #D32F2F !important; }
+
+    /* ── ALERT DIALOG (popup) ── */
+    .dialog-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 1000;
+      padding: 24px;
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none;
+    }
+    .dialog-backdrop.show { opacity: 1; pointer-events: all; display: flex; }
+
+    .dialog-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 24px 20px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.3);
+      transform: scale(.92) translateY(12px);
+      transition: transform .22s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+      opacity: 0;
+    }
+    .dialog-backdrop.show .dialog-box {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+    .dialog-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0D47A1;
+      margin-bottom: 14px;
+    }
+    .dialog-subtitle {
+      font-size: 17px;
+      font-weight: 500;
+      color: #222;
+      margin-bottom: 10px;
+    }
+    .dialog-errors { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .dialog-error-row { display: flex; align-items: flex-start; gap: 6px; }
+    .dialog-bullet { font-size: 19px; font-weight: 700; color: #B71C1C; line-height: 1.4; flex-shrink: 0; }
+    .dialog-error-text { font-size: 17px; color: #1A1A1A; line-height: 1.45; }
+    .dialog-btn {
+      width: 100%;
+      padding: 14px;
+      background: #0D47A1;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity .15s;
+    }
+    .dialog-btn:hover { opacity: .9; }
+
+    /* ── FORGOT SCREEN ── */
+    .forgot-desc {
+      font-size: 16px;
+      color: #777;
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    /* ── SHAKE (error feedback) ── */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%      { transform: translateX(-7px); }
+      30%      { transform: translateX(7px); }
+      45%      { transform: translateX(-5px); }
+      60%      { transform: translateX(5px); }
+      75%      { transform: translateX(-3px); }
+      90%      { transform: translateX(3px); }
+    }
+    .shake { animation: shake .45s ease-out; }
+
+    /* ── SPINNER ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 26px; height: 26px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-bottom: 8px;
+    }
+    .footer a, .footer span {
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .footer a:hover { color: rgba(255,255,255,.8); }
+    .footer .dot { margin: 0 5px; }
+
+    /* ── CONTACT SECTION ── */
+    .contact-heading {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,.92);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .contact-card {
+      width: 100%;
+      background: rgba(255,255,255,.12);
+      border: 1.5px solid rgba(255,255,255,.22);
+      border-radius: 18px;
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      transition: background .15s, transform .12s;
+      cursor: pointer;
+    }
+    .contact-card:hover {
+      background: rgba(255,255,255,.2);
+      transform: translateY(-2px);
+    }
+    .contact-card:active { transform: scale(.98); }
+    .contact-icon {
+      width: 48px; height: 48px;
+      background: #fff;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .contact-icon i { font-size: 22px; color: #0D47A1; }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,.6);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 3px;
+    }
+    .contact-value {
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .contact-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,.55);
+      margin-top: 2px;
+    }
+    .contact-badge i { margin-right: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- ═══════════════════════════════════ WELCOME ═══════════════════════════════════ -->
+  <div id="screen-welcome">
+    <div class="fish-logo-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="200" height="133">
+        <!-- Tail -->
+        <path fill="#0D47A1" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <!-- Body -->
+        <path fill="#1976D2" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <!-- Belly highlight -->
+        <path fill="#42A5F5" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <!-- Scales -->
+        <path stroke="#1565C0" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+        <path stroke="#1565C0" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+        <!-- Top fin -->
+        <path fill="#0D47A1" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+        <!-- Bottom fin -->
+        <path fill="#0D47A1" d="M80,88 C88,108 102,108 110,86 Z"/>
+        <!-- Eye white -->
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <!-- Eye pupil -->
+        <circle cx="138" cy="60" r="5" fill="#1A237E"/>
+        <!-- Eye shine -->
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+        <!-- Mouth -->
+        <path stroke="#0D47A1" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+      </svg>
+    </div>
+
+    <div class="app-title">FishBill</div>
+    <div class="app-sub">Ηλεκτρονική Τιμολόγηση<br>Για Ψαράδες</div>
+
+    <div class="contact-heading">Επικοινωνήστε μαζί μας για πρόσβαση στην εφαρμογή</div>
+
+    <a href="tel:+306986788178" class="contact-card">
+      <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
+      <div class="contact-info">
+        <div class="contact-label">Τηλέφωνο</div>
+        <div class="contact-value">698 678 8178</div>
+        <div class="contact-badge"><i class="fa-regular fa-clock"></i>Δευτ – Σαβ, 09:00 – 21:00</div>
+      </div>
+      <i class="fa-solid fa-chevron-right" style="color:rgba(255,255,255,.4);font-size:14px;flex-shrink:0"></i>
+    </a>
+
+    <a href="mailto:pkotsorgios654@gmail.com" class="contact-card">
+      <div class="contact-icon"><i class="fa-solid fa-envelope"></i></div>
+      <div class="contact-info">
+        <div class="contact-label">Email</div>
+        <div class="contact-value" style="font-size:15px">pkotsorgios654@gmail.com</div>
+        <div class="contact-badge"><i class="fa-regular fa-paper-plane"></i>Απαντάμε εντός 24 ωρών</div>
+      </div>
+      <i class="fa-solid fa-chevron-right" style="color:rgba(255,255,255,.4);font-size:14px;flex-shrink:0"></i>
+    </a>
+
+  </div>
+
+  <!-- login / register / forgot / recovery screens kept for reference but not linked from welcome -->
+  <!-- ═══════════════════════════════════ LOGIN ═══════════════════════════════════ -->
+  <div id="screen-login" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Σύνδεση Χρήστη</span>
+    </div>
+
+    <div class="card">
+      <div class="card-greeting">Καλώς ήρθατε!</div>
+      <div class="card-sub">Συνδεθείτε με τα στοιχεία σας εδώ.</div>
+
+      <!-- Email -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="lf-email-wrap">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="l-email" type="email" placeholder=" " autocomplete="email"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" />
+          <span class="floating-label">Email</span>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="field-wrap">
+        <div class="outlined-field" id="lf-pass-wrap">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input id="l-pass" type="password" placeholder=" " autocomplete="current-password"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" />
+          <span class="floating-label">Κωδικός</span>
+          <button class="pw-toggle" type="button" onclick="togglePw('l-pass',this)">
+            <svg id="l-pass-eye" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Remember me -->
+      <div class="check-row" onclick="toggleCheck('l-remember')">
+        <input type="checkbox" id="l-remember" onclick="event.stopPropagation()" />
+        <label for="l-remember">Να με θυμάσαι!</label>
+      </div>
+
+      <!-- Forgot -->
+      <button type="button" class="forgot-btn" onclick="showScreen('forgot')">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        <span>Ξεχάσατε τον κωδικό σας;</span>
+      </button>
+
+      <!-- Login button -->
+      <button type="button" class="btn-primary" id="login-btn" onclick="doLogin()">ΣΥΝΔΕΣΗ</button>
+
+      <!-- Alerts -->
+      <div id="login-warn" class="alert-warn hidden">
+        <span class="alert-icon">⚠️</span>
+        <p>Συμπληρώστε το email και τον κωδικό πρόσβασης.</p>
+      </div>
+      <div id="login-err" class="alert-err hidden">
+        <span class="alert-icon">❌</span>
+        <p id="login-err-msg"></p>
+      </div>
+
+      <!-- Register link -->
+      <div class="register-link-row">
+        <p>Δεν έχετε λογαριασμό;</p>
+        <button type="button" onclick="showScreen('register')">Εγγραφείτε εδώ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ REGISTER ═══════════════════════════════════ -->
+  <div id="screen-register" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Δημιουργία Λογαριασμού</span>
+    </div>
+
+    <div class="card">
+      <div id="reg-err" class="alert-err hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">⚠️</span>
+        <p id="reg-err-msg"></p>
+      </div>
+      <div id="reg-ok" class="alert-ok hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">✅</span>
+        <p id="reg-ok-msg"></p>
+      </div>
+
+      <div class="section-title">Στοιχεία Επιχείρησης</div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-afm">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+          </div>
+          <input id="r-afm" type="text" placeholder=" " maxlength="9"
+            oninput="this.value=this.value.replace(/\D/g,'')"
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">ΑΦΜ (9 ψηφία) *</span>
+        </div>
+        <div class="field-err-msg" id="err-afm">Πρέπει να είναι ακριβώς 9 ψηφία</div>
+      </div>
+
+      <div id="reg-step2">
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-bizname">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+          </div>
+          <input id="r-biz_name" type="text" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Επωνυμία *</span>
+        </div>
+        <div class="field-err-msg" id="err-bizname">Υποχρεωτικό πεδίο</div>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-city">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <input id="r-city" type="text" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Πόλη</span>
+        </div>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-license">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.36C18 2.51 15.49 0 12 0 8.51 0 6 2.51 6 4.64c0 .48.11.92.18 1.36H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM12 2c1.49 0 4 1.09 4 2.64 0 .9-.61 1.36-1 1.36s-.61-.23-1-.57C13.57 5.06 12.96 4.5 12 4.5s-1.57.56-2 .93c-.39.34-.61.57-1 .57s-1-.46-1-1.36C8 3.09 10.51 2 12 2zm0 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </div>
+          <input id="r-license" type="text" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Αριθμός Άδειας Αλιείας *</span>
+        </div>
+        <div class="field-err-msg" id="err-license">Υποχρεωτικό πεδίο — απαιτείται για επαλήθευση αλιέα</div>
+      </div>
+
+      <div class="section-title">Στοιχεία Ιδιοκτήτη</div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-name">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          </div>
+          <input id="r-name" type="text" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Ονοματεπώνυμο *</span>
+        </div>
+        <div class="field-err-msg" id="err-name">Υποχρεωτικό πεδίο</div>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-email">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="r-email" type="email" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Email *</span>
+        </div>
+        <div class="field-err-msg" id="err-email">Υποχρεωτικό πεδίο</div>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-pass">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input id="r-pass" type="password" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Κωδικός (min 8 χαρ.) *</span>
+          <button class="pw-toggle" type="button" onclick="togglePw('r-pass',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="field-err-msg" id="err-pass">Τουλάχιστον 8 χαρακτήρες</div>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field" id="rf-pass2">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input id="r-pass2" type="password" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Επιβεβαίωση Κωδικού *</span>
+          <button class="pw-toggle" type="button" onclick="togglePw('r-pass2',this)">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="field-err-msg" id="err-pass2">Οι κωδικοί δεν ταιριάζουν</div>
+      </div>
+
+      <div class="terms-row" id="terms-row">
+        <input type="checkbox" id="r-terms" />
+        <label for="r-terms">Αποδέχομαι τους <a href="/fishbill/legal/terms.html" target="_blank">Όρους Χρήσης</a> και την <a href="/fishbill/legal/privacy.html" target="_blank">Πολιτική Απορρήτου</a></label>
+      </div>
+      <div class="field-err-msg" id="err-terms" style="padding-left:0">Απαιτείται αποδοχή των όρων</div>
+
+      <div class="terms-row" id="declare-row">
+        <input type="checkbox" id="r-declare" />
+        <label for="r-declare">Δηλώνω υπεύθυνα ότι είμαι επαγγελματίας αλιέας / αλιευτική επιχείρηση (Ν. 1599/1986)</label>
+      </div>
+      <div class="field-err-msg" id="err-declare" style="padding-left:0">Απαιτείται η υπεύθυνη δήλωση αλιέα</div>
+
+      <button type="button" class="btn-primary" id="reg-btn" onclick="doRegister()" style="margin-top:16px">ΔΗΜΙΟΥΡΓΙΑ ΛΟΓΑΡΙΑΣΜΟΥ</button>
+
+      </div><!-- /reg-step2 -->
+
+      <div class="register-link-row" style="margin-top:14px">
+        <p>Έχετε ήδη λογαριασμό;</p>
+        <button type="button" onclick="showScreen('login')">Συνδεθείτε εδώ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ FORGOT ═══════════════════════════════════ -->
+  <div id="screen-forgot" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Επαναφορά Κωδικού</span>
+    </div>
+
+    <div class="card">
+      <p class="forgot-desc">Εισάγετε το email σας και θα λάβετε οδηγίες επαναφοράς κωδικού.</p>
+
+      <div id="forgot-err" class="alert-err hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">⚠️</span>
+        <p id="forgot-err-msg"></p>
+      </div>
+      <div id="forgot-ok" class="alert-ok hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">✅</span>
+        <p id="forgot-ok-msg"></p>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="f-email" type="email" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')"
+            onkeydown="if(event.key==='Enter')doForgot()" />
+          <span class="floating-label">Email</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="doForgot()">ΑΠΟΣΤΟΛΗ ΣΥΝΔΕΣΜΟΥ</button>
+
+      <div style="text-align:center;margin-top:20px">
+        <button type="button" style="background:none;border:none;color:#0A5568;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline" onclick="showScreen('recovery')">
+          🔐 Ανάκτηση Πρόσβασης Ιδιοκτήτη
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ OWNER RECOVERY SCREEN ═══════════════════════════════ -->
+  <div id="screen-recovery" class="hidden">
+    <div class="header">
+      <button type="button" class="back-btn" onclick="showScreen('forgot')">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <span class="header-title">Ανάκτηση Πρόσβασης Ιδιοκτήτη</span>
+    </div>
+
+    <div class="card">
+      <p class="forgot-desc">
+        Εάν ο λογαριασμός σας έχει παραβιαστεί, αποδείξτε την ταυτότητά σας με το email και το ΑΦΜ της επιχείρησής σας.
+        Θα λάβετε σύνδεσμο ανάκτησης που ισχύει για 15 λεπτά.
+      </p>
+
+      <div id="recovery-err" class="alert-err hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">⚠️</span>
+        <p id="recovery-err-msg"></p>
+      </div>
+      <div id="recovery-ok" class="alert-ok hidden" style="margin-top:0;margin-bottom:14px;">
+        <span class="alert-icon">✅</span>
+        <p id="recovery-ok-msg"></p>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input id="rec-email" type="email" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')" />
+          <span class="floating-label">Email Ιδιοκτήτη</span>
+        </div>
+      </div>
+
+      <div class="field-wrap">
+        <div class="outlined-field">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <input id="rec-afm" type="text" inputmode="numeric" maxlength="9" placeholder=" "
+            onfocus="this.closest('.outlined-field').classList.add('active')"
+            onblur="this.closest('.outlined-field').classList.remove('active')"
+            onkeydown="if(event.key==='Enter')doOwnerRecovery()" />
+          <span class="floating-label">ΑΦΜ Επιχείρησης</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="doOwnerRecovery()">ΑΠΟΣΤΟΛΗ ΣΥΝΔΕΣΜΟΥ ΑΝΑΚΤΗΣΗΣ</button>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════ VALIDATION DIALOG ═══════════════════════════════════ -->
+  <div id="reg-dialog" class="dialog-backdrop" onclick="closeDialog(event)">
+    <div class="dialog-box">
+      <div class="dialog-title">Συμπληρώστε τα παρακάτω</div>
+      <div class="dialog-subtitle">Τα παρακάτω πεδία είναι υποχρεωτικά:</div>
+      <div class="dialog-errors" id="dialog-error-list"></div>
+      <button type="button" class="dialog-btn" onclick="closeDialogDirect()">Εντάξει</button>
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<script src="js/core.js"></script>
+<script>
+  // ── Screen router with browser-back support ──
+  const SCREENS = ['welcome','login','register','forgot','recovery'];
+
+  function showScreen(name, pushHistory) {
+    SCREENS.forEach(s => {
+      document.getElementById('screen-' + s).classList.toggle('hidden', s !== name);
+    });
+    window.scrollTo(0, 0);
+    if (pushHistory !== false) {
+      if (name === 'welcome') {
+        history.replaceState({ screen: 'welcome' }, '', location.pathname);
+      } else {
+        history.pushState({ screen: name }, '', location.pathname + '#' + name);
+      }
+    }
+  }
+
+  // Browser back/forward
+  window.addEventListener('popstate', function(e) {
+    const screen = (e.state && e.state.screen) || 'welcome';
+    showScreen(screen, false);
+  });
+
+  // ── Checkbox toggle helper ──
+  function toggleCheck(id) {
+    const cb = document.getElementById(id);
+    cb.checked = !cb.checked;
+  }
+
+  // ── Password visibility ──
+  const EYE_OPEN  = '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>';
+  const EYE_OFF   = '<path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>';
+
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    const isHidden = inp.type === 'password';
+    inp.type = isHidden ? 'text' : 'password';
+    btn.querySelector('svg').innerHTML = isHidden ? EYE_OFF : EYE_OPEN;
+  }
+
+  // ── Loading state ──
+  function setLoading(btnId, loading, label) {
+    const b = document.getElementById(btnId);
+    b.disabled = loading;
+    b.innerHTML = loading ? '<div class="spinner"></div>' : label;
+  }
+
+  // ── LOGIN ──
+  async function doLogin() {
+    const email    = document.getElementById('l-email').value.trim();
+    const password = document.getElementById('l-pass').value;
+    const warn = document.getElementById('login-warn');
+    const err  = document.getElementById('login-err');
+    const errMsg = document.getElementById('login-err-msg');
+    const emailWrap = document.getElementById('lf-email-wrap');
+    const passWrap  = document.getElementById('lf-pass-wrap');
+    warn.classList.add('hidden');
+    err.classList.add('hidden');
+    emailWrap.classList.remove('field-error');
+    passWrap.classList.remove('field-error');
+
+    if (!email || !password) {
+      if (!email) emailWrap.classList.add('field-error');
+      if (!password) passWrap.classList.add('field-error');
+      warn.classList.remove('hidden');
+      warn.classList.remove('shake');
+      void warn.offsetWidth; // reflow to restart animation
+      warn.classList.add('shake');
+      return;
+    }
+
+    setLoading('login-btn', true, 'ΣΥΝΔΕΣΗ');
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      if (!res) return;
+      const { access_token, refresh_token, user } = res.data;
+      if (user.role === 'accountant') { window.location = '/fishbill/accountant/dashboard.html'; return; }
+      T.set(access_token, refresh_token);
+      T.setUser(user);
+      if (document.getElementById('l-remember').checked) localStorage.setItem('fb_email', email);
+      window.location = 'dashboard.html';
+    } catch(e) {
+      let msg = 'Σφάλμα σύνδεσης. Παρακαλώ δοκιμάστε ξανά.';
+      const raw = (e.message || '').toLowerCase();
+      if (raw.includes('401') || raw.includes('invalid') || raw.includes('unauthorized') || raw.includes('wrong') || raw.includes('incorrect') || raw.includes('credentials')) {
+        msg = 'Λάθος email ή κωδικός πρόσβασης. Ελέγξτε τα στοιχεία σας και δοκιμάστε ξανά.';
+        emailWrap.classList.add('field-error');
+        passWrap.classList.add('field-error');
+      } else if (raw.includes('not found') || raw.includes('404') || raw.includes('no user') || raw.includes('user not')) {
+        msg = 'Δεν βρέθηκε λογαριασμός με αυτό το email.';
+        emailWrap.classList.add('field-error');
+      } else if (raw.includes('network') || raw.includes('fetch') || raw.includes('failed to fetch') || raw.includes('timeout')) {
+        msg = 'Πρόβλημα σύνδεσης δικτύου. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
+      } else if (raw.includes('blocked') || raw.includes('disabled') || raw.includes('inactive') || raw.includes('suspended')) {
+        msg = 'Ο λογαριασμός σας έχει απενεργοποιηθεί. Επικοινωνήστε με την υποστήριξη.';
+      } else if (raw.includes('too many') || raw.includes('rate limit') || raw.includes('429')) {
+        msg = 'Πολλές αποτυχημένες προσπάθειες. Παρακαλώ περιμένετε λίγο και δοκιμάστε ξανά.';
+      } else if (raw.includes('server') || raw.includes('500') || raw.includes('503')) {
+        msg = 'Προσωρινό πρόβλημα στον server. Παρακαλώ δοκιμάστε ξανά σε λίγο.';
+      } else if (e.message && !raw.includes('error') && !raw.includes('exception')) {
+        msg = e.message; // already Greek message from API
+      }
+      errMsg.textContent = msg;
+      err.classList.remove('hidden');
+      err.classList.remove('shake');
+      void err.offsetWidth; // reflow to restart animation
+      err.classList.add('shake');
+      setLoading('login-btn', false, 'ΣΥΝΔΕΣΗ');
+    }
+  }
+
+  // ── REGISTER FIELD VALIDATION ──
+  const REG_FIELDS = {
+    bizname : { wrap: 'rf-bizname', err: 'err-bizname' },
+    license : { wrap: 'rf-license', err: 'err-license'  },
+    name    : { wrap: 'rf-name',    err: 'err-name'     },
+    email   : { wrap: 'rf-email',   err: 'err-email'    },
+    pass    : { wrap: 'rf-pass',    err: 'err-pass'     },
+    pass2   : { wrap: 'rf-pass2',   err: 'err-pass2'    },
+  };
+
+  function setFieldError(key, hasError) {
+    const f = REG_FIELDS[key];
+    if (!f) return;
+    document.getElementById(f.wrap).classList.toggle('field-error', hasError);
+    document.getElementById(f.err).classList.toggle('visible', hasError);
+  }
+
+  function clearAllFieldErrors() {
+    Object.keys(REG_FIELDS).forEach(k => setFieldError(k, false));
+    document.getElementById('terms-row').classList.remove('terms-error');
+    document.getElementById('err-terms').classList.remove('visible');
+  }
+
+  function openDialog(errors) {
+    const list = document.getElementById('dialog-error-list');
+    list.innerHTML = errors.map(e =>
+      `<div class="dialog-error-row"><span class="dialog-bullet">•</span><span class="dialog-error-text">${e}</span></div>`
+    ).join('');
+    const bd = document.getElementById('reg-dialog');
+    bd.style.display = 'flex';
+    // trigger transition on next frame
+    requestAnimationFrame(() => requestAnimationFrame(() => bd.classList.add('show')));
+  }
+
+  function closeDialogDirect() {
+    const bd = document.getElementById('reg-dialog');
+    bd.classList.remove('show');
+    setTimeout(() => { bd.style.display = ''; }, 220);
+  }
+
+  function closeDialog(e) {
+    if (e.target === document.getElementById('reg-dialog')) closeDialogDirect();
+  }
+
+  // ── REGISTER: submit form ──
+  function isValidAfm(afm) {
+    if (!/^\d{9}$/.test(afm) || afm === '000000000') return false;
+    let sum = 0;
+    for (let i = 0; i < 8; i++) sum += parseInt(afm[i]) * Math.pow(2, 8 - i);
+    const check = sum % 11;
+    return (check === 10 ? 0 : check) === parseInt(afm[8]);
+  }
+
+  async function doRegister() {
+    const biz_name = document.getElementById('r-biz_name').value.trim();
+    const afm      = document.getElementById('r-afm').value.trim();
+    const city     = document.getElementById('r-city').value.trim();
+    const license  = document.getElementById('r-license').value.trim();
+    const name     = document.getElementById('r-name').value.trim();
+    const email    = document.getElementById('r-email').value.trim();
+    const pass     = document.getElementById('r-pass').value;
+    const pass2    = document.getElementById('r-pass2').value;
+    const terms    = document.getElementById('r-terms').checked;
+
+    const ok     = document.getElementById('reg-ok');
+    const okMsg  = document.getElementById('reg-ok-msg');
+    ok.classList.add('hidden');
+    clearAllFieldErrors();
+
+    // Validate each field individually
+    const errors = [];
+    if (!biz_name) {
+      setFieldError('bizname', true);
+      errors.push('Επωνυμία Επιχείρησης');
+    }
+    if (!license) {
+      setFieldError('license', true);
+      errors.push('Αριθμός Άδειας Αλιείας (υποχρεωτικό)');
+    }
+    if (!name) {
+      setFieldError('name', true);
+      errors.push('Ονοματεπώνυμο Υπεύθυνου');
+    }
+    if (!email) {
+      setFieldError('email', true);
+      errors.push('Email Σύνδεσης');
+    }
+    if (pass.length < 8) {
+      setFieldError('pass', true);
+      errors.push('Κωδικός (τουλάχιστον 8 χαρακτήρες)');
+    }
+    if (pass !== pass2 && pass2 !== '') {
+      setFieldError('pass2', true);
+      errors.push('Επιβεβαίωση Κωδικού (οι κωδικοί δεν ταιριάζουν)');
+    } else if (pass2 === '' && pass.length >= 8) {
+      setFieldError('pass2', true);
+      document.getElementById('err-pass2').textContent = 'Υποχρεωτικό πεδίο';
+      errors.push('Επιβεβαίωση Κωδικού');
+    }
+    if (!terms) {
+      document.getElementById('terms-row').classList.add('terms-error');
+      document.getElementById('err-terms').classList.add('visible');
+      errors.push('Αποδοχή Όρων Χρήσης & Απορρήτου');
+    }
+    const declare = document.getElementById('r-declare').checked;
+    if (!declare) {
+      document.getElementById('declare-row').classList.add('terms-error');
+      document.getElementById('err-declare').classList.add('visible');
+      errors.push('Υπεύθυνη Δήλωση Αλιέα (Ν. 1599/1986)');
+    }
+
+    if (errors.length > 0) {
+      openDialog(errors);
+      return;
+    }
+
+    // Client-side AFM checksum (same algorithm as server — catches typos early)
+    if (afm.length === 9 && !isValidAfm(afm)) {
+      document.getElementById('rf-afm').classList.add('field-error');
+      document.getElementById('err-afm').textContent = 'Το ΑΦΜ δεν είναι έγκυρο — ελέγξτε τα ψηφία';
+      document.getElementById('err-afm').classList.add('visible');
+      errors.push('Μη έγκυρο ΑΦΜ');
+    }
+    if (errors.length > 0) {
+      openDialog(errors);
+      return;
+    }
+
+    setLoading('reg-btn', true, 'ΔΗΜΙΟΥΡΓΙΑ ΛΟΓΑΡΙΑΣΜΟΥ');
+    try {
+      const res = await api.post('/auth/register', {
+        business_name: biz_name, business_afm: afm, business_city: city || null,
+        fishing_license: license,
+        owner_name: name, owner_email: email, owner_password: pass,
+        self_declared_fisherman: true,
+      });
+      if (!res) return;
+      const { access_token, refresh_token, user } = res.data;
+      T.set(access_token, refresh_token);
+      T.setUser(user);
+      okMsg.textContent = 'Ο λογαριασμός σας δημιουργήθηκε! Ανακατεύθυνση…';
+      ok.classList.remove('hidden');
+      setTimeout(() => window.location = 'dashboard.html', 1200);
+    } catch(e) {
+      const errEl  = document.getElementById('reg-err');
+      const errMsg = document.getElementById('reg-err-msg');
+      const raw = (e.message || '').toLowerCase();
+      let msg = 'Σφάλμα κατά την εγγραφή. Παρακαλώ δοκιμάστε ξανά.';
+      if (raw.includes('already') || raw.includes('exists') || raw.includes('duplicate') || raw.includes('taken')) {
+        msg = 'Υπάρχει ήδη λογαριασμός με αυτό το email. Συνδεθείτε ή χρησιμοποιήστε άλλο email.';
+      } else if (raw.includes('afm') || raw.includes('vat') || raw.includes('tax')) {
+        msg = 'Το ΑΦΜ που εισάγατε δεν είναι έγκυρο. Παρακαλώ ελέγξτε και δοκιμάστε ξανά.';
+      } else if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout')) {
+        msg = 'Πρόβλημα σύνδεσης δικτύου. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
+      } else if (raw.includes('server') || raw.includes('500') || raw.includes('503')) {
+        msg = 'Προσωρινό πρόβλημα στον server. Παρακαλώ δοκιμάστε ξανά σε λίγο.';
+      } else if (e.message && !raw.includes('error') && !raw.includes('exception')) {
+        msg = e.message;
+      }
+      errMsg.textContent = msg;
+      errEl.classList.remove('hidden');
+      setLoading('reg-btn', false, 'ΔΗΜΙΟΥΡΓΙΑ ΛΟΓΑΡΙΑΣΜΟΥ');
+    }
+  }
+
+  // ── FORGOT ──
+  async function doForgot() {
+    const email = document.getElementById('f-email').value.trim();
+    const err   = document.getElementById('forgot-err');
+    const errMsg = document.getElementById('forgot-err-msg');
+    const ok    = document.getElementById('forgot-ok');
+    const okMsg = document.getElementById('forgot-ok-msg');
+    err.classList.add('hidden');
+    ok.classList.add('hidden');
+    if (!email) { errMsg.textContent = 'Εισάγετε το email σας.'; err.classList.remove('hidden'); return; }
+    try {
+      await api.post('/auth/forgot-password', { email });
+      okMsg.textContent = 'Αν το email υπάρχει στο σύστημα, θα λάβετε οδηγίες επαναφοράς.';
+      ok.classList.remove('hidden');
+    } catch(e) {
+      const raw = (e.message || '').toLowerCase();
+      let msg = 'Σφάλμα αποστολής. Παρακαλώ δοκιμάστε ξανά.';
+      if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout')) {
+        msg = 'Πρόβλημα σύνδεσης δικτύου. Ελέγξτε τη σύνδεσή σας.';
+      } else if (raw.includes('server') || raw.includes('500')) {
+        msg = 'Προσωρινό πρόβλημα στον server. Δοκιμάστε ξανά σε λίγο.';
+      } else if (e.message && !raw.includes('error') && !raw.includes('exception')) {
+        msg = e.message;
+      }
+      errMsg.textContent = msg;
+      err.classList.remove('hidden');
+    }
+  }
+
+  async function doOwnerRecovery() {
+    const email = document.getElementById('rec-email').value.trim();
+    const afm   = document.getElementById('rec-afm').value.trim();
+    const err   = document.getElementById('recovery-err');
+    const errMsg = document.getElementById('recovery-err-msg');
+    const ok    = document.getElementById('recovery-ok');
+    const okMsg = document.getElementById('recovery-ok-msg');
+    err.classList.add('hidden');
+    ok.classList.add('hidden');
+    if (!email || !afm) {
+      errMsg.textContent = 'Εισάγετε email και ΑΦΜ επιχείρησης.';
+      err.classList.remove('hidden');
+      return;
+    }
+    try {
+      await api.post('/auth/owner-recovery', { email, business_afm: afm });
+      okMsg.textContent = 'Αν τα στοιχεία είναι σωστά, θα λάβετε email με σύνδεσμο ανάκτησης (ισχύει 15 λεπτά).';
+      ok.classList.remove('hidden');
+    } catch(e) {
+      errMsg.textContent = e.message || 'Σφάλμα αποστολής. Παρακαλώ δοκιμάστε ξανά.';
+      err.classList.remove('hidden');
+    }
+  }
+
+  // ── Init ──
+  (function() {
+    // Set initial history state so browser back from login/register returns to welcome
+    history.replaceState({ screen: 'welcome' }, '', location.pathname);
+
+    // Auto-redirect if already logged in
+    try {
+      const tok = T.get();
+      if (tok) {
+        const b = tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+        const u = JSON.parse(atob(b + '='.repeat((4-b.length%4)%4)));
+        if (u.exp * 1000 > Date.now()) { window.location = 'dashboard.html'; return; }
+      }
+    } catch {}
+
+    // Pre-fill remembered email
+    const re = localStorage.getItem('fb_email');
+    if (re) {
+      const el = document.getElementById('l-email');
+      if (el) { el.value = re; document.getElementById('l-remember').checked = true; }
+    }
+
+    // Clear field errors when user starts typing
+    document.getElementById('l-email').addEventListener('input', function() {
+      document.getElementById('lf-email-wrap').classList.remove('field-error');
+      document.getElementById('login-warn').classList.add('hidden');
+      document.getElementById('login-err').classList.add('hidden');
+    });
+    document.getElementById('l-pass').addEventListener('input', function() {
+      document.getElementById('lf-pass-wrap').classList.remove('field-error');
+      document.getElementById('login-warn').classList.add('hidden');
+      document.getElementById('login-err').classList.add('hidden');
+    });
+  })();
+</script>
+</body>
+</html>

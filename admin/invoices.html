@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Παραστατικά</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+
+    .stat-card { transition: transform .15s, box-shadow .15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim   { animation: fadeUp .35s ease-out both; }
+    .anim-1 { animation-delay: .05s; }
+    .anim-2 { animation-delay: .10s; }
+    .anim-3 { animation-delay: .15s; }
+
+    /* Active filter pill */
+    .filter-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      background: #dbeafe; color: #1d4ed8;
+    }
+
+    /* Line item inputs */
+    .line-input {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 13px;
+      background: white;
+      transition: border-color .15s;
+    }
+    .line-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+    }
+
+    /* Skeleton */
+    .sk { background: #e5e7eb; border-radius: 6px; animation: sk-pulse 1.5s ease-in-out infinite; }
+    @keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Table */
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: #f9fafb; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div id="sidebar-container"></div>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Page header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim anim-1">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Παραστατικά</h1>
+          <p class="text-sm text-gray-500 mt-0.5">Διαχείριση τιμολογίων &amp; αποδείξεων</p>
+        </div>
+        <button id="btn-new-invoice" onclick="openNewInvoiceModal()"
+          class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Νέο Παραστατικό
+        </button>
+      </div>
+
+      <!-- Stats bar -->
+      <div id="stats-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6 anim anim-1">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="sk h-3 w-3/4 mb-3"></div><div class="sk h-7 w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="sk h-3 w-3/4 mb-3"></div><div class="sk h-7 w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="sk h-3 w-3/4 mb-3"></div><div class="sk h-7 w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="sk h-3 w-3/4 mb-3"></div><div class="sk h-7 w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="sk h-3 w-3/4 mb-3"></div><div class="sk h-7 w-1/2"></div>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5 anim anim-2">
+        <div class="flex flex-wrap gap-3 items-end">
+
+          <div class="flex flex-col gap-1 min-w-[140px]">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Κατάσταση</label>
+            <select id="f-status"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+              <option value="">Όλες</option>
+              <option value="draft">Πρόχειρο</option>
+              <option value="issued">Εκδόθηκε</option>
+              <option value="transmitted">Μεταδόθηκε</option>
+              <option value="failed">Αποτυχία</option>
+              <option value="cancelled">Ακυρώθηκε</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Από</label>
+            <input type="date" id="f-from"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Έως</label>
+            <input type="date" id="f-to"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          </div>
+
+          <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Αναζήτηση</label>
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input type="text" id="f-search" placeholder="Αριθμός, πελάτης..."
+                class="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="applyFilters()"
+              class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
+              Εφαρμογή
+            </button>
+            <button onclick="resetFilters()"
+              class="border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium px-4 py-2 rounded-xl transition-colors">
+              Επαναφορά
+            </button>
+          </div>
+        </div>
+
+        <!-- Active filter pills -->
+        <div id="active-filters" class="hidden mt-3 flex flex-wrap gap-2 items-center"></div>
+      </div>
+
+      <!-- Invoices table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 anim anim-3">
+        <div id="invoices-table-wrap">
+          <div class="flex items-center justify-center py-16">
+            <div class="flex flex-col items-center gap-3">
+              <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              <p class="text-sm text-gray-400">Φόρτωση...</p>
+            </div>
+          </div>
+        </div>
+        <div id="invoices-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══ NEW / EDIT INVOICE MODAL ═══ -->
+  <div id="modal-invoice"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4"
+    onclick="if(event.target===this) closeModal('modal-invoice')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col"
+      style="max-height:92vh;" onclick="event.stopPropagation()">
+
+      <!-- Modal header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+        <div>
+          <h2 id="modal-invoice-title" class="text-lg font-bold text-gray-900">Νέο Παραστατικό</h2>
+          <p id="modal-invoice-subtitle" class="text-xs text-gray-400 mt-0.5">Συμπληρώστε τα στοιχεία</p>
+        </div>
+        <button onclick="closeModal('modal-invoice')"
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal body (scrollable) -->
+      <div class="flex-1 overflow-y-auto px-6 py-5">
+        <input type="hidden" id="inv-id" />
+        <input type="hidden" id="inv-business-id" />
+
+        <!-- Business selector (super_admin only) -->
+        <div id="inv-business-row" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+          <label class="block text-xs font-semibold text-blue-700 uppercase tracking-wider mb-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            Επιχείρηση / Ψαράς <span class="text-red-500">*</span>
+          </label>
+          <select id="inv-business" data-autofocus onchange="onBusinessChange(this.value)"
+            class="w-full border border-blue-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+            <option value="">— Επιλέξτε επιχείρηση —</option>
+          </select>
+        </div>
+
+        <!-- Header fields -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+
+          <div class="lg:col-span-2">
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              Πελάτης <span class="text-red-500">*</span>
+            </label>
+            <select id="inv-customer"
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+              <option value="">— Επιλέξτε πελάτη —</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Ημερομηνία</label>
+            <input type="date" id="inv-date"
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Τύπος Παραστατικού <span class="text-red-500">*</span></label>
+            <select id="inv-type"
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+              <option value="1.1">1.1 – Τιμολόγιο Πώλησης</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Σειρά</label>
+            <input type="text" id="inv-series" maxlength="10" placeholder="Α"
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Τρόπος Πληρωμής</label>
+            <select id="inv-payment"
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+              <option value="cash">Μετρητά</option>
+              <option value="bank_transfer">Τράπεζα</option>
+              <option value="credit_card">Κάρτα</option>
+              <option value="check">Επιταγή</option>
+              <option value="other">Άλλο</option>
+            </select>
+          </div>
+
+          <div class="lg:col-span-3">
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Σημειώσεις</label>
+            <input type="text" id="inv-notes" placeholder="Προαιρετικές σημειώσεις..."
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          </div>
+        </div>
+
+        <!-- Line items section -->
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-gray-800">Γραμμές Παραστατικού</h3>
+            <button onclick="addLineItem()"
+              class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Προσθήκη Γραμμής
+            </button>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="min-w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-8">#</th>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Περιγραφή</th>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Μονάδα</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Ποσότητα</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Τιμή Μον.</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Έκπτ.%</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">ΦΠΑ%</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Καθαρό</th>
+                  <th class="px-3 py-2.5 w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="line-items-body" class="bg-white divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+
+          <p id="lines-empty" class="hidden text-center py-5 text-sm text-gray-400">
+            Δεν υπάρχουν γραμμές. Πατήστε «Προσθήκη Γραμμής».
+          </p>
+        </div>
+
+        <!-- Totals summary -->
+        <div class="flex justify-end">
+          <div class="w-full max-w-xs space-y-1.5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>Καθαρή Αξία:</span>
+              <span id="total-net" class="font-semibold text-gray-900">€0,00</span>
+            </div>
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>ΦΠΑ:</span>
+              <span id="total-vat" class="font-semibold text-gray-900">€0,00</span>
+            </div>
+            <div class="flex justify-between text-base font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">
+              <span>Σύνολο:</span>
+              <span id="total-gross" class="text-blue-700">€0,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal footer -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-gray-50 rounded-b-2xl">
+        <button onclick="closeModal('modal-invoice')"
+          class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors">
+          Ακύρωση
+        </button>
+        <div class="flex gap-3">
+          <button id="btn-save-draft" onclick="submitInvoice('draft')"
+            class="px-5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+            Αποθήκευση Πρόχειρου
+          </button>
+          <button id="btn-issue" onclick="submitInvoice('issued')"
+            class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">
+            Έκδοση Παραστατικού
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ VIEW INVOICE MODAL ═══ -->
+  <div id="modal-view-invoice"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4"
+    onclick="if(event.target===this) closeModal('modal-view-invoice')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col"
+      style="max-height:92vh;" onclick="event.stopPropagation()">
+
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <h2 id="view-invoice-title" class="text-lg font-bold text-gray-900 truncate">Παραστατικό</h2>
+          <span id="view-invoice-status"></span>
+        </div>
+        <button onclick="closeModal('modal-view-invoice')"
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div id="view-invoice-body" class="flex-1 overflow-y-auto px-6 py-5">
+        <div class="flex items-center justify-center py-16">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-gray-50 rounded-b-2xl">
+        <span id="view-invoice-mark" class="text-xs text-gray-400 font-mono"></span>
+        <button onclick="closeModal('modal-view-invoice')"
+          class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors">
+          Κλείσιμο
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/page.js"></script>
+  <script>
+    requireAuth();
+    buildSidebar();
+
+    // ─── Constants ────────────────────────────────────────────────────────────
+    const MYDATA_TYPES = [
+      { code: '1.1',  label: 'Τιμολόγιο Πώλησης' },
+      { code: '5.1',  label: 'Πιστωτικό Τιμολόγιο / Ακυρωτικό (Συσχετισμένο)' },
+      { code: '6.1',  label: 'Στοιχείο Αυτοτιμολόγησης' },
+      { code: '11.1', label: 'ΑΠΥ – Λιανική Πώληση / Παροχή Υπηρεσιών' },
+      { code: '11.4', label: 'Πιστωτικό Στοιχείο Λιανικής / Ακυρωτικό' },
+    ];
+
+    // Cancellation (ακυρωτικά) types
+    const CANCEL_TYPES = ['5.1', '11.4'];
+
+    const INVOICE_TYPE_LABEL = Object.fromEntries(MYDATA_TYPES.map(t => [t.code, `${t.code} – ${t.label}`]));
+
+    const PAYMENT_LABEL = {
+      cash:          'Μετρητά',
+      bank_transfer: 'Τράπεζα',
+      credit_card:   'Κάρτα',
+      check:         'Επιταγή',
+      other:         'Άλλο',
+    };
+
+    // ─── State ────────────────────────────────────────────────────────────────
+    const role        = (typeof getUserRole  === 'function') ? getUserRole()  : 'owner';
+    let customersList = [];
+    let productsList  = [];
+    let businessesList = [];
+    let currentPage   = 1;
+    let PAGE_LIMIT    = 25;
+    let lineCounter   = 0;
+    let searchTimer   = null;
+
+    // Role restriction: employees cannot create invoices
+    if (role === 'employee') {
+      const btn = document.getElementById('btn-new-invoice');
+      if (btn) btn.classList.add('hidden');
+    }
+
+    // ─── Utility helpers ──────────────────────────────────────────────────────
+    function todayISO() {
+      const d = new Date();
+      return [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0'),
+      ].join('-');
+    }
+
+    function escHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // ─── Load support data (customers + products + businesses for admin) ──────
+    async function loadSupportData() {
+      try {
+        const promises = [
+          api.get('/customers', { limit: 500 }),
+          api.get('/products',  { limit: 200 }),
+        ];
+        if (role === 'super_admin') promises.push(api.get('/businesses', { limit: 200 }));
+
+        const [cRes, pRes, bRes] = await Promise.all(promises);
+        customersList  = cRes.data || cRes.customers || [];
+        productsList   = pRes.data || pRes.products  || [];
+        businessesList = bRes ? (bRes.data || []) : [];
+
+        if (role === 'super_admin') {
+          rebuildBusinessDropdown();
+          document.getElementById('inv-business-row').classList.remove('hidden');
+        } else {
+          rebuildCustomerDropdown();
+          rebuildInvoiceTypeDropdown();
+        }
+      } catch (err) {
+        console.warn('[FishBill] Support data error:', err.message);
+        rebuildCustomerDropdown();
+      }
+    }
+
+    function rebuildBusinessDropdown() {
+      const sel = document.getElementById('inv-business');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Επιλέξτε επιχείρηση / ψαρά —</option>';
+      businessesList.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value       = b.id;
+        opt.textContent = `${b.name}${b.afm ? ` (${b.afm})` : ''}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function onBusinessChange(bizId) {
+      document.getElementById('inv-business-id').value = bizId || '';
+      const custSel = document.getElementById('inv-customer');
+      if (!bizId) {
+        custSel.innerHTML = '<option value="">— Επιλέξτε πελάτη —</option>';
+        rebuildInvoiceTypeDropdown([]);
+        return;
+      }
+      custSel.innerHTML = '<option value="">Φόρτωση...</option>';
+      try {
+        const [cRes, tRes] = await Promise.all([
+          api.get('/customers', { limit: 500, business_id: bizId }),
+          api.get(`/businesses/${bizId}/invoice-types`),
+        ]);
+        customersList = cRes.data || cRes.customers || [];
+        const allowedTypes = tRes.data || [];
+        rebuildCustomerDropdown();
+        rebuildInvoiceTypeDropdown(allowedTypes);
+      } catch (e) {
+        custSel.innerHTML = '<option value="">Σφάλμα φόρτωσης</option>';
+      }
+    }
+
+    function rebuildCustomerDropdown(list) {
+      const items = list || customersList;
+      const sel = document.getElementById('inv-customer');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Επιλέξτε πελάτη —</option>';
+      items.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value       = c.id || c._id || '';
+        opt.textContent = c.name || c.companyName || '—';
+        sel.appendChild(opt);
+      });
+    }
+
+    function rebuildInvoiceTypeDropdown(allowedCodes) {
+      const sel = document.getElementById('inv-type');
+      if (!sel) return;
+      // If allowedCodes is provided and non-empty, filter; otherwise show all
+      const types = (allowedCodes && allowedCodes.length)
+        ? MYDATA_TYPES.filter(t => allowedCodes.includes(t.code))
+        : MYDATA_TYPES;
+      sel.innerHTML = types.map(t =>
+        `<option value="${t.code}">${t.code} – ${t.label}</option>`
+      ).join('');
+    }
+
+    // ─── Stats ────────────────────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const res  = await api.get('/invoices/stats');
+        const data = res.data || res || {};
+
+        const failNote = (data.failedCount > 0)
+          ? `<p class="text-xs font-semibold text-red-500 mt-1"><i class='fas fa-triangle-exclamation'></i> ${data.failedCount} αποτυχημένα</p>`
+          : '';
+
+        document.getElementById('stats-grid').innerHTML = [
+          buildStatCard('<i class="fas fa-file-invoice text-blue-600"></i>', 'Σύνολο',        data.totalCount       ?? '—', 'bg-blue-50',    'bg-blue-100'),
+          buildStatCard('<i class="fas fa-calendar-day text-emerald-600"></i>', 'Σήμερα',         data.todayCount       ?? '—', 'bg-emerald-50', 'bg-emerald-100'),
+          buildStatCard('<i class="fas fa-calendar-week text-violet-600"></i>', 'Εβδομάδα',      data.weekCount        ?? '—', 'bg-violet-50',  'bg-violet-100'),
+          buildStatCard('<i class="fas fa-circle-check text-teal-600"></i>', 'Μεταδόθηκαν',   data.transmittedCount ?? '—', 'bg-teal-50',    'bg-teal-100'),
+          buildStatCard('<i class="fas fa-euro-sign text-amber-600"></i>', 'Έσοδα Μήνα',
+            fmtMoney(data.revenueThisMonth || 0),
+            'bg-amber-50', 'bg-amber-100', failNote),
+        ].join('');
+      } catch (err) {
+        document.getElementById('stats-grid').innerHTML =
+          `<div class="col-span-5 bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-600 font-medium">
+             Σφάλμα φόρτωσης στατιστικών: ${escHtml(err.message)}
+           </div>`;
+      }
+    }
+
+    function buildStatCard(icon, label, value, bgCard, bgIcon, extra) {
+      return `
+        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">${label}</p>
+              <p class="text-2xl font-extrabold text-gray-900 mt-1.5 leading-none">${value}</p>
+              ${extra || ''}
+            </div>
+            <div class="w-11 h-11 rounded-xl ${bgIcon} flex items-center justify-center text-xl flex-shrink-0 ml-3">
+              ${icon}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ─── Filters ──────────────────────────────────────────────────────────────
+    function getFilters() {
+      const filters = {};
+      const status = document.getElementById('f-status').value;
+      const from   = document.getElementById('f-from').value;
+      const to     = document.getElementById('f-to').value;
+      const q      = document.getElementById('f-search').value.trim();
+      if (status) filters.status = status;
+      if (from)   filters.from   = from;
+      if (to)     filters.to     = to;
+      if (q)      filters.q      = q;
+      return filters;
+    }
+
+    function applyFilters() { loadInvoices(1); }
+
+    function resetFilters() {
+      document.getElementById('f-status').value = '';
+      document.getElementById('f-from').value   = '';
+      document.getElementById('f-to').value     = '';
+      document.getElementById('f-search').value = '';
+      updateActiveFilters({});
+      loadInvoices(1);
+    }
+
+    function updateActiveFilters(filters) {
+      const bar = document.getElementById('active-filters');
+      const STATUS_LABELS = {
+        draft: 'Πρόχειρο', issued: 'Εκδόθηκε',
+        transmitted: 'Μεταδόθηκε', failed: 'Αποτυχία', cancelled: 'Ακυρώθηκε',
+      };
+      const pills = [];
+      if (filters.status) pills.push(`Κατάσταση: ${STATUS_LABELS[filters.status] || filters.status}`);
+      if (filters.from)   pills.push(`Από: ${filters.from}`);
+      if (filters.to)     pills.push(`Έως: ${filters.to}`);
+      if (filters.q)      pills.push(`Αναζήτηση: "${filters.q}"`);
+
+      if (!pills.length) { bar.classList.add('hidden'); return; }
+      bar.classList.remove('hidden');
+      bar.innerHTML =
+        `<span class="text-xs text-gray-500 font-medium">Ενεργά φίλτρα:</span>` +
+        pills.map(p => `<span class="filter-pill">${escHtml(p)}</span>`).join('');
+    }
+
+    // ─── Load & render invoices ───────────────────────────────────────────────
+    async function loadInvoices(page) {
+      page = page || 1;
+      currentPage = page;
+      const filters = getFilters();
+      updateActiveFilters(filters);
+      showSpinner('invoices-table-wrap');
+      document.getElementById('invoices-pagination').innerHTML = '';
+
+      try {
+        const params = { page, limit: PAGE_LIMIT || 25, ...filters };
+        const res      = await api.get('/invoices', params);
+        const invoices = res.data || [];
+        const total    = (res.total !== undefined) ? res.total : invoices.length;
+
+        if (!invoices.length) {
+          showEmpty('invoices-table-wrap', 'Δεν βρέθηκαν παραστατικά', '<i class="fas fa-file-invoice"></i>');
+          return;
+        }
+
+        renderInvoicesTable(invoices);
+        renderPagination(
+          'invoices-pagination',
+          total, page, PAGE_LIMIT,
+          function(p) { loadInvoices(p); },
+          function(l) { PAGE_LIMIT = l; loadInvoices(1); }
+        );
+      } catch (err) {
+        showError('invoices-table-wrap', `Σφάλμα φόρτωσης: ${escHtml(err.message)}`);
+      }
+    }
+
+    function renderInvoicesTable(invoices) {
+      const rows = invoices.map(inv => {
+        const isDraft     = inv.status === 'draft';
+        const isCancelled = inv.status === 'cancelled';
+        const typeLabel   = INVOICE_TYPE_LABEL[inv.invoice_type] || inv.invoice_type || '—';
+        const number      = inv.full_number
+          || (inv.series && inv.number ? `${inv.series}-${inv.number}` : `#${inv.id}`);
+
+        // View btn
+        const viewBtn = actionBtn(
+          `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+           </svg>`,
+          'Προβολή',
+          `viewInvoice('${inv.id}')`
+        );
+
+        // Edit btn – only for drafts and non-employee roles
+        const editBtn = (isDraft && role !== 'employee')
+          ? actionBtn(
+              `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+               </svg>`,
+              'Επεξεργασία',
+              `editInvoice('${inv.id}')`
+            )
+          : '';
+
+        // Cancel btn – not for already-cancelled, not for employees
+        const cancelBtn = (!isCancelled && role !== 'employee')
+          ? actionBtn(
+              `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+               </svg>`,
+              'Ακύρωση',
+              `cancelInvoice('${inv.id}', '${String(number).replace(/'/g, "\\'")}')`,
+              true
+            )
+          : '';
+
+        return `
+          <tr class="${isCancelled ? 'opacity-60' : ''}">
+            <td class="px-4 py-3 whitespace-nowrap">
+              <button onclick="viewInvoice('${inv.id}')"
+                class="text-sm font-semibold text-blue-600 hover:underline focus:outline-none">
+                ${escHtml(number)}
+              </button>
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${escHtml(typeLabel)}</td>
+            <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+              ${escHtml(inv.customer_name || '—')}
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+              ${fmtDate(inv.issue_date || inv.created_at)}
+            </td>
+            <td class="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap text-right">
+              ${fmtMoney(inv.total_value || 0)}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">${statusBadge(inv.status)}</td>
+            <td class="px-4 py-3 text-xs font-mono text-gray-500 whitespace-nowrap">
+              ${inv.mydata_mark
+                ? `<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-700">${escHtml(String(inv.mydata_mark))}</span>`
+                : '<span class="text-gray-300">—</span>'}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="flex items-center gap-1">
+                ${viewBtn}${editBtn}${cancelBtn}
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('invoices-table-wrap').innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Αριθμός</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Τύπος</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Πελάτης</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ημερομηνία</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Σύνολο</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Κατάσταση</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">myDATA MARK</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ενέργειες</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+              ${rows}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    // ─── View Invoice ─────────────────────────────────────────────────────────
+    async function viewInvoice(id) {
+      openModal('modal-view-invoice');
+      document.getElementById('view-invoice-title').textContent = 'Φόρτωση...';
+      document.getElementById('view-invoice-status').innerHTML  = '';
+      document.getElementById('view-invoice-mark').textContent  = '';
+      document.getElementById('view-invoice-body').innerHTML    = `
+        <div class="flex items-center justify-center py-16">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>`;
+
+      try {
+        const res = await api.get(`/invoices/${id}`);
+        const inv = res.data || res;
+
+        const number = inv.full_number
+          || (inv.series && inv.number ? `${inv.series}-${inv.number}` : `#${inv.id}`);
+
+        document.getElementById('view-invoice-title').textContent = number;
+        document.getElementById('view-invoice-status').innerHTML  = statusBadge(inv.status);
+        document.getElementById('view-invoice-mark').textContent  =
+          inv.mydata_mark ? `MARK: ${inv.mydata_mark}` : '';
+
+        const typeLabel    = INVOICE_TYPE_LABEL[inv.invoice_type] || inv.invoice_type || '—';
+        const paymentLabel = PAYMENT_LABEL[inv.payment_method] || inv.payment_method || '—';
+        const lines        = inv.lines || [];
+
+        const linesHtml = lines.length
+          ? lines.map((ln, i) => {
+              const qty   = parseFloat(ln.quantity    || 0);
+              const price = parseFloat(ln.unit_price  || 0);
+              const disc  = parseFloat(ln.discount_pct || 0);
+              const vat   = parseFloat(ln.vat_rate     || 24);
+              const net   = qty * price * (1 - disc / 100);
+              return `
+                <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                  <td class="px-3 py-2.5 text-sm text-gray-800">${escHtml(ln.description || '—')}</td>
+                  <td class="px-3 py-2.5 text-sm text-center text-gray-600">${escHtml(ln.unit || '—')}</td>
+                  <td class="px-3 py-2.5 text-sm text-right text-gray-800 font-medium tabular-nums">
+                    ${qty.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}
+                  </td>
+                  <td class="px-3 py-2.5 text-sm text-right text-gray-800 tabular-nums">${fmtMoney(price)}</td>
+                  <td class="px-3 py-2.5 text-sm text-right text-gray-600">${disc.toFixed(1)}%</td>
+                  <td class="px-3 py-2.5 text-sm text-right text-gray-600">${vat.toFixed(0)}%</td>
+                  <td class="px-3 py-2.5 text-sm text-right font-semibold text-gray-900 tabular-nums">${fmtMoney(net)}</td>
+                </tr>`;
+            }).join('')
+          : `<tr><td colspan="7" class="px-3 py-8 text-center text-sm text-gray-400">Δεν υπάρχουν γραμμές</td></tr>`;
+
+        document.getElementById('view-invoice-body').innerHTML = `
+          <!-- Meta info grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 mb-6 pb-6 border-b border-gray-100">
+            <div>
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Πελάτης</p>
+              <p class="text-sm font-semibold text-gray-900">${escHtml(inv.customer_name || '—')}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Τύπος</p>
+              <p class="text-sm text-gray-700">${escHtml(typeLabel)}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Ημερομηνία</p>
+              <p class="text-sm text-gray-700">${fmtDate(inv.issue_date || inv.created_at)}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Σειρά</p>
+              <p class="text-sm text-gray-700">${escHtml(inv.series || '—')}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Τρόπος Πληρωμής</p>
+              <p class="text-sm text-gray-700">${escHtml(paymentLabel)}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Δημιουργήθηκε</p>
+              <p class="text-sm text-gray-500">${fmtDateTime(inv.created_at)}</p>
+            </div>
+            ${inv.notes ? `
+            <div class="col-span-2 sm:col-span-3">
+              <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Σημειώσεις</p>
+              <p class="text-sm text-gray-700">${escHtml(inv.notes)}</p>
+            </div>` : ''}
+          </div>
+
+          <!-- Lines table -->
+          <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Γραμμές</h3>
+          <div class="rounded-xl border border-gray-200 overflow-hidden mb-6">
+            <table class="min-w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Περιγραφή</th>
+                  <th class="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-14">Μον.</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Ποσ.</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Τιμή</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">Έκπτ.</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-14">ΦΠΑ</th>
+                  <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Καθαρό</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">${linesHtml}</tbody>
+            </table>
+          </div>
+
+          <!-- Totals -->
+          <div class="flex justify-end">
+            <div class="w-full max-w-xs space-y-1.5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div class="flex justify-between text-sm text-gray-600">
+                <span>Καθαρή Αξία:</span>
+                <span class="font-semibold text-gray-900 tabular-nums">${fmtMoney(inv.net_value   || 0)}</span>
+              </div>
+              <div class="flex justify-between text-sm text-gray-600">
+                <span>ΦΠΑ:</span>
+                <span class="font-semibold text-gray-900 tabular-nums">${fmtMoney(inv.vat_amount  || 0)}</span>
+              </div>
+              <div class="flex justify-between text-base font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">
+                <span>Σύνολο:</span>
+                <span class="text-blue-700 tabular-nums">${fmtMoney(inv.total_value || 0)}</span>
+              </div>
+            </div>
+          </div>`;
+
+      } catch (err) {
+        document.getElementById('view-invoice-body').innerHTML =
+          `<div class="text-center py-10 text-sm text-red-500">Σφάλμα: ${escHtml(err.message)}</div>`;
+      }
+    }
+
+    // ─── New Invoice modal ────────────────────────────────────────────────────
+    function openNewInvoiceModal() {
+      document.getElementById('inv-id').value           = '';
+      document.getElementById('inv-business-id').value  = '';
+      document.getElementById('inv-series').value       = 'Α';
+      document.getElementById('inv-notes').value        = '';
+      document.getElementById('inv-payment').value      = 'cash';
+      document.getElementById('inv-date').value         = todayISO();
+
+      if (role !== 'super_admin') {
+        rebuildCustomerDropdown();
+        rebuildInvoiceTypeDropdown();
+      } else {
+        // Reset business selector
+        const bizSel = document.getElementById('inv-business');
+        if (bizSel) bizSel.value = '';
+        document.getElementById('inv-customer').innerHTML = '<option value="">— Επιλέξτε πελάτη —</option>';
+        rebuildInvoiceTypeDropdown([]);
+      }
+      document.getElementById('inv-customer').value = '';
+
+      document.getElementById('line-items-body').innerHTML = '';
+      lineCounter = 0;
+
+      document.getElementById('modal-invoice-title').textContent    = 'Νέο Παραστατικό';
+      document.getElementById('modal-invoice-subtitle').textContent = 'Συμπληρώστε τα στοιχεία';
+      document.getElementById('btn-save-draft').classList.remove('hidden');
+      document.getElementById('btn-issue').textContent              = 'Έκδοση Παραστατικού';
+
+      addLineItem(null);  // start with one blank row
+      recalcTotals();
+      openModal('modal-invoice');
+    }
+
+    // ─── Edit Invoice modal ───────────────────────────────────────────────────
+    async function editInvoice(id) {
+      openModal('modal-invoice');
+      document.getElementById('modal-invoice-title').textContent    = 'Επεξεργασία Παραστατικού';
+      document.getElementById('modal-invoice-subtitle').textContent = 'Τροποποίηση πρόχειρου';
+      document.getElementById('line-items-body').innerHTML = '';
+      // Business is fixed on existing invoices — hide selector
+      document.getElementById('inv-business-row').classList.add('hidden');
+      lineCounter = 0;
+
+      try {
+        const res = await api.get(`/invoices/${id}`);
+        const inv = res.data || res;
+
+        document.getElementById('inv-id').value           = inv.id;
+        document.getElementById('inv-business-id').value  = inv.business_id || '';
+        document.getElementById('inv-series').value       = inv.series         || 'Α';
+        document.getElementById('inv-notes').value        = inv.notes          || '';
+        document.getElementById('inv-payment').value      = inv.payment_method || 'cash';
+        document.getElementById('inv-date').value         = (inv.issue_date || '').substring(0, 10) || todayISO();
+
+        // Rebuild type dropdown then set value
+        rebuildInvoiceTypeDropdown();
+        const typeEl = document.getElementById('inv-type');
+        if (typeEl && inv.invoice_type) typeEl.value = inv.invoice_type;
+
+        rebuildCustomerDropdown();
+        document.getElementById('inv-customer').value = String(inv.customer_id || '');
+
+        (inv.lines || []).forEach(ln => addLineItem(ln));
+        if (!inv.lines || !inv.lines.length) addLineItem(null);
+        recalcTotals();
+
+      } catch (err) {
+        showToast(`Σφάλμα φόρτωσης: ${err.message}`, 'error');
+        closeModal('modal-invoice');
+      }
+    }
+
+    // ─── Line items ───────────────────────────────────────────────────────────
+    function addLineItem(data) {
+      lineCounter++;
+      const idx = lineCounter;
+      const d   = data || {};
+
+      // Try to resolve a description from product list
+      const prodMatch = productsList.find(p =>
+        data && (String(p.id) === String(d.product_id))
+      );
+      const desc = d.description || (prodMatch ? (prodMatch.name || '') : '');
+      const unit = d.unit || 'KG';
+      const qty  = parseFloat(d.quantity    || 1);
+      const price= parseFloat(d.unit_price  || 0);
+      const disc = parseFloat(d.discount_pct || 0);
+      const vat  = parseFloat(d.vat_rate    || 24);
+
+      const row = document.createElement('tr');
+      row.id    = `line-row-${idx}`;
+      row.className = 'border-b border-gray-100 last:border-0';
+      row.innerHTML = `
+        <td class="px-2 py-2 text-xs text-gray-400 text-center select-none">${idx}</td>
+        <td class="px-2 py-2 min-w-[160px]">
+          <input type="text" id="ld-${idx}" class="line-input"
+            placeholder="Περιγραφή είδους"
+            value="${escHtml(desc)}"
+            list="dl-products-${idx}"
+            oninput="lineChanged(${idx})" />
+          <datalist id="dl-products-${idx}">
+            ${productsList.map(p => `<option value="${escHtml(p.name || '')}"></option>`).join('')}
+          </datalist>
+        </td>
+        <td class="px-2 py-2">
+          <select id="lu-${idx}" class="line-input" onchange="lineChanged(${idx})">
+            <option value="KG"  ${unit === 'KG'  ? 'selected' : ''}>KG</option>
+            <option value="ΤΕΜ" ${unit === 'ΤΕΜ' ? 'selected' : ''}>ΤΕΜ</option>
+            <option value="LT"  ${unit === 'LT'  ? 'selected' : ''}>LT</option>
+            <option value="ΩΡΑ" ${unit === 'ΩΡΑ' ? 'selected' : ''}>ΩΡΑ</option>
+          </select>
+        </td>
+        <td class="px-2 py-2">
+          <input type="number" id="lq-${idx}" class="line-input text-right"
+            min="0" step="0.001" value="${qty.toFixed(3)}"
+            oninput="lineChanged(${idx})" />
+        </td>
+        <td class="px-2 py-2">
+          <input type="number" id="lp-${idx}" class="line-input text-right"
+            min="0" step="0.01" value="${price.toFixed(2)}"
+            oninput="lineChanged(${idx})" />
+        </td>
+        <td class="px-2 py-2">
+          <input type="number" id="ldp-${idx}" class="line-input text-right"
+            min="0" max="100" step="0.1" value="${disc.toFixed(1)}"
+            oninput="lineChanged(${idx})" />
+        </td>
+        <td class="px-2 py-2">
+          <select id="lv-${idx}" class="line-input" onchange="lineChanged(${idx})">
+            <option value="0"  ${vat === 0  ? 'selected' : ''}>0%</option>
+            <option value="6"  ${vat === 6  ? 'selected' : ''}>6%</option>
+            <option value="13" ${vat === 13 ? 'selected' : ''}>13%</option>
+            <option value="24" ${vat === 24 ? 'selected' : ''}>24%</option>
+          </select>
+        </td>
+        <td id="ln-${idx}" class="px-2 py-2 text-right text-sm font-semibold text-gray-800 whitespace-nowrap tabular-nums">
+          €0,00
+        </td>
+        <td class="px-2 py-2 text-center">
+          <button onclick="removeLineItem(${idx})" title="Διαγραφή γραμμής"
+            class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </td>`;
+
+      document.getElementById('line-items-body').appendChild(row);
+      const emptyEl = document.getElementById('lines-empty');
+      if (emptyEl) emptyEl.classList.add('hidden');
+      lineChanged(idx);
+    }
+
+    function removeLineItem(idx) {
+      const row = document.getElementById(`line-row-${idx}`);
+      if (row) row.remove();
+      const tbody  = document.getElementById('line-items-body');
+      const emptyEl = document.getElementById('lines-empty');
+      if (emptyEl) {
+        emptyEl.classList.toggle('hidden', !!(tbody && tbody.children.length));
+      }
+      recalcTotals();
+    }
+
+    function lineChanged(idx) {
+      const qty   = parseFloat(document.getElementById(`lq-${idx}`)?.value   || 0);
+      const price = parseFloat(document.getElementById(`lp-${idx}`)?.value   || 0);
+      const disc  = parseFloat(document.getElementById(`ldp-${idx}`)?.value  || 0);
+      const net   = qty * price * (1 - disc / 100);
+      const netEl = document.getElementById(`ln-${idx}`);
+      if (netEl) netEl.textContent = fmtMoney(net);
+      recalcTotals();
+    }
+
+    function recalcTotals() {
+      const tbody = document.getElementById('line-items-body');
+      if (!tbody) return;
+      let sumNet = 0;
+      let sumVat = 0;
+
+      Array.from(tbody.querySelectorAll('tr[id^="line-row-"]')).forEach(row => {
+        const idx   = row.id.replace('line-row-', '');
+        const qty   = parseFloat(document.getElementById(`lq-${idx}`)?.value  || 0);
+        const price = parseFloat(document.getElementById(`lp-${idx}`)?.value  || 0);
+        const disc  = parseFloat(document.getElementById(`ldp-${idx}`)?.value || 0);
+        const vat   = parseFloat(document.getElementById(`lv-${idx}`)?.value  || 24);
+        const net   = qty * price * (1 - disc / 100);
+        sumNet += net;
+        sumVat += net * vat / 100;
+      });
+
+      document.getElementById('total-net').textContent   = fmtMoney(sumNet);
+      document.getElementById('total-vat').textContent   = fmtMoney(sumVat);
+      document.getElementById('total-gross').textContent = fmtMoney(sumNet + sumVat);
+    }
+
+    function collectLines() {
+      const tbody = document.getElementById('line-items-body');
+      if (!tbody) return [];
+      return Array.from(tbody.querySelectorAll('tr[id^="line-row-"]')).map(row => {
+        const idx      = row.id.replace('line-row-', '');
+        const descEl   = document.getElementById(`ld-${idx}`);
+        const unitEl   = document.getElementById(`lu-${idx}`);
+        const qtyEl    = document.getElementById(`lq-${idx}`);
+        const priceEl  = document.getElementById(`lp-${idx}`);
+        const discEl   = document.getElementById(`ldp-${idx}`);
+        const vatEl    = document.getElementById(`lv-${idx}`);
+        if (!descEl) return null;
+
+        const descVal = descEl.value.trim();
+        const match   = productsList.find(p => (p.name || '') === descVal);
+
+        return {
+          product_id:   match ? (match.id || null) : null,
+          description:  descVal,
+          unit:         unitEl?.value  || 'KG',
+          quantity:     parseFloat(qtyEl?.value   || 0),
+          unit_price:   parseFloat(priceEl?.value  || 0),
+          discount_pct: parseFloat(discEl?.value   || 0),
+          vat_rate:     parseFloat(vatEl?.value    || 24),
+        };
+      }).filter(Boolean);
+    }
+
+    // ─── Submit invoice ───────────────────────────────────────────────────────
+    async function submitInvoice(status) {
+      const id          = document.getElementById('inv-id').value;
+      const customerId  = document.getElementById('inv-customer').value;
+      const businessId  = document.getElementById('inv-business-id').value;
+      const date        = document.getElementById('inv-date').value;
+      const series      = document.getElementById('inv-series').value.trim() || 'Α';
+      const payment     = document.getElementById('inv-payment').value;
+      const invType     = document.getElementById('inv-type')?.value || '1.1';
+      const notes       = document.getElementById('inv-notes').value.trim();
+      const lines       = collectLines();
+
+      // Validation
+      if (role === 'super_admin' && !businessId) {
+        showToast('Επιλέξτε επιχείρηση / ψαρά', 'warning');
+        return;
+      }
+      if (!customerId) {
+        showToast('Επιλέξτε πελάτη', 'warning');
+        return;
+      }
+      if (!lines.length) {
+        showToast('Προσθέστε τουλάχιστον μία γραμμή', 'warning');
+        return;
+      }
+      if (lines.some(l => !l.description)) {
+        showToast('Όλες οι γραμμές πρέπει να έχουν περιγραφή', 'warning');
+        return;
+      }
+
+      const payload = {
+        customer_id:    parseInt(customerId) || customerId,
+        invoice_date:   date,
+        series,
+        invoice_type:   invType,
+        payment_method: payment,
+        status,
+        lines,
+      };
+      if (notes) payload.notes = notes;
+      if (role === 'super_admin' && businessId) payload.business_id = parseInt(businessId);
+
+      const btnDraft  = document.getElementById('btn-save-draft');
+      const btnIssue  = document.getElementById('btn-issue');
+      const activeBtn = status === 'draft' ? btnDraft : btnIssue;
+      const origText  = activeBtn.textContent;
+      activeBtn.disabled    = true;
+      activeBtn.textContent = 'Αποθήκευση...';
+
+      try {
+        if (id) {
+          await api.put(`/invoices/${id}`, payload);
+          showToast('Παραστατικό ενημερώθηκε', 'success');
+        } else {
+          await api.post('/invoices', payload);
+          showToast(
+            status === 'issued' ? 'Παραστατικό εκδόθηκε επιτυχώς' : 'Πρόχειρο αποθηκεύτηκε',
+            'success'
+          );
+        }
+        closeModal('modal-invoice');
+        loadInvoices(currentPage);
+        loadStats();
+      } catch (err) {
+        showToast(`Σφάλμα: ${err.message}`, 'error');
+      } finally {
+        activeBtn.disabled    = false;
+        activeBtn.textContent = origText;
+      }
+    }
+
+    // ─── Cancel invoice (2-step OTP) ─────────────────────────────────────────
+    async function cancelInvoice(id, number) {
+      // Step 1: confirm intent
+      const ok = await confirmDialog(
+        'Ακύρωση Παραστατικού',
+        `Θέλετε να ακυρώσετε το παραστατικό <strong>${escHtml(number)}</strong>;<br>
+         <span class="text-red-600 font-semibold">Θα σταλεί κωδικός επιβεβαίωσης στο email του διαχειριστή.</span>`,
+        true
+      );
+      if (!ok) return;
+
+      // Step 2: request OTP email
+      let requestResult;
+      try {
+        requestResult = await api.post(`/invoices/${id}/request-cancel`, {});
+        showToast(requestResult.data?.message || 'Κωδικός εστάλη στο email σας', 'info');
+      } catch (err) {
+        showToast(`Σφάλμα αποστολής OTP: ${err.message}`, 'error');
+        return;
+      }
+
+      // Step 3: prompt for OTP
+      const otpNote = requestResult.data?.email_sent === false && requestResult.data?.otp
+        ? `<br><span class="text-amber-600 text-xs font-semibold">⚠ Email δεν εστάλη. Κωδικός: <strong>${requestResult.data.otp}</strong></span>`
+        : `<br><span class="text-slate-500 text-xs">Ελέγξτε το email: <strong>${requestResult.data?.admin_email || 'διαχειριστή'}</strong></span>`;
+
+      const otp = await inputDialog(
+        'Εισαγωγή Κωδικού Επιβεβαίωσης',
+        `Εισάγετε τον 6-ψήφιο κωδικό που εστάλη στον διαχειριστή για να ολοκληρωθεί η ακύρωση του <strong>${escHtml(number)}</strong>.${otpNote}`,
+        { placeholder: '______', maxLength: 6, pattern: '[0-9]{6}' }
+      );
+      if (!otp) return;
+
+      // Step 4: confirm cancel with OTP
+      try {
+        await api.post(`/invoices/${id}/cancel`, { otp });
+        showToast('Παραστατικό ακυρώθηκε επιτυχώς', 'success');
+        loadInvoices(currentPage);
+        loadStats();
+      } catch (err) {
+        showToast(`Σφάλμα: ${err.message}`, 'error');
+      }
+    }
+
+    // ─── inputDialog helper ───────────────────────────────────────────────────
+    function inputDialog(title, bodyHtml, inputOpts = {}) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm';
+        overlay.innerHTML = `
+          <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fadeIn">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">${title}</h3>
+            <p class="text-sm text-slate-600 mb-4">${bodyHtml}</p>
+            <input id="_otp_input" type="text" inputmode="numeric"
+              placeholder="${inputOpts.placeholder || ''}"
+              maxlength="${inputOpts.maxLength || 6}"
+              class="w-full border border-slate-300 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
+            />
+            <div class="flex gap-3">
+              <button id="_otp_cancel" class="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition">Άκυρο</button>
+              <button id="_otp_confirm" class="flex-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition">Επιβεβαίωση</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        const input = overlay.querySelector('#_otp_input');
+        input.focus();
+        const cleanup = (val) => { overlay.remove(); resolve(val); };
+        overlay.querySelector('#_otp_cancel').addEventListener('click', () => cleanup(null));
+        overlay.querySelector('#_otp_confirm').addEventListener('click', () => cleanup(input.value.trim() || null));
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') cleanup(input.value.trim() || null);
+          if (e.key === 'Escape') cleanup(null);
+        });
+        overlay.addEventListener('click', e => { if (e.target === overlay) cleanup(null); });
+      });
+    }
+
+    // ─── Search debounce ──────────────────────────────────────────────────────
+    document.getElementById('f-search').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadInvoices(1), 380);
+    });
+
+    document.getElementById('f-search').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        clearTimeout(searchTimer);
+        loadInvoices(1);
+      }
+    });
+
+    // ─── Bootstrap ────────────────────────────────────────────────────────────
+    Promise.all([
+      loadStats(),
+      loadSupportData(),
+      loadInvoices(1),
+    ]);
+  </script>
+</body>
+</html>

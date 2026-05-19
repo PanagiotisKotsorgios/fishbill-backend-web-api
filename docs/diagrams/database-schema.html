@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill — Database Schema (ER Diagram)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0A1628; font-family: 'Segoe UI', system-ui, sans-serif; color: #E2E8F0; min-height: 100vh; overflow-x: auto; }
+    header { padding: 24px 40px 18px; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    header h1 { font-size: 20px; font-weight: 800; color: #fff; }
+    header p { font-size: 12px; color: #64748B; margin-top: 2px; }
+    main { padding: 24px 30px; }
+    .diagram-scroll { overflow-x: auto; padding-bottom: 12px; }
+
+    /* Table card styles */
+    .db-table { background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,255,255,.1); border-radius: 12px; overflow: hidden; min-width: 220px; }
+    .db-table-header { padding: 8px 12px; font-size: 12px; font-weight: 700; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+    .db-field { display: flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 11px; border-top: 1px solid rgba(255,255,255,.04); }
+    .db-field-name { color: #CBD5E1; font-weight: 500; flex: 1; white-space: nowrap; }
+    .db-field-type { color: #64748B; font-size: 10px; white-space: nowrap; }
+    .pk { color: #FCD34D; }
+    .fk { color: #60A5FA; }
+    .uk { color: #A78BFA; }
+
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94A3B8; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    .grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+
+    /* Relationship lines via SVG overlay is complex — use a relationships section instead */
+    .rel-section { margin-top: 28px; }
+    .rel-section h2 { font-size: 14px; font-weight: 700; color: #94A3B8; margin-bottom: 14px; letter-spacing: .04em; text-transform: uppercase; }
+    .rel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .rel-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 12px; }
+    .rel-from { color: #FCD34D; font-weight: 600; }
+    .rel-to { color: #60A5FA; font-weight: 600; }
+    .rel-type { color: #64748B; font-size: 10px; background: rgba(255,255,255,.05); padding: 2px 6px; border-radius: 4px; }
+    .rel-arrow { color: #4B5563; font-size: 14px; }
+
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 10px; padding: 4px 10px; border-radius: 6px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>FishBill — Database Schema (ER Diagram)</h1>
+      <p>MySQL 8 · fishbill_db · utf8mb4 · InnoDB</p>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+      <span style="background:rgba(252,211,77,.1);color:#FCD34D;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(252,211,77,.3)">🔑 PK = Primary Key</span>
+      <span style="background:rgba(96,165,250,.1);color:#60A5FA;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(96,165,250,.3)">🔗 FK = Foreign Key</span>
+      <span style="background:rgba(167,139,250,.1);color:#A78BFA;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(167,139,250,.3)">✦ UQ = Unique</span>
+    </div>
+  </header>
+  <main>
+
+    <p class="section-label" style="background:rgba(59,130,246,.1);color:#60A5FA;border:1px solid rgba(59,130,246,.2)">Core Tables</p>
+    <div class="grid-layout">
+
+      <!-- businesses -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(37,99,235,.25);color:#93C5FD;">
+          <span>🏢</span> businesses
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="uk">✦</span><span class="db-field-name">afm</span><span class="db-field-type">VARCHAR(9) UQ</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">name</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">trade_name</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">plan</span><span class="db-field-type">ENUM(trial..)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">subscription_active</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">subscription_ends_at</span><span class="db-field-type">DATETIME</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">mydata_user_id</span><span class="db-field-type">VARCHAR(100)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">provider_api_key</span><span class="db-field-type">TEXT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">vat_regime</span><span class="db-field-type">ENUM</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">is_active</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">accountant_email</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">created_at</span><span class="db-field-type">DATETIME</span></div>
+      </div>
+
+      <!-- users -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(109,40,217,.25);color:#C4B5FD;">
+          <span>👤</span> users
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">full_name</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span class="uk">✦</span><span class="db-field-name">email</span><span class="db-field-type">VARCHAR(255) UQ</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">password_hash</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">role</span><span class="db-field-type">ENUM(roles)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">can_create_invoice</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">can_cancel_invoice</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">is_active</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">last_login_at</span><span class="db-field-type">DATETIME</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">invite_token</span><span class="db-field-type">VARCHAR(100)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">created_at</span><span class="db-field-type">DATETIME</span></div>
+      </div>
+
+      <!-- customers -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(5,150,105,.25);color:#6EE7B7;">
+          <span>👥</span> customers
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">afm</span><span class="db-field-type">VARCHAR(9)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">name</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">email</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">phone</span><span class="db-field-type">VARCHAR(20)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">city</span><span class="db-field-type">VARCHAR(100)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">country</span><span class="db-field-type">CHAR(2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">default_payment_method</span><span class="db-field-type">ENUM</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">total_invoices</span><span class="db-field-type">INT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">is_active</span><span class="db-field-type">TINYINT(1)</span></div>
+      </div>
+
+      <!-- products -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(217,119,6,.25);color:#FCD34D;">
+          <span>📦</span> products
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">name</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">code</span><span class="db-field-type">VARCHAR(50)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">unit_price</span><span class="db-field-type">DECIMAL(10,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">vat_rate</span><span class="db-field-type">DECIMAL(5,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">unit_of_measure</span><span class="db-field-type">VARCHAR(10)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">is_active</span><span class="db-field-type">TINYINT(1)</span></div>
+      </div>
+    </div>
+
+    <p class="section-label" style="background:rgba(239,68,68,.1);color:#F87171;border:1px solid rgba(239,68,68,.2);margin-top:24px;">Invoice Tables</p>
+    <div class="grid-layout">
+
+      <!-- invoices -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(239,68,68,.2);color:#FCA5A5;">
+          <span>📄</span> invoices
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">user_id</span><span class="db-field-type">→ users.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">customer_id</span><span class="db-field-type">→ customers.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">series_id</span><span class="db-field-type">→ invoice_series.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">invoice_number</span><span class="db-field-type">INT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">invoice_date</span><span class="db-field-type">DATE</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">invoice_type</span><span class="db-field-type">ENUM</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">status</span><span class="db-field-type">ENUM(draft..)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">net_amount</span><span class="db-field-type">DECIMAL(12,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">vat_amount</span><span class="db-field-type">DECIMAL(12,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">total_amount</span><span class="db-field-type">DECIMAL(12,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">mydata_mark</span><span class="db-field-type">VARCHAR(50)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">mydata_uid</span><span class="db-field-type">VARCHAR(100)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">transmitted_at</span><span class="db-field-type">DATETIME</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">customer_name</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">notes</span><span class="db-field-type">TEXT</span></div>
+      </div>
+
+      <!-- invoice_lines -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(239,68,68,.15);color:#FCA5A5;">
+          <span>📋</span> invoice_lines
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">invoice_id</span><span class="db-field-type">→ invoices.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">product_id</span><span class="db-field-type">→ products.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">description</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">quantity</span><span class="db-field-type">DECIMAL(10,3)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">unit_price</span><span class="db-field-type">DECIMAL(12,4)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">vat_rate</span><span class="db-field-type">DECIMAL(5,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">net_amount</span><span class="db-field-type">DECIMAL(12,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">vat_amount</span><span class="db-field-type">DECIMAL(12,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">line_number</span><span class="db-field-type">INT</span></div>
+      </div>
+
+      <!-- invoice_series -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(239,68,68,.12);color:#FCA5A5;">
+          <span>🔢</span> invoice_series
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">prefix</span><span class="db-field-type">VARCHAR(10)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">name</span><span class="db-field-type">VARCHAR(100)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">current_number</span><span class="db-field-type">INT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">invoice_type</span><span class="db-field-type">VARCHAR(10)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">is_active</span><span class="db-field-type">TINYINT(1)</span></div>
+      </div>
+    </div>
+
+    <p class="section-label" style="background:rgba(107,114,128,.1);color:#9CA3AF;border:1px solid rgba(107,114,128,.2);margin-top:24px;">System / Audit Tables</p>
+    <div class="grid-layout">
+
+      <!-- transmission_logs -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(107,114,128,.2);color:#D1D5DB;">
+          <span>📡</span> transmission_logs
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">INT AUTO_INCREMENT</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">invoice_id</span><span class="db-field-type">→ invoices.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">provider</span><span class="db-field-type">VARCHAR(50)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">status</span><span class="db-field-type">ENUM</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">mark</span><span class="db-field-type">VARCHAR(50)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">request_payload</span><span class="db-field-type">TEXT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">response_payload</span><span class="db-field-type">TEXT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">error_message</span><span class="db-field-type">TEXT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">created_at</span><span class="db-field-type">DATETIME</span></div>
+      </div>
+
+      <!-- audit_logs -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(107,114,128,.2);color:#D1D5DB;">
+          <span>📝</span> audit_logs
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">INT AUTO_INCREMENT</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">user_id</span><span class="db-field-type">→ users.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">action</span><span class="db-field-type">VARCHAR(100)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">entity_type</span><span class="db-field-type">VARCHAR(50)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">entity_id</span><span class="db-field-type">VARCHAR(36)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">ip_address</span><span class="db-field-type">VARCHAR(45)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">details</span><span class="db-field-type">JSON</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">created_at</span><span class="db-field-type">DATETIME</span></div>
+      </div>
+
+      <!-- subscriptions -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(107,114,128,.2);color:#D1D5DB;">
+          <span>💳</span> subscriptions
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">plan</span><span class="db-field-type">ENUM(trial..)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">status</span><span class="db-field-type">ENUM(active..)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">starts_at</span><span class="db-field-type">DATETIME</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">ends_at</span><span class="db-field-type">DATETIME</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">monthly_price</span><span class="db-field-type">DECIMAL(8,2)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">monthly_limit</span><span class="db-field-type">INT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">auto_renew</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">notes</span><span class="db-field-type">TEXT</span></div>
+      </div>
+
+      <!-- notifications -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(107,114,128,.2);color:#D1D5DB;">
+          <span>🔔</span> notifications
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">CHAR(36) PK</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">business_id</span><span class="db-field-type">→ businesses.id</span></div>
+        <div class="db-field"><span class="fk">🔗</span><span class="db-field-name">user_id</span><span class="db-field-type">→ users.id</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">type</span><span class="db-field-type">VARCHAR(50)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">title</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">message</span><span class="db-field-type">TEXT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">is_read</span><span class="db-field-type">TINYINT(1)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">created_at</span><span class="db-field-type">DATETIME</span></div>
+      </div>
+
+      <!-- backup_logs -->
+      <div class="db-table">
+        <div class="db-table-header" style="background:rgba(107,114,128,.2);color:#D1D5DB;">
+          <span>💾</span> backup_logs
+        </div>
+        <div class="db-field"><span class="pk">🔑</span><span class="db-field-name">id</span><span class="db-field-type">INT AUTO_INCREMENT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">filename</span><span class="db-field-type">VARCHAR(255)</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">size_bytes</span><span class="db-field-type">BIGINT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">status</span><span class="db-field-type">ENUM</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">error_message</span><span class="db-field-type">TEXT</span></div>
+        <div class="db-field"><span></span><span class="db-field-name">created_at</span><span class="db-field-type">DATETIME</span></div>
+      </div>
+    </div>
+
+    <!-- Relationships -->
+    <div class="rel-section">
+      <h2>Entity Relationships</h2>
+      <div class="rel-grid">
+        <div class="rel-card"><span class="rel-from">businesses</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">users</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: business_id</span></div>
+        <div class="rel-card"><span class="rel-from">businesses</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">customers</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: business_id</span></div>
+        <div class="rel-card"><span class="rel-from">businesses</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">products</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: business_id</span></div>
+        <div class="rel-card"><span class="rel-from">businesses</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoices</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: business_id</span></div>
+        <div class="rel-card"><span class="rel-from">businesses</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoice_series</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: business_id</span></div>
+        <div class="rel-card"><span class="rel-from">businesses</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">subscriptions</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: business_id</span></div>
+        <div class="rel-card"><span class="rel-from">invoices</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoice_lines</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: invoice_id</span></div>
+        <div class="rel-card"><span class="rel-from">invoices</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">transmission_logs</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: invoice_id</span></div>
+        <div class="rel-card"><span class="rel-from">users</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoices</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: user_id</span></div>
+        <div class="rel-card"><span class="rel-from">customers</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoices</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: customer_id</span></div>
+        <div class="rel-card"><span class="rel-from">products</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoice_lines</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: product_id</span></div>
+        <div class="rel-card"><span class="rel-from">users</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">audit_logs</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: user_id</span></div>
+        <div class="rel-card"><span class="rel-from">invoice_series</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">invoices</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: series_id</span></div>
+        <div class="rel-card"><span class="rel-from">users</span><span class="rel-arrow">1 →</span><span class="rel-type">N</span><span class="rel-to">notifications</span><span style="color:#64748B;margin-left:auto;font-size:10px;">FK: user_id</span></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#60A5FA;">13</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px;">Tables</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#34D399;">14</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px;">Foreign Keys</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#FCD34D;">UUID</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px;">Primary Keys</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#A78BFA;">InnoDB</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px;">Storage Engine</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#F87171;">utf8mb4</div>
+        <div style="font-size:11px;color:#64748B;margin-top:4px;">Charset</div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

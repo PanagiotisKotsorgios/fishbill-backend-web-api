@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill — System Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0A1628; font-family: 'Segoe UI', system-ui, sans-serif; color: #E2E8F0; min-height: 100vh; }
+    header { padding: 32px 40px 20px; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 16px; }
+    header h1 { font-size: 22px; font-weight: 800; color: #fff; }
+    header p { font-size: 13px; color: #64748B; margin-top: 2px; }
+    .badge { background: #1E3A5F; color: #60A5FA; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; border: 1px solid rgba(96,165,250,.3); }
+    main { padding: 32px 40px; }
+    .diagram-wrap { display: flex; justify-content: center; overflow-x: auto; }
+    svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94A3B8; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="48" height="32">
+      <path fill="#0B2545" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+      <path fill="#0077B6" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+      <path fill="#00B4D8" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+      <path fill="#0B2545" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+      <path fill="#0B2545" d="M80,88 C88,108 102,108 110,86 Z"/>
+      <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+      <circle cx="138" cy="60" r="5" fill="#03045E"/>
+    </svg>
+    <div>
+      <h1>FishBill — System Architecture</h1>
+      <p>SaaS invoicing platform for Greek fishing businesses</p>
+    </div>
+    <div style="margin-left:auto"><span class="badge">v1.0 · 2026</span></div>
+  </header>
+  <main>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div>Client Layer</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div>API Layer</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div>Database Layer</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#6B7280"></div>External Services</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8B5CF6"></div>Future / Planned</div>
+    </div>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 1100 720" width="1100" height="720" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#60A5FA" opacity=".7"/>
+          </marker>
+          <marker id="arr-gray" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#4B5563"/>
+          </marker>
+          <marker id="arr-green" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#34D399"/>
+          </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="g-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1D4ED8"/>
+            <stop offset="100%" stop-color="#0EA5E9"/>
+          </linearGradient>
+          <linearGradient id="g-green" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#059669"/>
+            <stop offset="100%" stop-color="#0D9488"/>
+          </linearGradient>
+          <linearGradient id="g-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#D97706"/>
+            <stop offset="100%" stop-color="#B45309"/>
+          </linearGradient>
+          <linearGradient id="g-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7C3AED" stop-opacity=".4"/>
+            <stop offset="100%" stop-color="#4C1D95" stop-opacity=".4"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Background sections -->
+        <rect x="10" y="10" width="1080" height="145" rx="16" fill="rgba(59,130,246,.06)" stroke="rgba(59,130,246,.2)" stroke-width="1.5"/>
+        <text x="30" y="32" font-size="10" font-weight="700" fill="#60A5FA" letter-spacing="1" text-transform="uppercase">CLIENT LAYER</text>
+
+        <rect x="10" y="175" width="1080" height="220" rx="16" fill="rgba(16,185,129,.06)" stroke="rgba(16,185,129,.2)" stroke-width="1.5"/>
+        <text x="30" y="197" font-size="10" font-weight="700" fill="#34D399" letter-spacing="1">API LAYER</text>
+
+        <rect x="10" y="415" width="540" height="145" rx="16" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.2)" stroke-width="1.5"/>
+        <text x="30" y="437" font-size="10" font-weight="700" fill="#FCD34D" letter-spacing="1">DATABASE LAYER</text>
+
+        <rect x="570" y="415" width="520" height="290" rx="16" fill="rgba(107,114,128,.06)" stroke="rgba(107,114,128,.2)" stroke-width="1.5"/>
+        <text x="590" y="437" font-size="10" font-weight="700" fill="#9CA3AF" letter-spacing="1">EXTERNAL SERVICES</text>
+
+        <!-- ── CLIENT LAYER ── -->
+
+        <!-- Android App -->
+        <rect x="60" y="48" width="160" height="90" rx="14" fill="url(#g-blue)" stroke="#60A5FA" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="140" y="80" text-anchor="middle" font-size="22" fill="#fff">📱</text>
+        <text x="140" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Android App</text>
+        <text x="140" y="118" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.6)">Kotlin / Jetpack Compose</text>
+        <text x="140" y="130" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.4)">FishBill Mobile v1</text>
+
+        <!-- Admin Web -->
+        <rect x="270" y="48" width="160" height="90" rx="14" fill="url(#g-blue)" stroke="#60A5FA" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="350" y="80" text-anchor="middle" font-size="22" fill="#fff">🖥️</text>
+        <text x="350" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Admin Dashboard</text>
+        <text x="350" y="118" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.6)">HTML / Tailwind CSS / JS</text>
+        <text x="350" y="130" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.4)">XAMPP · Port 80</text>
+
+        <!-- iOS App (future) -->
+        <rect x="480" y="48" width="160" height="90" rx="14" fill="url(#g-purple)" stroke="rgba(139,92,246,.5)" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <text x="560" y="80" text-anchor="middle" font-size="22" fill="rgba(255,255,255,.4)">🍎</text>
+        <text x="560" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="rgba(255,255,255,.4)">iOS App</text>
+        <text x="560" y="118" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.25)">Swift / SwiftUI</text>
+        <text x="560" y="130" text-anchor="middle" font-size="9" fill="rgba(139,92,246,.6)">Planned · Q4 2026</text>
+
+        <!-- Accountant Browser -->
+        <rect x="700" y="48" width="160" height="90" rx="14" fill="url(#g-blue)" stroke="#60A5FA" stroke-width="1.5"/>
+        <text x="780" y="80" text-anchor="middle" font-size="22" fill="#fff">👨‍💼</text>
+        <text x="780" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Accountant Portal</text>
+        <text x="780" y="118" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.6)">Web Browser</text>
+        <text x="780" y="130" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.4)">accountant.html</text>
+
+        <!-- ── API LAYER ── -->
+
+        <!-- Express API -->
+        <rect x="350" y="205" width="400" height="170" rx="16" fill="rgba(16,185,129,.12)" stroke="#34D399" stroke-width="2" filter="url(#glow)"/>
+        <text x="550" y="232" text-anchor="middle" font-size="13" font-weight="800" fill="#34D399">⚡ Node.js / Express API</text>
+        <text x="550" y="250" text-anchor="middle" font-size="10" fill="#6EE7B7">Port 4000 · REST JSON</text>
+
+        <!-- API modules -->
+        <rect x="368" y="262" width="88" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="412" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Auth / JWT</text>
+
+        <rect x="466" y="262" width="88" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="510" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Invoices</text>
+
+        <rect x="564" y="262" width="88" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="608" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">myDATA</text>
+
+        <rect x="662" y="262" width="76" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="700" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Businesses</text>
+
+        <rect x="368" y="304" width="88" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="412" y="324" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Subscriptions</text>
+
+        <rect x="466" y="304" width="88" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="510" y="324" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Users</text>
+
+        <rect x="564" y="304" width="88" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="608" y="324" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Reports</text>
+
+        <rect x="662" y="304" width="76" height="32" rx="8" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.3)" stroke-width="1"/>
+        <text x="700" y="324" text-anchor="middle" font-size="10" font-weight="600" fill="#A7F3D0">Platform</text>
+
+        <!-- Middleware badges -->
+        <text x="440" y="360" text-anchor="middle" font-size="9" fill="rgba(52,211,153,.5)">🔒 JWT Auth  ·  🛡️ Helmet  ·  🚦 Rate Limit  ·  📋 Audit Log  ·  CORS</text>
+
+        <!-- ── DATABASE LAYER ── -->
+        <rect x="60" y="453" width="230" height="88" rx="14" fill="url(#g-amber)" stroke="#FCD34D" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="175" y="482" text-anchor="middle" font-size="20" fill="#fff">🗄️</text>
+        <text x="175" y="504" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">MySQL 8</text>
+        <text x="175" y="520" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.7)">businesses · invoices · users</text>
+        <text x="175" y="534" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.5)">customers · products · logs</text>
+
+        <!-- Redis (future) -->
+        <rect x="310" y="453" width="220" height="88" rx="14" fill="rgba(239,68,68,.1)" stroke="rgba(239,68,68,.3)" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <text x="420" y="482" text-anchor="middle" font-size="20" fill="rgba(248,113,113,.5)">⚡</text>
+        <text x="420" y="504" text-anchor="middle" font-size="13" font-weight="700" fill="rgba(248,113,113,.5)">Redis Cache</text>
+        <text x="420" y="520" text-anchor="middle" font-size="10" fill="rgba(248,113,113,.3)">Session · Rate Limit</text>
+        <text x="420" y="534" text-anchor="middle" font-size="9" fill="rgba(239,68,68,.4)">Planned</text>
+
+        <!-- ── EXTERNAL SERVICES ── -->
+
+        <!-- myDATA/ΑΑΔΕ -->
+        <rect x="598" y="453" width="200" height="80" rx="14" fill="rgba(107,114,128,.15)" stroke="#6B7280" stroke-width="1.5"/>
+        <text x="698" y="481" text-anchor="middle" font-size="20" fill="#9CA3AF">🏛️</text>
+        <text x="698" y="501" text-anchor="middle" font-size="12" font-weight="700" fill="#D1D5DB">myDATA / ΑΑΔΕ</text>
+        <text x="698" y="518" text-anchor="middle" font-size="10" fill="#9CA3AF">e-Invoice Transmission</text>
+
+        <!-- e-Timologiera -->
+        <rect x="818" y="453" width="200" height="80" rx="14" fill="rgba(107,114,128,.15)" stroke="#6B7280" stroke-width="1.5"/>
+        <text x="918" y="481" text-anchor="middle" font-size="20" fill="#9CA3AF">📋</text>
+        <text x="918" y="501" text-anchor="middle" font-size="12" font-weight="700" fill="#D1D5DB">e-Τιμολογιέρα</text>
+        <text x="918" y="518" text-anchor="middle" font-size="10" fill="#9CA3AF">MARK · Provider API</text>
+
+        <!-- Brevo Email -->
+        <rect x="598" y="553" width="200" height="80" rx="14" fill="rgba(107,114,128,.15)" stroke="#6B7280" stroke-width="1.5"/>
+        <text x="698" y="581" text-anchor="middle" font-size="20" fill="#9CA3AF">✉️</text>
+        <text x="698" y="601" text-anchor="middle" font-size="12" font-weight="700" fill="#D1D5DB">Brevo Email</text>
+        <text x="698" y="618" text-anchor="middle" font-size="10" fill="#9CA3AF">Transactional Email API</text>
+
+        <!-- GSIS -->
+        <rect x="818" y="553" width="200" height="80" rx="14" fill="rgba(107,114,128,.15)" stroke="#6B7280" stroke-width="1.5"/>
+        <text x="918" y="581" text-anchor="middle" font-size="20" fill="#9CA3AF">🔍</text>
+        <text x="918" y="601" text-anchor="middle" font-size="12" font-weight="700" fill="#D1D5DB">ΓΓΠΣ / gsis.gr</text>
+        <text x="918" y="618" text-anchor="middle" font-size="10" fill="#9CA3AF">ΑΦΜ Lookup API</text>
+
+        <!-- ── ARROWS ── -->
+        <!-- Android → API -->
+        <line x1="140" y1="138" x2="450" y2="205" stroke="#60A5FA" stroke-width="1.5" stroke-opacity=".5" marker-end="url(#arr)" stroke-dasharray="5 3"/>
+
+        <!-- Admin Web → API -->
+        <line x1="350" y1="138" x2="490" y2="205" stroke="#60A5FA" stroke-width="1.5" stroke-opacity=".7" marker-end="url(#arr)"/>
+
+        <!-- iOS → API (dashed, future) -->
+        <line x1="560" y1="138" x2="560" y2="205" stroke="#8B5CF6" stroke-width="1" stroke-opacity=".3" marker-end="url(#arr)" stroke-dasharray="4 4"/>
+
+        <!-- Accountant → API -->
+        <line x1="780" y1="138" x2="650" y2="205" stroke="#60A5FA" stroke-width="1.5" stroke-opacity=".7" marker-end="url(#arr)"/>
+
+        <!-- API → MySQL -->
+        <line x1="420" y1="375" x2="240" y2="453" stroke="#FCD34D" stroke-width="1.5" stroke-opacity=".7" marker-end="url(#arr-green)"/>
+        <text x="305" y="422" text-anchor="middle" font-size="9" fill="#FCD34D" opacity=".8">SQL queries</text>
+
+        <!-- API → myDATA -->
+        <line x1="680" y1="375" x2="698" y2="453" stroke="#9CA3AF" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#arr-gray)"/>
+
+        <!-- API → e-Timologiera -->
+        <line x1="720" y1="375" x2="870" y2="453" stroke="#9CA3AF" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#arr-gray)"/>
+
+        <!-- API → Brevo -->
+        <line x1="660" y1="375" x2="698" y2="553" stroke="#9CA3AF" stroke-width="1" stroke-opacity=".4" marker-end="url(#arr-gray)" stroke-dasharray="4 3"/>
+
+        <!-- API → GSIS -->
+        <line x1="700" y1="375" x2="900" y2="553" stroke="#9CA3AF" stroke-width="1" stroke-opacity=".4" marker-end="url(#arr-gray)" stroke-dasharray="4 3"/>
+
+        <!-- REST label on admin→API arrow -->
+        <text x="405" y="178" text-anchor="middle" font-size="9" fill="#60A5FA" opacity=".8">REST / JSON</text>
+
+        <!-- Legend labels for arrows -->
+        <text x="550" y="700" text-anchor="middle" font-size="11" fill="#475569">
+          Solid arrows = active connections · Dashed = optional / future
+        </text>
+      </svg>
+    </div>
+
+    <!-- Tech stack summary -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:32px;">
+      <div style="background:rgba(29,78,216,.1);border:1px solid rgba(29,78,216,.3);border-radius:16px;padding:20px;">
+        <p style="font-size:11px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Client Layer</p>
+        <p style="font-size:13px;color:#CBD5E1;line-height:1.6;">Android (Kotlin + Jetpack Compose)<br>Web Admin (HTML + Tailwind + Vanilla JS)<br>XAMPP · localhost:80</p>
+      </div>
+      <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:16px;padding:20px;">
+        <p style="font-size:11px;font-weight:700;color:#34D399;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">API Layer</p>
+        <p style="font-size:13px;color:#CBD5E1;line-height:1.6;">Node.js 20 + Express 4<br>JWT Authentication<br>Port 4000 · RESTful JSON API</p>
+      </div>
+      <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:16px;padding:20px;">
+        <p style="font-size:11px;font-weight:700;color:#FCD34D;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Database</p>
+        <p style="font-size:13px;color:#CBD5E1;line-height:1.6;">MySQL 8 (via XAMPP)<br>Parameterized queries<br>15+ tables</p>
+      </div>
+      <div style="background:rgba(107,114,128,.1);border:1px solid rgba(107,114,128,.3);border-radius:16px;padding:20px;">
+        <p style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">External Services</p>
+        <p style="font-size:13px;color:#CBD5E1;line-height:1.6;">myDATA / ΑΑΔΕ (e-invoice)<br>e-Τιμολογιέρα (MARK)<br>Brevo Email · ΓΓΠΣ</p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

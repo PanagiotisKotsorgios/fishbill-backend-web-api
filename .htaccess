@@ -1,0 +1,16 @@
+# FishBill — Apache config
+# Directory listing is disabled so competitors can't enumerate files.
+# The coming-soon index.html is the public face of the site.
+# Admin/app subpages are protected by JavaScript auth — no data leaks without a valid JWT.
+
+Options -Indexes
+
+# Protect sensitive files from being downloaded directly
+<FilesMatch "\.(sql|md|txt|bat|json|env|log|docx|pptx)$">
+  Require all denied
+</FilesMatch>
+
+# Allow robots.txt and legal pages
+<FilesMatch "^robots\.txt$">
+  Require all granted
+</FilesMatch>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Παρακολούθηση</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .biz-card { background:#fff; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 1px 4px rgba(0,0,0,.05); transition:box-shadow .15s; }
+    .biz-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.08); }
+    .tab-pill { padding:6px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; border:none; transition:all .15s; }
+    .tab-pill.active { background:#1d4ed8; color:#fff; }
+    .tab-pill:not(.active) { background:#f1f5f9; color:#64748b; }
+    .tab-pill:not(.active):hover { background:#e2e8f0; }
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px; }
+    .modal-box { background:#fff;border-radius:20px;box-shadow:0 25px 60px rgba(0,0,0,.2);width:100%;max-width:640px;max-height:90vh;overflow-y:auto; }
+    .stat-pill { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700; }
+    .input { border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px;background:#f8fafc;outline:none;width:100%;transition:all .15s; }
+    .input:focus { border-color:#3b82f6;background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s; }
+    .btn:active { transform:scale(.97); }
+    .btn-primary { background:#2563eb;color:#fff; } .btn-primary:hover { background:#1d4ed8; }
+    .btn-success { background:#059669;color:#fff; } .btn-success:hover { background:#047857; }
+    .btn-ghost   { background:#f1f5f9;color:#475569; } .btn-ghost:hover { background:#e2e8f0; }
+    .btn-sm { padding:5px 10px;font-size:12px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6 max-w-[1400px] mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6 anim flex items-start justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <i class="fas fa-display-medical text-blue-600"></i> Παρακολούθηση
+        </h1>
+        <p class="text-sm text-gray-500 mt-0.5">Επιχειρήσεις που σας έχουν ανατεθεί · Συντήρηση συστήματος</p>
+      </div>
+      <button class="btn btn-ghost" onclick="loadAll()">
+        <i class="fas fa-rotate-right"></i> Ανανέωση
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.04s">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0"><i class="fas fa-building"></i></div>
+        <div><p class="text-xs text-gray-400">Επιχειρήσεις</p><p id="stat-biz" class="text-xl font-extrabold text-gray-900">—</p></div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 flex-shrink-0"><i class="fas fa-user-clock"></i></div>
+        <div><p class="text-xs text-gray-400">Χρήστες εκκρεμείς</p><p id="stat-unverified" class="text-xl font-extrabold text-amber-600">—</p></div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0"><i class="fas fa-triangle-exclamation"></i></div>
+        <div><p class="text-xs text-gray-400">Λήγουν σύντομα</p><p id="stat-expiring" class="text-xl font-extrabold text-red-600">—</p></div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 flex-shrink-0"><i class="fas fa-file-circle-exclamation"></i></div>
+        <div><p class="text-xs text-gray-400">ΟΣΠΑ εκκρεμείς</p><p id="stat-ospa" class="text-xl font-extrabold text-orange-600">—</p></div>
+      </div>
+    </div>
+
+    <!-- Business cards -->
+    <div id="biz-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-4 anim" style="animation-delay:.08s">
+      <div class="col-span-full text-center py-16 text-gray-400">
+        <i class="fas fa-spinner fa-spin text-2xl mb-3 block"></i>Φόρτωση επιχειρήσεων…
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Detail Modal -->
+<div id="detail-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <div>
+        <h2 id="detail-title" class="text-lg font-bold text-gray-900"></h2>
+        <p id="detail-subtitle" class="text-sm text-gray-500 mt-0.5"></p>
+      </div>
+      <button onclick="closeDetail()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Detail tabs -->
+    <div class="flex gap-2 px-6 pt-4 flex-wrap">
+      <button class="tab-pill active" id="dtab-users"  onclick="switchDetailTab('users')"><i class="fas fa-users mr-1"></i>Χρήστες</button>
+      <button class="tab-pill"        id="dtab-ospa"   onclick="switchDetailTab('ospa')"><i class="fas fa-file-circle-check mr-1"></i>ΟΣΠΑ</button>
+      <button class="tab-pill"        id="dtab-slips"  onclick="switchDetailTab('slips')"><i class="fas fa-scale-balanced mr-1"></i>Ζύγιση</button>
+      <button class="tab-pill"        id="dtab-sub"    onclick="switchDetailTab('sub')"><i class="fas fa-credit-card mr-1"></i>Συνδρομή</button>
+      <button class="tab-pill"        id="dtab-sms"    onclick="switchDetailTab('sms')"><i class="fas fa-comment-sms mr-1"></i>SMS</button>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <div id="detail-users"  class="detail-panel"></div>
+      <div id="detail-ospa"   class="detail-panel hidden"></div>
+      <div id="detail-slips"  class="detail-panel hidden"></div>
+      <div id="detail-sub"    class="detail-panel hidden"></div>
+      <div id="detail-sms"    class="detail-panel hidden">
+        <div class="space-y-3">
+          <p class="text-sm text-gray-600">Καταγράψτε ότι στείλατε SMS από το προσωπικό σας τηλέφωνο.</p>
+          <div><label class="block text-xs font-semibold text-gray-500 mb-1">Τηλέφωνο</label>
+            <input id="sms-phone" type="tel" class="input" placeholder="+30 69X XXX XXXX"></div>
+          <div><label class="block text-xs font-semibold text-gray-500 mb-1">Τύπος</label>
+            <select id="sms-reason" class="input">
+              <option value="subscription_expiring">Λήξη Συνδρομής</option>
+              <option value="trial_expiring">Λήξη Trial</option>
+              <option value="payment_reminder">Υπενθύμιση Πληρωμής</option>
+              <option value="other">Άλλο</option>
+            </select></div>
+          <div><label class="block text-xs font-semibold text-gray-500 mb-1">Σημειώσεις</label>
+            <textarea id="sms-notes" class="input" rows="2" placeholder="π.χ. Απάντησε θετικά…"></textarea></div>
+          <button class="btn btn-success w-full justify-center" onclick="sendSmsLog()">
+            <i class="fas fa-comment-sms"></i> Καταγραφή SMS
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+  <div id="toast-inner" class="px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold flex items-center gap-2"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/page.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+  initPage({ requireRole: 'employee,super_admin' });
+
+  let myPrivileges = [];
+  let currentBiz   = null;
+  let businesses   = [];
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    requireAuth();
+    buildSidebar();
+    // Load privileges first so we can show/hide tabs
+    try {
+      const pr = await api.get('/employees/my-privileges');
+      myPrivileges = pr.privileges || [];
+    } catch { myPrivileges = []; }
+    loadAll();
+  });
+
+  const canDo = p => myPrivileges.includes(p) || getUserRole() === 'super_admin';
+
+  // ── Load all assigned businesses ─────────────────────────────────────────────
+  async function loadAll() {
+    document.getElementById('biz-grid').innerHTML =
+      `<div class="col-span-full text-center py-16 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-3 block"></i>Φόρτωση…</div>`;
+    try {
+      const res = await api.get('/monitor/my-businesses');
+      businesses = res.data || [];
+      renderStats();
+      renderBizCards();
+    } catch(e) {
+      document.getElementById('biz-grid').innerHTML =
+        `<div class="col-span-full text-center py-16 text-red-400"><i class="fas fa-triangle-exclamation text-2xl mb-3 block"></i>${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderStats() {
+    document.getElementById('stat-biz').textContent        = businesses.length;
+    document.getElementById('stat-unverified').textContent = businesses.reduce((s,b) => s + (b.unverified_count||0), 0);
+    document.getElementById('stat-expiring').textContent   = businesses.filter(b => b.days_left !== null && b.days_left <= 7).length;
+    document.getElementById('stat-ospa').textContent       = businesses.filter(b => b.latest_ospa_status === 'pending').length;
+  }
+
+  function renderBizCards() {
+    const grid = document.getElementById('biz-grid');
+    if (!businesses.length) {
+      grid.innerHTML = `<div class="col-span-full text-center py-16 text-gray-400">
+        <i class="fas fa-building text-4xl mb-3 block text-gray-200"></i>
+        <p class="font-semibold">Δεν έχετε ανατεθεί σε καμία επιχείρηση ακόμα.</p>
+        <p class="text-sm mt-1">Επικοινωνήστε με τον Super Admin.</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = businesses.map(b => {
+      const expiryBadge = b.days_left !== null
+        ? `<span class="stat-pill ${b.days_left <= 3 ? 'bg-red-100 text-red-700' : b.days_left <= 14 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}">
+             <i class="fas fa-clock"></i> ${b.days_left < 0 ? 'Έληξε' : b.days_left === 0 ? 'Σήμερα' : b.days_left + 'μ.'}</span>`
+        : '';
+      const ospaIcon = b.latest_ospa_status === 'submitted'
+        ? `<i class="fas fa-circle-check text-green-500" title="ΟΣΠΑ υποβλήθηκε"></i>`
+        : b.latest_ospa_status === 'needs_correction'
+          ? `<i class="fas fa-circle-exclamation text-red-500" title="ΟΣΠΑ: χρειάζεται διόρθωση"></i>`
+          : b.latest_ospa_status === 'pending'
+            ? `<i class="fas fa-circle-pause text-amber-500" title="ΟΣΠΑ εκκρεμής"></i>`
+            : `<i class="fas fa-circle-minus text-gray-300" title="Χωρίς ΟΣΠΑ"></i>`;
+      const unverBadge = b.unverified_count > 0
+        ? `<span class="stat-pill bg-amber-100 text-amber-700"><i class="fas fa-user-clock"></i> ${b.unverified_count} εκκρεμείς</span>`
+        : '';
+      const planBadge = {trial:'bg-gray-100 text-gray-600',basic:'bg-blue-100 text-blue-700',pro:'bg-purple-100 text-purple-700',enterprise:'bg-amber-100 text-amber-700'}[b.plan] || 'bg-gray-100 text-gray-600';
+
+      return `<div class="biz-card p-5 cursor-pointer" onclick="openDetail('${b.id}')">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="flex-1 min-w-0">
+            <h3 class="text-base font-bold text-gray-900 truncate">${esc(b.name)}</h3>
+            <p class="text-xs text-gray-400 mt-0.5">ΑΦΜ: ${esc(b.afm||'—')}</p>
+          </div>
+          <span class="stat-pill ${planBadge} flex-shrink-0">${b.plan||'trial'}</span>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          ${expiryBadge}
+          ${unverBadge}
+          ${b.slips_this_month > 0 ? `<span class="stat-pill bg-teal-100 text-teal-700"><i class="fas fa-scale-balanced"></i> ${b.slips_this_month} δελτία</span>` : ''}
+          ${b.invoices_30d > 0 ? `<span class="stat-pill bg-blue-100 text-blue-700"><i class="fas fa-file-invoice"></i> ${b.invoices_30d} τιμολόγια</span>` : ''}
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 text-sm text-gray-500">
+            <span title="ΟΣΠΑ">${ospaIcon}</span>
+            <span class="flex items-center gap-1"><i class="fas fa-users text-gray-300"></i> ${b.user_count||0}</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDetail('${b.id}')">
+            <i class="fas fa-arrow-right"></i> Λεπτομέρειες
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Detail Modal ─────────────────────────────────────────────────────────────
+  function openDetail(bizId) {
+    currentBiz = businesses.find(b => b.id === bizId);
+    if (!currentBiz) return;
+    document.getElementById('detail-title').textContent    = currentBiz.name;
+    document.getElementById('detail-subtitle').textContent = `ΑΦΜ: ${currentBiz.afm||'—'} · ${currentBiz.plan||'trial'}`;
+
+    // Hide tabs the employee doesn't have access to
+    document.getElementById('dtab-ospa').classList.toggle('hidden', !canDo('monitor_ospa'));
+    document.getElementById('dtab-slips').classList.toggle('hidden', !canDo('monitor_weighing_slips'));
+    document.getElementById('dtab-sub').classList.toggle('hidden', !canDo('view_subscriptions'));
+    document.getElementById('dtab-sms').classList.toggle('hidden', !canDo('manage_reminders'));
+
+    // Pre-fill SMS phone
+    document.getElementById('sms-phone').value  = currentBiz.contact_phone || '';
+    document.getElementById('sms-notes').value  = '';
+
+    document.getElementById('detail-modal').classList.remove('hidden');
+    switchDetailTab('users');
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-modal').classList.add('hidden');
+    currentBiz = null;
+  }
+
+  document.getElementById('detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetail();
+  });
+
+  let activeDetailTab = 'users';
+  function switchDetailTab(tab) {
+    activeDetailTab = tab;
+    ['users','ospa','slips','sub','sms'].forEach(t => {
+      document.getElementById(`dtab-${t}`)?.classList.toggle('active', t === tab);
+      document.getElementById(`detail-${t}`)?.classList.toggle('hidden', t !== tab);
+    });
+    loadDetailTab(tab);
+  }
+
+  async function loadDetailTab(tab) {
+    const el = document.getElementById(`detail-${tab}`);
+    if (!currentBiz || tab === 'sms') return;
+
+    el.innerHTML = `<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Φόρτωση…</div>`;
+
+    try {
+      if (tab === 'users')  { await renderUsers(el); }
+      if (tab === 'ospa')   { await renderOspa(el); }
+      if (tab === 'slips')  { await renderSlips(el); }
+      if (tab === 'sub')    { await renderSub(el); }
+    } catch(e) {
+      el.innerHTML = `<div class="text-center py-8 text-red-400">${esc(e.message)}</div>`;
+    }
+  }
+
+  async function renderUsers(el) {
+    const res   = await api.get(`/monitor/businesses/${currentBiz.id}/users`);
+    const users = res.data || [];
+    if (!users.length) { el.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">Δεν υπάρχουν χρήστες.</p>'; return; }
+
+    el.innerHTML = `<div class="space-y-2">` + users.map(u => {
+      const roleCls = {owner:'bg-blue-100 text-blue-700',accountant:'bg-purple-100 text-purple-700',captain:'bg-teal-100 text-teal-700',employee:'bg-gray-100 text-gray-600'}[u.role]||'bg-gray-100 text-gray-500';
+      const verified = u.role === 'accountant' ? (u.is_verified ? '✅' : '⏳') : '';
+      const canVerify = canDo('verify_users') && u.role === 'accountant';
+      return `<div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-semibold text-gray-800 truncate">${esc(u.full_name||'—')}</p>
+            <span class="stat-pill ${roleCls}">${u.role}</span>
+            ${verified}
+          </div>
+          <p class="text-xs text-gray-400 truncate">${esc(u.email||'')}</p>
+          ${u.last_login_at ? `<p class="text-xs text-gray-300">Τελ. σύνδεση: ${fmtDate(u.last_login_at)}</p>` : ''}
+        </div>
+        ${canVerify && !u.is_verified ? `<button class="btn btn-success btn-sm" onclick="verifyUser('${u.id}', true)">
+          <i class="fas fa-user-check"></i> Επαλήθευση
+        </button>` : ''}
+        ${canVerify && u.is_verified ? `<button class="btn btn-ghost btn-sm text-red-500" onclick="verifyUser('${u.id}', false)">
+          <i class="fas fa-user-xmark"></i> Ακύρωση
+        </button>` : ''}
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  async function verifyUser(userId, verified) {
+    try {
+      await api.post(`/monitor/businesses/${currentBiz.id}/users/${userId}/verify`, { verified });
+      toast(verified ? 'Χρήστης επαληθεύτηκε!' : 'Επαλήθευση ακυρώθηκε.', 'green');
+      await renderUsers(document.getElementById('detail-users'));
+      // Update unverified count in card
+      const b = businesses.find(x => x.id === currentBiz.id);
+      if (b) { b.unverified_count = Math.max(0, (b.unverified_count||0) + (verified ? -1 : 1)); renderStats(); }
+    } catch(e) { toast(e.message, 'red'); }
+  }
+
+  async function renderOspa(el) {
+    const res  = await api.get(`/monitor/businesses/${currentBiz.id}/ospa`);
+    const rows = res.data || [];
+    if (!rows.length) { el.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">Δεν υπάρχουν υποβολές ΟΣΠΑ.</p>'; return; }
+
+    const statusCfg = {
+      pending:          { cls:'bg-amber-100 text-amber-700', label:'Εκκρεμής' },
+      submitted:        { cls:'bg-green-100 text-green-700',  label:'Υποβλήθηκε' },
+      needs_correction: { cls:'bg-red-100 text-red-700',      label:'Διόρθωση' },
+    };
+    el.innerHTML = `<div class="space-y-2">` + rows.map(s => {
+      const cfg = statusCfg[s.status] || statusCfg.pending;
+      return `<div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <div>
+          <p class="text-sm font-semibold text-gray-800">${esc(s.submission_period)}</p>
+          ${s.deadline ? `<p class="text-xs text-gray-400">Deadline: ${fmtDate(s.deadline)}</p>` : ''}
+          ${s.notes ? `<p class="text-xs text-gray-500 mt-1">${esc(s.notes)}</p>` : ''}
+        </div>
+        <div class="flex items-center gap-2">
+          ${s.form_path ? `<a href="${CONFIG.API_URL.replace('/api','') + s.form_path}" target="_blank" class="btn btn-ghost btn-sm"><i class="fas fa-file-pdf text-red-500"></i></a>` : ''}
+          <span class="stat-pill ${cfg.cls}">${cfg.label}</span>
+        </div>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  async function renderSlips(el) {
+    const res  = await api.get(`/monitor/businesses/${currentBiz.id}/weighing-slips`, { limit: 20 });
+    const rows = res.data || [];
+    if (!rows.length) { el.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">Δεν υπάρχουν δελτία ζύγισης.</p>'; return; }
+
+    el.innerHTML = `<p class="text-xs text-gray-400 mb-3">Τελευταία ${rows.length} δελτία</p><div class="space-y-2">` +
+      rows.map(s => `<div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-gray-800">#${s.slip_number} · ${esc(s.fish_type)}</p>
+          <p class="text-xs text-gray-400">${fmtDate(s.slip_date)} · ${s.weight_kg}kg · €${parseFloat(s.total_amount||0).toFixed(2)}</p>
+          ${s.buyer_name ? `<p class="text-xs text-gray-400">${esc(s.buyer_name)}</p>` : ''}
+        </div>
+        ${s.image_path ? `<a href="${CONFIG.API_URL.replace('/api','') + s.image_path}" target="_blank">
+          <img src="${CONFIG.API_URL.replace('/api','') + s.image_path}" class="h-12 w-12 object-cover rounded-lg border border-gray-200">
+        </a>` : ''}
+      </div>`).join('') + `</div>`;
+  }
+
+  async function renderSub(el) {
+    const res = await api.get(`/monitor/businesses/${currentBiz.id}/subscription`);
+    const d   = res.data;
+    const bal = parseFloat(d.outstanding_balance||0);
+    el.innerHTML = `<div class="space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400">Πλάνο</p><p class="text-sm font-bold text-gray-800 capitalize">${d.plan||'—'}</p></div>
+        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400">Κατάσταση</p>
+          <p class="text-sm font-bold ${d.subscription_active ? 'text-green-600' : 'text-amber-600'}">${d.subscription_active ? 'Ενεργή' : 'Trial/Ανενεργή'}</p></div>
+        ${d.trial_ends_at && !d.subscription_active ? `<div class="bg-amber-50 rounded-xl p-3 col-span-2"><p class="text-xs text-amber-600">Λήξη Trial</p><p class="text-sm font-bold text-amber-700">${fmtDate(d.trial_ends_at)}</p></div>` : ''}
+        ${d.subscription_ends_at && d.subscription_active ? `<div class="bg-blue-50 rounded-xl p-3 col-span-2"><p class="text-xs text-blue-600">Λήξη Συνδρομής</p><p class="text-sm font-bold text-blue-700">${fmtDate(d.subscription_ends_at)}</p></div>` : ''}
+        ${bal > 0 ? `<div class="bg-red-50 rounded-xl p-3 col-span-2"><p class="text-xs text-red-500">Οφειλή</p><p class="text-sm font-bold text-red-600">€${bal.toFixed(2)}</p></div>` : ''}
+      </div>
+      ${d.payments?.length ? `<div>
+        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Τελευταίες Πληρωμές</p>
+        <div class="space-y-1.5">${d.payments.map(p => `<div class="flex justify-between items-center p-2.5 bg-gray-50 rounded-lg">
+          <div><p class="text-xs font-semibold text-gray-700">${esc(p.description||'Πληρωμή')}</p><p class="text-xs text-gray-400">${fmtDate(p.created_at)}</p></div>
+          <span class="text-sm font-bold text-green-600">€${parseFloat(p.amount||0).toFixed(2)}</span>
+        </div>`).join('')}</div>
+      </div>` : ''}
+    </div>`;
+  }
+
+  async function sendSmsLog() {
+    if (!currentBiz) return;
+    const phone = document.getElementById('sms-phone').value.trim();
+    if (!phone) { toast('Εισάγετε αριθμό τηλεφώνου.', 'red'); return; }
+    try {
+      await api.post(`/monitor/businesses/${currentBiz.id}/sms-reminder`, {
+        phone_number: phone,
+        reason:  document.getElementById('sms-reason').value,
+        notes:   document.getElementById('sms-notes').value.trim() || null,
+      });
+      toast('SMS καταγράφηκε!', 'green');
+      document.getElementById('sms-notes').value = '';
+    } catch(e) { toast(e.message, 'red'); }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  }
+
+  function toast(msg, color = 'green') {
+    const el    = document.getElementById('toast');
+    const inner = document.getElementById('toast-inner');
+    inner.className = `px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold flex items-center gap-2 bg-${color}-600`;
+    inner.innerHTML = `<i class="fas fa-${color==='green'?'circle-check':'circle-xmark'}"></i> ${esc(msg)}`;
+    el.classList.remove('hidden');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.add('hidden'), 3500);
+  }
+
+  window.openDetail     = openDetail;
+  window.closeDetail    = closeDetail;
+  window.switchDetailTab = switchDetailTab;
+  window.verifyUser     = verifyUser;
+  window.sendSmsLog     = sendSmsLog;
+  window.loadAll        = loadAll;
+</script>
+</body>
+</html>

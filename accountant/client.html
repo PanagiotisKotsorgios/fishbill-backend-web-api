@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Διαχείριση Πελάτη</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F3F4F6; color: #111827; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    .header { background: #1E3A5F; border-bottom: 2px solid #163058; position: sticky; top: 0; z-index: 100; }
+    .header-top { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 12px; }
+    .back-btn { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; flex-shrink: 0; text-decoration: none; font-size: 16px; transition: background .15s; }
+    .back-btn:hover { background: rgba(255,255,255,.22); }
+    .biz-title { flex: 1; min-width: 0; }
+    .biz-name { font-size: 16px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .biz-afm  { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 1px; }
+    .biz-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: rgba(255,255,255,.12); border-radius: 99px; font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .btn-logout { padding: 6px 12px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; color: rgba(255,255,255,.85); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
+    .btn-logout:hover { background: rgba(255,255,255,.18); }
+
+    /* ── TABS ── */
+    .tabs-bar { background: #fff; border-bottom: 2px solid #E5E7EB; overflow-x: auto; scrollbar-width: none; }
+    .tabs-bar::-webkit-scrollbar { display: none; }
+    .tabs-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; gap: 0; min-width: max-content; }
+    .tab-btn { padding: 13px 18px; font-size: 13px; font-weight: 600; color: #6B7280; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; font-family: inherit; transition: all .15s; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+    .tab-btn:hover { color: #374151; background: #F9FAFB; }
+    .tab-btn.active { color: #1E3A5F; border-bottom-color: #1E3A5F; background: none; }
+    .tab-btn i { font-size: 13px; }
+
+    /* ── PAGE ── */
+    .page { max-width: 1200px; margin: 0 auto; padding: 24px 24px 64px; }
+    @media(max-width:768px) { .page { padding: 16px 14px 48px; } }
+
+    /* ── CARDS ── */
+    .card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 22px 24px; margin-bottom: 18px; }
+    .card-title { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title i { color: #1E3A5F; font-size: 14px; }
+    .card-sub { font-size: 12px; color: #9CA3AF; margin-bottom: 14px; margin-top: -8px; }
+
+    /* ── FORM ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media(max-width:600px) { .grid-2 { grid-template-columns: 1fr; } }
+    .form-label { display: block; font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .form-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1.5px solid #D1D5DB; background: #F9FAFB; font-size: 14px; font-family: inherit; color: #111827; outline: none; transition: border-color .15s, background .15s; }
+    .form-input:focus { border-color: #1E3A5F; background: #fff; }
+    .form-input:disabled { opacity: .55; cursor: not-allowed; }
+    textarea.form-input { resize: vertical; min-height: 80px; }
+    .save-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+    .btn-save { padding: 9px 20px; background: #1E3A5F; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; display: flex; align-items: center; gap: 7px; }
+    .btn-save:hover { background: #163058; }
+    .btn-save:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-outline { padding: 7px 14px; background: #fff; border: 1.5px solid #D1D5DB; border-radius: 8px; color: #374151; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-outline:hover { border-color: #1E3A5F; color: #1E3A5F; }
+    .btn-danger { padding: 9px 18px; background: #FEF2F2; border: 1.5px solid #FECACA; border-radius: 8px; color: #B91C1C; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-danger:hover { background: #FEE2E2; }
+
+    /* ── STATS MINI ── */
+    .stats-mini { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    @media(max-width:600px) { .stats-mini { grid-template-columns: repeat(2,1fr); } }
+    .stat-mini { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; padding: 14px 16px; }
+    .stat-mini-val { font-size: 22px; font-weight: 800; color: #111827; line-height: 1; }
+    .stat-mini-lbl { font-size: 11px; color: #9CA3AF; margin-top: 4px; }
+
+    /* ── TABLE ── */
+    .table-wrap { border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #F9FAFB; border-bottom: 2px solid #E5E7EB; }
+    th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #F3F4F6; transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #F9FAFB; }
+    td { padding: 10px 14px; font-size: 13px; color: #374151; vertical-align: middle; }
+    td.mono { font-family: 'Courier New', monospace; font-size: 12px; }
+
+    /* ── BADGES / PILLS ── */
+    .pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .pill-green { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+    .pill-blue  { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .pill-red   { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+    .pill-gray  { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
+    .pill-amber { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+
+    /* ── TBLE ROW ACTIONS ── */
+    .tbl-actions { display: flex; gap: 5px; justify-content: flex-end; }
+    .btn-tbl { padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all .15s; font-family: inherit; }
+    .btn-tbl-edit { background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
+    .btn-tbl-edit:hover { background: #DBEAFE; }
+    .btn-tbl-del  { background: #FEF2F2; border-color: #FECACA; color: #B91C1C; }
+    .btn-tbl-del:hover { background: #FEE2E2; }
+    .btn-tbl-add { background: #F0FDF4; border-color: #BBF7D0; color: #15803D; }
+    .btn-tbl-add:hover { background: #DCFCE7; }
+
+    /* ── STATE ── */
+    .state-box { text-align: center; padding: 40px 16px; color: #9CA3AF; font-size: 14px; }
+    .spinner { display: inline-block; width: 26px; height: 26px; border: 3px solid #E5E7EB; border-top-color: #1E3A5F; border-radius: 50%; animation: spin .65s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── PAGINATION ── */
+    .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+    .pg-btn { min-width: 32px; height: 32px; padding: 0 9px; border-radius: 6px; border: 1px solid #D1D5DB; background: #fff; color: #374151; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .pg-btn:hover:not(:disabled) { border-color: #1E3A5F; color: #1E3A5F; }
+    .pg-btn.active { background: #1E3A5F; color: #fff; border-color: #1E3A5F; }
+    .pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 400; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.2); width: 100%; max-width: 520px; padding: 28px; max-height: 92vh; overflow-y: auto; }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-size: 18px; font-weight: 800; color: #111827; }
+    .modal-close { width: 32px; height: 32px; border-radius: 7px; background: #F3F4F6; border: 1px solid #E5E7EB; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #6B7280; flex-shrink: 0; }
+    .modal-close:hover { background: #E5E7EB; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .btn-cancel { flex: 1; height: 42px; background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 8px; color: #374151; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-cancel:hover { background: #E5E7EB; }
+    .btn-confirm { flex: 1; height: 42px; background: #1E3A5F; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .btn-confirm:hover { background: #163058; }
+
+    /* ── SECTION-HEADER WITH ACTION ── */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-title { font-size: 14px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 8px; }
+    .section-title i { color: #1E3A5F; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <a class="back-btn" onclick="window.location.href='dashboard.html'" title="Επιστροφή">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div class="biz-title">
+        <div class="biz-name" id="biz-name">Φόρτωση…</div>
+        <div class="biz-afm"  id="biz-afm"></div>
+      </div>
+      <span id="biz-status" class="biz-status-badge" style="display:none"></span>
+      <button onclick="logout()" class="btn-logout">Έξοδος</button>
+    </div>
+    <div class="tabs-bar">
+      <div class="tabs-inner">
+        <button id="tab-btn-general"   onclick="switchTab('general')"   class="tab-btn active"><i class="fa-solid fa-building"></i> Γενικά</button>
+        <button id="tab-btn-mydata"    onclick="switchTab('mydata')"    class="tab-btn"><i class="fa-solid fa-wifi"></i> myDATA</button>
+        <button id="tab-btn-invoices"  onclick="switchTab('invoices')"  class="tab-btn"><i class="fa-solid fa-file-invoice"></i> Παραστατικά</button>
+        <button id="tab-btn-products"  onclick="switchTab('products')"  class="tab-btn"><i class="fa-solid fa-fish"></i> Προϊόντα</button>
+        <button id="tab-btn-customers" onclick="switchTab('customers')" class="tab-btn"><i class="fa-solid fa-users"></i> Αγοραστές</button>
+        <button id="tab-btn-settings"  onclick="switchTab('settings')"  class="tab-btn"><i class="fa-solid fa-gear"></i> Ρυθμίσεις</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="page">
+
+    <!-- ══ TAB: ΓΕΝΙΚΑ ══ -->
+    <div id="tab-general">
+      <div id="overview-stats" class="stats-mini"></div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-building"></i> Στοιχεία Επιχείρησης</div>
+        <div class="grid-2">
+          <div><label class="form-label">Επωνυμία *</label><input id="p-name" class="form-input" /></div>
+          <div><label class="form-label">Διακριτικός Τίτλος</label><input id="p-trade_name" class="form-input" /></div>
+          <div><label class="form-label">ΑΦΜ</label><input id="p-afm" class="form-input" disabled /></div>
+          <div><label class="form-label">ΔΟΥ</label><input id="p-doy" class="form-input" /></div>
+          <div><label class="form-label">Διεύθυνση</label><input id="p-address" class="form-input" /></div>
+          <div><label class="form-label">Πόλη</label><input id="p-city" class="form-input" /></div>
+          <div><label class="form-label">Τ.Κ.</label><input id="p-postal_code" class="form-input" maxlength="5" /></div>
+          <div><label class="form-label">Τηλέφωνο</label><input id="p-phone" class="form-input" /></div>
+          <div><label class="form-label">Email</label><input id="p-email" class="form-input" type="email" /></div>
+          <div>
+            <label class="form-label">Καθεστώς ΦΠΑ</label>
+            <select id="p-vat_regime" class="form-input">
+              <option value="normal">Κανονικό</option>
+              <option value="small_business">Μικρές Επιχειρήσεις</option>
+              <option value="exempt">Απαλλαγή</option>
+            </select>
+          </div>
+          <div><label class="form-label">ΚΑΔ</label><input id="p-activity_code" class="form-input" placeholder="03.11" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-briefcase"></i> Στοιχεία Λογιστή (εμφανίζονται στο παραστατικό)</div>
+        <div class="grid-2">
+          <div><label class="form-label">Όνομα Λογιστή</label><input id="p-accountant_name" class="form-input" /></div>
+          <div><label class="form-label">Email Λογιστή</label><input id="p-accountant_email" class="form-input" type="email" /></div>
+          <div><label class="form-label">Τηλέφωνο Λογιστή</label><input id="p-accountant_phone" class="form-input" /></div>
+        </div>
+      </div>
+
+      <div class="save-row">
+        <button onclick="saveProfile()" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Αποθήκευση Στοιχείων</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB: MYDATA ══ -->
+    <div id="tab-mydata" style="display:none">
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-landmark"></i> Στοιχεία myDATA (ΑΑΔΕ)</div>
+        <div class="card-sub">Τα διαπιστευτήρια για απευθείας αποστολή στην ΑΑΔΕ.</div>
+        <div class="grid-2">
+          <div><label class="form-label">myDATA User ID</label><input id="m-mydata_user_id" class="form-input" placeholder="myuserid@taxisnet" /></div>
+          <div><label class="form-label">Subscription Key</label><input id="m-mydata_subscription_key" class="form-input" type="password" placeholder="••••••••••••" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-plug"></i> Πάροχος (Provider) — προαιρετικό</div>
+        <div class="card-sub">Εάν χρησιμοποιείτε πάροχο (π.χ. Softone, Entersoft), συμπληρώστε εδώ.</div>
+        <div class="grid-2">
+          <div>
+            <label class="form-label">Πάροχος</label>
+            <select id="m-provider_name" class="form-input">
+              <option value="">— Χωρίς πάροχο (απευθείας ΑΑΔΕ) —</option>
+              <option value="softone">Softone</option>
+              <option value="entersoft">Entersoft</option>
+              <option value="epsilon">Epsilon Net</option>
+              <option value="atlantis">Atlantis ERP</option>
+              <option value="custom">Άλλος</option>
+            </select>
+          </div>
+          <div><label class="form-label">API URL</label><input id="m-provider_api_url" class="form-input" placeholder="https://api.provider.gr/v1" /></div>
+          <div><label class="form-label">API Key</label><input id="m-provider_api_key" class="form-input" type="password" placeholder="••••••••••••" /></div>
+          <div><label class="form-label">Username</label><input id="m-provider_username" class="form-input" /></div>
+          <div><label class="form-label">Password</label><input id="m-provider_password" class="form-input" type="password" placeholder="••••••••" /></div>
+        </div>
+      </div>
+
+      <div class="save-row">
+        <button onclick="saveMydata()" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Αποθήκευση myDATA</button>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="card-title"><i class="fa-solid fa-building-columns"></i> ΓΓΠΣ — Αναζήτηση ΑΦΜ</div>
+        <div class="card-sub">Διαπιστευτήρια για αναζήτηση στοιχείων επιχείρησης μέσω της υπηρεσίας <strong>rgWsPublic</strong> της ΑΑΔΕ. Χρησιμοποιούνται αυτόματα κατά την προσθήκη αγοραστή με ΑΦΜ.</div>
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:16px;display:flex;align-items:flex-start;gap:8px">
+          <i class="fa-solid fa-circle-info" style="margin-top:1px;flex-shrink:0"></i>
+          <span>Τα στοιχεία εισόδου είναι αυτά του <strong>TaxisNet</strong> του εξουσιοδοτημένου χρήστη. Ζητήστε από τον αλιέα / επιχείρηση να σας δώσει πρόσβαση ή χρησιμοποιήστε τα δικά σας ως λογιστής.</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label class="form-label">Όνομα Χρήστη TaxisNet</label>
+            <input id="g-gsis_username" class="form-input" placeholder="π.χ. user12345" autocomplete="off" />
+          </div>
+          <div>
+            <label class="form-label">Κωδικός TaxisNet</label>
+            <div style="position:relative">
+              <input id="g-gsis_password" class="form-input" type="password" placeholder="••••••••" autocomplete="new-password" style="padding-right:40px" />
+              <button type="button" onclick="toggleGsisPw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:14px;padding:0" title="Εμφάνιση/Απόκρυψη">
+                <i id="gsis-pw-eye" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div id="gsis-status-row" style="grid-column:1/-1;display:none">
+            <div id="gsis-status" style="display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600"></div>
+          </div>
+        </div>
+        <div class="save-row" style="margin-top:14px">
+          <button onclick="testGsis()" class="btn-outline" id="btn-test-gsis" style="display:flex;align-items:center;gap:7px">
+            <i class="fa-solid fa-plug"></i> Δοκιμή Σύνδεσης
+          </button>
+          <button onclick="saveGsisSettings()" class="btn-save" id="btn-save-gsis">
+            <i class="fa-solid fa-floppy-disk"></i> Αποθήκευση ΓΓΠΣ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ΠΑΡΑΣΤΑΤΙΚΑ ══ -->
+    <div id="tab-invoices" style="display:none">
+
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title"><i class="fa-solid fa-folder-open"></i> Σειρές Παραστατικών</div>
+          <button onclick="openSeriesModal()" class="btn-outline"><i class="fa-solid fa-plus"></i> Νέα Σειρά</button>
+        </div>
+        <div id="series-list"><div class="state-box"><div class="spinner"></div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-file-invoice"></i> Ιστορικό Παραστατικών</div>
+        <div style="margin-bottom:12px">
+          <input id="inv-search" type="text" placeholder="Αναζήτηση…" class="form-input" style="max-width:280px"
+            oninput="filterInvoices(this.value)" />
+        </div>
+        <div id="invoices-table"><div class="state-box"><div class="spinner"></div></div></div>
+        <div id="invoices-pagination" class="pagination"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ΠΡΟΪΟΝΤΑ ══ -->
+    <div id="tab-products" style="display:none">
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title"><i class="fa-solid fa-fish"></i> Κατάλογος Ειδών</div>
+          <button onclick="openProductModal()" class="btn-outline"><i class="fa-solid fa-plus"></i> Νέο Είδος</button>
+        </div>
+        <div id="products-list"><div class="state-box"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ΑΓΟΡΑΣΤΕΣ ══ -->
+    <div id="tab-customers" style="display:none">
+      <div class="card">
+        <div class="section-head">
+          <div class="section-title"><i class="fa-solid fa-users"></i> Πελατολόγιο</div>
+          <button onclick="openCustomerModal()" class="btn-outline"><i class="fa-solid fa-plus"></i> Νέος Αγοραστής</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <input id="cust-search" type="text" placeholder="Αναζήτηση αγοραστή…" class="form-input" style="max-width:280px"
+            oninput="loadCustomers(1, this.value)" />
+        </div>
+        <div id="customers-list"><div class="state-box"><div class="spinner"></div></div></div>
+        <div id="customers-pagination" class="pagination"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ΡΥΘΜΙΣΕΙΣ ══ -->
+    <div id="tab-settings" style="display:none">
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-file-invoice"></i> Ρυθμίσεις Παραστατικών</div>
+        <div class="grid-2">
+          <div>
+            <label class="form-label">Ημέρες Προθεσμίας Πληρωμής</label>
+            <input id="s-default_due_days" class="form-input" type="number" min="0" placeholder="30" />
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:22px">
+            <input id="s-auto_transmit" type="checkbox" style="width:16px;height:16px;accent-color:#1E3A5F" />
+            <label for="s-auto_transmit" style="font-size:13px;color:#374151;cursor:pointer">Αυτόματη αποστολή στο myDATA</label>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <label class="form-label">Υποσέλιδο Παραστατικού</label>
+          <textarea id="s-invoice_footer" class="form-input" rows="3" placeholder="Ευχαριστούμε για την εμπιστοσύνη σας…"></textarea>
+        </div>
+        <div class="save-row" style="margin-top:14px">
+          <button onclick="saveInvoiceSettings()" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Αποθήκευση</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-envelope"></i> Ρυθμίσεις Email (SMTP)</div>
+        <div class="card-sub">Για αποστολή παραστατικών μέσω email στους αγοραστές.</div>
+        <div class="grid-2">
+          <div><label class="form-label">SMTP Host</label><input id="s-smtp_host" class="form-input" placeholder="smtp.gmail.com" /></div>
+          <div><label class="form-label">SMTP Port</label><input id="s-smtp_port" class="form-input" type="number" placeholder="587" /></div>
+          <div><label class="form-label">SMTP Username</label><input id="s-smtp_user" class="form-input" placeholder="user@gmail.com" /></div>
+          <div><label class="form-label">SMTP Password</label><input id="s-smtp_pass" class="form-input" type="password" placeholder="••••••••" /></div>
+          <div><label class="form-label">Όνομα Αποστολέα</label><input id="s-smtp_from_name" class="form-input" placeholder="FishBill" /></div>
+          <div><label class="form-label">Email Αποστολέα</label><input id="s-smtp_from_email" class="form-input" type="email" /></div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:20px">
+            <input id="s-smtp_secure" type="checkbox" style="width:16px;height:16px;accent-color:#1E3A5F" />
+            <label for="s-smtp_secure" style="font-size:13px;color:#374151;cursor:pointer">TLS/SSL</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:20px">
+            <input id="s-email_enabled" type="checkbox" style="width:16px;height:16px;accent-color:#1E3A5F" />
+            <label for="s-email_enabled" style="font-size:13px;color:#374151;cursor:pointer">Ενεργοποίηση Email</label>
+          </div>
+        </div>
+        <div class="save-row" style="margin-top:14px">
+          <button onclick="saveEmailSettings()" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Αποθήκευση</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-mobile-screen"></i> Ρυθμίσεις SMS</div>
+        <div class="card-sub">Για αποστολή ειδοποιήσεων SMS σε αγοραστές.</div>
+        <div class="grid-2">
+          <div>
+            <label class="form-label">SMS Provider</label>
+            <select id="s-sms_provider" class="form-input">
+              <option value="">— Επιλέξτε —</option>
+              <option value="vonage">Vonage</option>
+              <option value="twilio">Twilio</option>
+              <option value="viber">Viber Business</option>
+              <option value="smsapi">SMSAPI.gr</option>
+            </select>
+          </div>
+          <div><label class="form-label">API Key</label><input id="s-sms_api_key" class="form-input" type="password" placeholder="••••••••" /></div>
+          <div><label class="form-label">API Secret</label><input id="s-sms_api_secret" class="form-input" type="password" placeholder="••••••••" /></div>
+          <div><label class="form-label">Από (Sender ID)</label><input id="s-sms_from" class="form-input" placeholder="FishBill" maxlength="11" /></div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:20px">
+            <input id="s-sms_enabled" type="checkbox" style="width:16px;height:16px;accent-color:#1E3A5F" />
+            <label for="s-sms_enabled" style="font-size:13px;color:#374151;cursor:pointer">Ενεργοποίηση SMS</label>
+          </div>
+        </div>
+        <div class="save-row" style="margin-top:14px">
+          <button onclick="saveSmsSettings()" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Αποθήκευση</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:#FECACA">
+        <div class="card-title" style="color:#B91C1C"><i class="fa-solid fa-triangle-exclamation"></i> Ζώνη Διαχείρισης</div>
+        <p style="font-size:13px;color:#6B7280;margin-bottom:14px">Αφαίρεση του πελάτη από τη λίστα σας (δεν διαγράφεται η επιχείρηση).</p>
+        <button onclick="removeClient()" class="btn-danger">
+          <i class="fa-solid fa-trash"></i> Αφαίρεση από τους πελάτες μου
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: New Series -->
+  <div id="modal-series" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">Νέα Σειρά Παραστατικών</div>
+        <button class="modal-close" onclick="document.getElementById('modal-series').classList.remove('open')">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div><label class="form-label">Κωδικός Σειράς *</label><input id="ser-code" class="form-input" placeholder="Π.χ. Α, Β, Γ" maxlength="10" oninput="this.value=this.value.toUpperCase()" /></div>
+        <div><label class="form-label">Περιγραφή</label><input id="ser-desc" class="form-input" placeholder="Πωλητήρια αλιευμάτων" /></div>
+        <div>
+          <label class="form-label">Τύπος (myDATA)</label>
+          <select id="ser-type" class="form-input">
+            <option value="1.1">1.1 — Τιμολόγιο Πώλησης</option>
+            <option value="1.2">1.2 — Τιμολόγιο Πώλησης / Ενδοκ.</option>
+            <option value="2.1">2.1 — Τιμολόγιο Παροχής</option>
+            <option value="11.1">11.1 — Απόδειξη Λιανικής</option>
+            <option value="11.3">11.3 — Απόδειξη Λιανικής Επί Πιστώσει</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="ser-default" type="checkbox" style="width:15px;height:15px;accent-color:#1E3A5F" />
+          <label for="ser-default" style="font-size:13px;color:#374151;cursor:pointer">Προεπιλεγμένη σειρά</label>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="btn-cancel" onclick="document.getElementById('modal-series').classList.remove('open')">Άκυρο</button>
+        <button class="btn-confirm" onclick="doAddSeries()">Προσθήκη</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Product -->
+  <div id="modal-product" class="modal-overlay">
+    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+      <div class="modal-head">
+        <div class="modal-title" id="product-modal-title">Νέο Είδος</div>
+        <button class="modal-close" onclick="document.getElementById('modal-product').classList.remove('open')">✕</button>
+      </div>
+      <input type="hidden" id="prod-id" />
+      <div class="grid-2" style="gap:12px">
+        <div style="grid-column:1/-1"><label class="form-label">Όνομα Είδους *</label><input id="prod-name" class="form-input" placeholder="Τσιπούρα, Λαβράκι…" /></div>
+        <div><label class="form-label">Κωδικός</label><input id="prod-code" class="form-input" placeholder="TSIP001" /></div>
+        <div>
+          <label class="form-label">Μονάδα</label>
+          <select id="prod-unit" class="form-input">
+            <option value="KG">KG — Κιλά</option>
+            <option value="ΤΕΜ">ΤΕΜ — Τεμάχια</option>
+            <option value="LT">LT — Λίτρα</option>
+          </select>
+        </div>
+        <div><label class="form-label">Τιμή / Μον. (€)</label><input id="prod-price" class="form-input" type="number" step="0.0001" placeholder="5.5000" /></div>
+        <div>
+          <label class="form-label">Συντελεστής ΦΠΑ (%)</label>
+          <select id="prod-vat" class="form-input">
+            <option value="13">13% (Αλιεία)</option>
+            <option value="24">24% (Κανονικός)</option>
+            <option value="6">6% (Μειωμένος)</option>
+            <option value="0">0% (Μηδενικός)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Κατηγορία Εσόδου myDATA</label>
+          <select id="prod-category" class="form-input">
+            <option value="E3_561_001">E3_561_001 — Χονδρικές Πωλήσεις εκτός ΕΕ</option>
+            <option value="E3_561_002">E3_561_002 — Χονδρικές Πωλήσεις εντός ΕΕ</option>
+            <option value="E3_561_003">E3_561_003 — Λιανικές Πωλήσεις</option>
+            <option value="E3_561_007">E3_561_007 — Λοιπά έσοδα</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Τύπος Γραμμής myDATA</label>
+          <select id="prod-income_type" class="form-input">
+            <option value="1.1">1.1 — Εμπορεύματα</option>
+            <option value="1.2">1.2 — Πρώτες Ύλες</option>
+            <option value="1.3">1.3 — Παράγωγα αγαθά</option>
+            <option value="2.1">2.1 — Υπηρεσίες</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:20px">
+          <input id="prod-favorite" type="checkbox" style="width:15px;height:15px;accent-color:#1E3A5F" />
+          <label for="prod-favorite" style="font-size:13px;color:#374151;cursor:pointer">Αγαπημένο</label>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="btn-cancel" onclick="document.getElementById('modal-product').classList.remove('open')">Άκυρο</button>
+        <button class="btn-confirm" onclick="doSaveProduct()">Αποθήκευση</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Customer -->
+  <div id="modal-customer" class="modal-overlay">
+    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+      <div class="modal-head">
+        <div class="modal-title" id="customer-modal-title">Νέος Αγοραστής</div>
+        <button class="modal-close" onclick="document.getElementById('modal-customer').classList.remove('open')">✕</button>
+      </div>
+      <input type="hidden" id="cust-id" />
+      <div class="grid-2" style="gap:12px">
+        <div style="grid-column:1/-1"><label class="form-label">Επωνυμία / Ονοματεπώνυμο *</label><input id="cust-name" class="form-input" /></div>
+        <div><label class="form-label">ΑΦΜ (για Β2Β)</label><input id="cust-afm" class="form-input" maxlength="9" /></div>
+        <div><label class="form-label">Διακριτικός Τίτλος</label><input id="cust-trade_name" class="form-input" /></div>
+        <div><label class="form-label">Διεύθυνση</label><input id="cust-address" class="form-input" /></div>
+        <div><label class="form-label">Πόλη</label><input id="cust-city" class="form-input" /></div>
+        <div><label class="form-label">Τ.Κ.</label><input id="cust-postal_code" class="form-input" maxlength="5" /></div>
+        <div><label class="form-label">Τηλέφωνο</label><input id="cust-phone" class="form-input" /></div>
+        <div><label class="form-label">Email</label><input id="cust-email" class="form-input" type="email" /></div>
+        <div>
+          <label class="form-label">Τρόπος Πληρωμής</label>
+          <select id="cust-payment" class="form-input">
+            <option value="cash">Μετρητά</option>
+            <option value="bank">Τραπεζική Μεταφορά</option>
+            <option value="check">Επιταγή</option>
+            <option value="credit">Πίστωση</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:20px">
+          <input id="cust-favorite" type="checkbox" style="width:15px;height:15px;accent-color:#1E3A5F" />
+          <label for="cust-favorite" style="font-size:13px;color:#374151;cursor:pointer">Αγαπημένος</label>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="btn-cancel" onclick="document.getElementById('modal-customer').classList.remove('open')">Άκυρο</button>
+        <button class="btn-confirm" onclick="doSaveCustomer()">Αποθήκευση</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    requireAuth();
+
+    const bizId = new URLSearchParams(location.search).get('id');
+    if (!bizId) { window.location.href = 'dashboard.html'; }
+
+    let currentTab = 'general';
+    let invoicePage = 1;
+    let custPage = 1;
+    let invSearchTimer = null;
+    let custSearchTimer = null;
+
+    // ── Boot ──
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadOverview();
+      await loadProfileData();
+    });
+
+    // ── Tab switching ──
+    const TAB_IDS = ['general','mydata','invoices','products','customers','settings'];
+
+    async function switchTab(tab) {
+      currentTab = tab;
+      TAB_IDS.forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? '' : 'none';
+        document.getElementById(`tab-btn-${t}`).classList.toggle('active', t === tab);
+      });
+
+      if (tab === 'general'   && !document.getElementById('p-name').value) await loadProfileData();
+      if (tab === 'mydata'    && !document.getElementById('m-mydata_user_id').value) await loadMydataData();
+      if (tab === 'invoices'  && document.getElementById('invoices-table').querySelector('.spinner')) { await loadSeries(); await loadInvoices(); }
+      if (tab === 'products'  && document.getElementById('products-list').querySelector('.spinner')) await loadProducts();
+      if (tab === 'customers' && document.getElementById('customers-list').querySelector('.spinner')) await loadCustomers();
+      if (tab === 'settings'  && !document.getElementById('s-default_due_days').value && document.getElementById('s-default_due_days').value !== '0') await loadSettingsData();
+    }
+
+    // ── Overview ──
+    async function loadOverview() {
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}`);
+        const { business: b, stats: s } = res.data;
+
+        document.getElementById('biz-name').textContent = b.name;
+        document.getElementById('biz-afm').textContent  = `ΑΦΜ: ${b.afm}`;
+        const statusEl = document.getElementById('biz-status');
+        statusEl.style.display = 'inline-flex';
+        const isActive = b.is_active && !b.is_suspended;
+        const dotColor = b.is_suspended ? '#EF4444' : isActive ? '#16A34A' : '#9CA3AF';
+        const lbl      = b.is_suspended ? 'Ανεσταλμένο' : isActive ? 'Ενεργό' : 'Ανενεργό';
+        statusEl.innerHTML = `<span class="dot" style="background:${dotColor}"></span>${lbl}`;
+
+        document.getElementById('overview-stats').innerHTML = [
+          { label:'Παραστατικά',  value: s.total_invoices || 0, cls:'#1D4ED8' },
+          { label:'Μεταδόθηκαν', value: s.transmitted    || 0, cls:'#15803D' },
+          { label:'Αποτυχίες',   value: s.failed         || 0, cls:'#B91C1C' },
+          { label:'Έσοδα Μήνα',  value: fmtMoney(s.monthly_revenue), cls:'#92400E' },
+        ].map(x => `
+          <div class="stat-mini">
+            <div class="stat-mini-val" style="color:${x.cls}">${x.value}</div>
+            <div class="stat-mini-lbl">${x.label}</div>
+          </div>`).join('');
+
+        return res.data;
+      } catch (e) {
+        toast('Σφάλμα φόρτωσης: ' + e.message, 'error');
+      }
+    }
+
+    // ── Profile ──
+    async function loadProfileData() {
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}`);
+        const b = res.data.business;
+        const fields = ['name','trade_name','afm','doy','address','city','postal_code','phone','email','vat_regime','activity_code','accountant_name','accountant_email','accountant_phone'];
+        fields.forEach(f => setVal(`p-${f}`, b[f]));
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function saveProfile() {
+      const data = {};
+      ['name','trade_name','doy','address','city','postal_code','phone','email','vat_regime','activity_code','accountant_name','accountant_email','accountant_phone']
+        .forEach(f => { data[f] = document.getElementById(`p-${f}`)?.value?.trim() || null; });
+      try {
+        await api.patch(`/accountant/clients/${bizId}/profile`, data);
+        document.getElementById('biz-name').textContent = data.name || '';
+        toast('Τα στοιχεία αποθηκεύτηκαν!', 'success');
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── myDATA ──
+    async function loadMydataData() {
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}`);
+        const b = res.data.business;
+        ['mydata_user_id','mydata_subscription_key','provider_name','provider_api_url','provider_api_key','provider_username','provider_password']
+          .forEach(f => setVal(`m-${f}`, b[f]));
+        // GSIS
+        setVal('g-gsis_username', b.gsis_username || '');
+        // Show placeholder if password already saved
+        const pwEl = document.getElementById('g-gsis_password');
+        if (pwEl) pwEl.placeholder = b.gsis_password ? '●●●●●●●● (αποθηκευμένος)' : '••••••••';
+        // Show status badge if already configured
+        if (b.gsis_username && b.gsis_password) showGsisStatus('configured');
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function saveMydata() {
+      const data = {};
+      ['mydata_user_id','mydata_subscription_key','provider_name','provider_api_url','provider_api_key','provider_username','provider_password']
+        .forEach(f => { const v = document.getElementById(`m-${f}`)?.value?.trim(); if (v !== undefined) data[f] = v || null; });
+      try {
+        await api.patch(`/accountant/clients/${bizId}/mydata`, data);
+        toast('Ρυθμίσεις myDATA αποθηκεύτηκαν!', 'success');
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── GSIS ──
+    function toggleGsisPw() {
+      const inp = document.getElementById('g-gsis_password');
+      const eye = document.getElementById('gsis-pw-eye');
+      if (!inp) return;
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      eye.className = inp.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+    }
+
+    function showGsisStatus(state, msg) {
+      const row = document.getElementById('gsis-status-row');
+      const el  = document.getElementById('gsis-status');
+      if (!row || !el) return;
+      row.style.display = '';
+      const states = {
+        configured: { bg:'#F0FDF4', color:'#15803D', border:'#BBF7D0', icon:'fa-circle-check', text: msg || 'Έχει ρυθμιστεί' },
+        ok:         { bg:'#F0FDF4', color:'#15803D', border:'#BBF7D0', icon:'fa-circle-check', text: msg || 'Σύνδεση επιτυχής' },
+        error:      { bg:'#FEF2F2', color:'#B91C1C', border:'#FECACA', icon:'fa-circle-xmark', text: msg || 'Αποτυχία σύνδεσης' },
+        testing:    { bg:'#EFF6FF', color:'#1D4ED8', border:'#BFDBFE', icon:'fa-spinner fa-spin', text: 'Έλεγχος σύνδεσης…' },
+      };
+      const s = states[state] || states.error;
+      el.style.cssText = `display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:${s.bg};color:${s.color};border:1px solid ${s.border}`;
+      el.innerHTML = `<i class="fa-solid ${s.icon}"></i> ${s.text}`;
+    }
+
+    async function saveGsisSettings() {
+      const username = document.getElementById('g-gsis_username').value.trim();
+      const password = document.getElementById('g-gsis_password').value;
+      if (!username) { toast('Εισάγετε το όνομα χρήστη TaxisNet.', 'warning'); return; }
+      const btn = document.getElementById('btn-save-gsis');
+      btn.disabled = true;
+      const payload = { gsis_username: username };
+      if (password) payload.gsis_password = password;
+      try {
+        await api.patch(`/accountant/clients/${bizId}/gsis`, payload);
+        toast('Τα στοιχεία ΓΓΠΣ αποθηκεύτηκαν!', 'success');
+        document.getElementById('g-gsis_password').value = '';
+        document.getElementById('g-gsis_password').placeholder = '●●●●●●●● (αποθηκευμένος)';
+        showGsisStatus('configured');
+      } catch (e) {
+        toast('Σφάλμα: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function testGsis() {
+      const username = document.getElementById('g-gsis_username').value.trim();
+      const password = document.getElementById('g-gsis_password').value;
+      if (!username) { toast('Εισάγετε το όνομα χρήστη πριν τη δοκιμή.', 'warning'); return; }
+      const btn = document.getElementById('btn-test-gsis');
+      btn.disabled = true;
+      showGsisStatus('testing');
+      try {
+        // Test by doing a lookup of a known valid AFM (Δ.ΟΥ. ΑΘΗΝΩΝ — 090102677)
+        const res = await api.get(`/accountant/clients/${bizId}/gsis/test`, {
+          username: username || undefined,
+          password: password || undefined,
+        });
+        showGsisStatus('ok', res.data?.message || 'Σύνδεση επιτυχής');
+      } catch (e) {
+        showGsisStatus('error', e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Invoice Series ──
+    async function loadSeries() {
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}/invoice-series`);
+        const rows = res.data || [];
+        const el = document.getElementById('series-list');
+        if (!rows.length) { el.innerHTML = '<div class="state-box">Δεν υπάρχουν σειρές. Προσθέστε μία.</div>'; return; }
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr>
+            <th>Σειρά</th><th>Τύπος</th><th>Αρίθμηση</th><th>Προεπιλ.</th>
+          </tr></thead>
+          <tbody>${rows.map(s => `
+            <tr>
+              <td style="font-weight:700;color:#1E3A5F">${s.series}</td>
+              <td class="mono">${s.invoice_type || '1.1'}</td>
+              <td>#${s.current_number}</td>
+              <td>${s.is_default ? '<span class="pill pill-green">Προεπιλ.</span>' : ''}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`;
+      } catch (e) { toast('Σφάλμα φόρτωσης σειρών: ' + e.message, 'error'); }
+    }
+
+    function openSeriesModal() {
+      ['ser-code','ser-desc'].forEach(id => setVal(id,''));
+      document.getElementById('ser-type').value = '1.1';
+      document.getElementById('ser-default').checked = false;
+      document.getElementById('modal-series').classList.add('open');
+      setTimeout(() => document.getElementById('ser-code').focus(), 50);
+    }
+
+    async function doAddSeries() {
+      const series = document.getElementById('ser-code').value.trim().toUpperCase();
+      if (!series) { toast('Εισάγετε κωδικό σειράς.', 'warning'); return; }
+      try {
+        await api.post(`/accountant/clients/${bizId}/invoice-series`, {
+          series,
+          description:  document.getElementById('ser-desc').value.trim() || null,
+          invoice_type: document.getElementById('ser-type').value,
+          is_default:   document.getElementById('ser-default').checked,
+        });
+        document.getElementById('modal-series').classList.remove('open');
+        toast('Η σειρά προστέθηκε!', 'success');
+        await loadSeries();
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── Invoices ──
+    async function loadInvoices(page = 1) {
+      invoicePage = page;
+      const search = document.getElementById('inv-search')?.value?.trim() || '';
+      const el = document.getElementById('invoices-table');
+      el.innerHTML = '<div class="state-box"><div class="spinner"></div></div>';
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}/invoices`, { page, limit: 20, search: search || undefined });
+        const rows = res.data || [];
+        if (!rows.length) {
+          el.innerHTML = '<div class="state-box">Δεν βρέθηκαν παραστατικά.</div>';
+          document.getElementById('invoices-pagination').innerHTML = '';
+          return;
+        }
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr>
+            <th>Αριθμός</th><th>Ημ/νία</th><th>Αγοραστής</th><th style="text-align:right">Αξία</th><th>Κατάσταση</th><th>ΜΑΡΚ</th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td style="font-weight:700;color:#1E3A5F">${r.full_number}</td>
+              <td>${fmtDate(r.issue_date)}</td>
+              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.customer_name || '—'}</td>
+              <td style="text-align:right;font-weight:600">${fmtMoney(r.total_value)}</td>
+              <td>${statusBadge(r.status)}</td>
+              <td class="mono" style="color:#9CA3AF">${r.mydata_mark || '—'}</td>
+            </tr>`).join('')}
+          </tbody></table></div>`;
+        renderInvPagination(page, res.total, 20, search);
+      } catch (e) {
+        el.innerHTML = `<div class="state-box" style="color:#B91C1C">${e.message}</div>`;
+      }
+    }
+
+    function filterInvoices(v) {
+      clearTimeout(invSearchTimer);
+      invSearchTimer = setTimeout(() => loadInvoices(1), 350);
+    }
+
+    function renderInvPagination(page, total, limit, search) {
+      const totalPages = Math.ceil(total / limit);
+      const pg = document.getElementById('invoices-pagination');
+      if (totalPages <= 1) { pg.innerHTML = ''; return; }
+      const btn = (l, p, active, disabled) => {
+        const cls = active ? 'active' : '';
+        return `<button ${disabled?'disabled':`onclick="loadInvoices(${p})"`} class="pg-btn ${cls}">${l}</button>`;
+      };
+      pg.innerHTML = btn('‹',page-1,false,page<=1)
+        + Array.from({length:Math.min(totalPages,7)},(_,i)=>btn(i+1,i+1,i+1===page,false)).join('')
+        + btn('›',page+1,false,page>=totalPages);
+    }
+
+    // ── Products ──
+    async function loadProducts() {
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}/products`);
+        const rows = res.data || [];
+        const el = document.getElementById('products-list');
+        if (!rows.length) {
+          el.innerHTML = '<div class="state-box">Δεν υπάρχουν είδη. Προσθέστε το πρώτο.</div>'; return;
+        }
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr>
+            <th>Είδος</th><th>Μον.</th><th style="text-align:right">Τιμή</th><th>ΦΠΑ</th><th>myDATA</th><th></th>
+          </tr></thead>
+          <tbody>${rows.map(r => {
+            const prodData = encodeURIComponent(JSON.stringify(r));
+            return `<tr>
+              <td><span style="font-weight:600">${r.is_favorite ? '★ ' : ''}${r.name}</span>${r.code ? ` <span style="font-size:11px;color:#9CA3AF">${r.code}</span>` : ''}</td>
+              <td>${r.unit}</td>
+              <td style="text-align:right;font-weight:600">${r.default_price ? fmtMoney(r.default_price) : '—'}</td>
+              <td><span class="pill pill-blue">${r.vat_rate}%</span></td>
+              <td style="font-size:11px;color:#6B7280">${r.income_category || '—'}</td>
+              <td>
+                <div class="tbl-actions">
+                  <button onclick="editProductById('${r.id}')" class="btn-tbl btn-tbl-edit">Επεξ.</button>
+                  <button onclick="deleteProduct('${r.id}')" class="btn-tbl btn-tbl-del">Διαγρ.</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>`;
+        // Store products for edit lookup
+        window._products = rows;
+      } catch (e) { document.getElementById('products-list').innerHTML = `<div class="state-box" style="color:#B91C1C">${e.message}</div>`; }
+    }
+
+    function openProductModal(prod = null) {
+      document.getElementById('product-modal-title').textContent = prod ? 'Επεξεργασία Είδους' : 'Νέο Είδος';
+      setVal('prod-id',   prod?.id   || '');
+      setVal('prod-name', prod?.name || '');
+      setVal('prod-code', prod?.code || '');
+      document.getElementById('prod-unit').value = prod?.unit || 'KG';
+      setVal('prod-price', prod?.default_price || '');
+      document.getElementById('prod-vat').value = String(prod?.vat_rate ?? 13);
+      document.getElementById('prod-category').value = prod?.income_category || 'E3_561_001';
+      document.getElementById('prod-income_type').value = prod?.income_type || '1.1';
+      document.getElementById('prod-favorite').checked = !!prod?.is_favorite;
+      document.getElementById('modal-product').classList.add('open');
+      setTimeout(() => document.getElementById('prod-name').focus(), 50);
+    }
+
+    function editProductById(id) {
+      const prod = (window._products || []).find(p => p.id === id);
+      openProductModal(prod || null);
+    }
+
+    async function doSaveProduct() {
+      const id   = document.getElementById('prod-id').value;
+      const data = {
+        name:            document.getElementById('prod-name').value.trim(),
+        code:            document.getElementById('prod-code').value.trim() || null,
+        unit:            document.getElementById('prod-unit').value,
+        default_price:   parseFloat(document.getElementById('prod-price').value) || null,
+        vat_rate:        parseInt(document.getElementById('prod-vat').value),
+        income_category: document.getElementById('prod-category').value,
+        income_type:     document.getElementById('prod-income_type').value,
+        is_favorite:     document.getElementById('prod-favorite').checked ? 1 : 0,
+      };
+      if (!data.name) { toast('Το όνομα είναι υποχρεωτικό.', 'warning'); return; }
+      try {
+        if (id) {
+          await api.put(`/accountant/clients/${bizId}/products/${id}`, data);
+          toast('Το είδος ενημερώθηκε!', 'success');
+        } else {
+          await api.post(`/accountant/clients/${bizId}/products`, data);
+          toast('Το είδος προστέθηκε!', 'success');
+        }
+        document.getElementById('modal-product').classList.remove('open');
+        await loadProducts();
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function deleteProduct(id) {
+      if (!await confirmDialog('Διαγραφή Είδους', 'Θέλετε σίγουρα να διαγράψετε αυτό το είδος;', true)) return;
+      try {
+        await api.delete(`/accountant/clients/${bizId}/products/${id}`);
+        toast('Το είδος διαγράφηκε.', 'success');
+        await loadProducts();
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── Customers ──
+    async function loadCustomers(page = 1, search = '') {
+      if (typeof page !== 'number') { search = document.getElementById('cust-search')?.value?.trim() || ''; page = 1; }
+      custPage = page;
+      clearTimeout(custSearchTimer);
+      const el = document.getElementById('customers-list');
+      el.innerHTML = '<div class="state-box"><div class="spinner"></div></div>';
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}/customers`, { page, limit: 30, search: search || undefined });
+        const rows = res.data || [];
+        if (!rows.length) {
+          el.innerHTML = '<div class="state-box">Δεν βρέθηκαν αγοραστές.</div>';
+          document.getElementById('customers-pagination').innerHTML = '';
+          return;
+        }
+        // Store for edit
+        window._customers = rows;
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr>
+            <th>Αγοραστής</th><th>ΑΦΜ</th><th>Πόλη</th><th>Τηλ.</th><th style="text-align:right">Παραστ.</th><th></th>
+          </tr></thead>
+          <tbody>${rows.map(r => `
+            <tr>
+              <td style="font-weight:600">${r.is_favorite ? '★ ' : ''}${r.name}</td>
+              <td class="mono">${r.afm || '—'}</td>
+              <td style="color:#6B7280">${r.city || '—'}</td>
+              <td style="color:#6B7280">${r.phone || '—'}</td>
+              <td style="text-align:right;font-weight:600">${r.total_invoices || 0}</td>
+              <td>
+                <div class="tbl-actions">
+                  <button onclick="editCustomerById('${r.id}')" class="btn-tbl btn-tbl-edit">Επεξ.</button>
+                  <button onclick="deleteCustomer('${r.id}')" class="btn-tbl btn-tbl-del">Διαγρ.</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody></table></div>`;
+        renderCustPagination(page, res.total, 30, search);
+      } catch (e) { el.innerHTML = `<div class="state-box" style="color:#B91C1C">${e.message}</div>`; }
+    }
+
+    function renderCustPagination(page, total, limit, search) {
+      const totalPages = Math.ceil(total / limit);
+      const pg = document.getElementById('customers-pagination');
+      if (totalPages <= 1) { pg.innerHTML = ''; return; }
+      const btn = (l,p,active,disabled) =>
+        `<button ${disabled?'disabled':`onclick="loadCustomers(${p},'${search}')"`} class="pg-btn ${active?'active':''}">${l}</button>`;
+      pg.innerHTML = btn('‹',page-1,false,page<=1)
+        + Array.from({length:Math.min(totalPages,7)},(_,i)=>btn(i+1,i+1,i+1===page,false)).join('')
+        + btn('›',page+1,false,page>=totalPages);
+    }
+
+    function openCustomerModal(cust = null) {
+      document.getElementById('customer-modal-title').textContent = cust ? 'Επεξεργασία Αγοραστή' : 'Νέος Αγοραστής';
+      setVal('cust-id',         cust?.id         || '');
+      setVal('cust-name',       cust?.name       || '');
+      setVal('cust-afm',        cust?.afm        || '');
+      setVal('cust-trade_name', cust?.trade_name || '');
+      setVal('cust-address',    cust?.address    || '');
+      setVal('cust-city',       cust?.city       || '');
+      setVal('cust-postal_code',cust?.postal_code|| '');
+      setVal('cust-phone',      cust?.phone      || '');
+      setVal('cust-email',      cust?.email      || '');
+      document.getElementById('cust-payment').value = cust?.default_payment_method || 'cash';
+      document.getElementById('cust-favorite').checked = !!cust?.is_favorite;
+      document.getElementById('modal-customer').classList.add('open');
+      setTimeout(() => document.getElementById('cust-name').focus(), 50);
+    }
+
+    function editCustomerById(id) {
+      const cust = (window._customers || []).find(c => c.id === id);
+      openCustomerModal(cust || null);
+    }
+
+    async function doSaveCustomer() {
+      const id = document.getElementById('cust-id').value;
+      const data = {
+        name:                   document.getElementById('cust-name').value.trim(),
+        afm:                    document.getElementById('cust-afm').value.trim()  || null,
+        trade_name:             document.getElementById('cust-trade_name').value.trim() || null,
+        address:                document.getElementById('cust-address').value.trim() || null,
+        city:                   document.getElementById('cust-city').value.trim()   || null,
+        postal_code:            document.getElementById('cust-postal_code').value.trim() || null,
+        phone:                  document.getElementById('cust-phone').value.trim() || null,
+        email:                  document.getElementById('cust-email').value.trim() || null,
+        default_payment_method: document.getElementById('cust-payment').value,
+        is_favorite:            document.getElementById('cust-favorite').checked ? 1 : 0,
+      };
+      if (!data.name) { toast('Το όνομα είναι υποχρεωτικό.', 'warning'); return; }
+      try {
+        if (id) {
+          await api.put(`/accountant/clients/${bizId}/customers/${id}`, data);
+          toast('Ο αγοραστής ενημερώθηκε!', 'success');
+        } else {
+          await api.post(`/accountant/clients/${bizId}/customers`, data);
+          toast('Ο αγοραστής προστέθηκε!', 'success');
+        }
+        document.getElementById('modal-customer').classList.remove('open');
+        await loadCustomers(custPage);
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function deleteCustomer(id) {
+      if (!await confirmDialog('Διαγραφή Αγοραστή', 'Θέλετε σίγουρα να διαγράψετε αυτόν τον αγοραστή;', true)) return;
+      try {
+        await api.delete(`/accountant/clients/${bizId}/customers/${id}`);
+        toast('Ο αγοραστής διαγράφηκε.', 'success');
+        await loadCustomers(custPage);
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── Settings ──
+    async function loadSettingsData() {
+      try {
+        const res = await api.get(`/accountant/clients/${bizId}`);
+        const s = res.data.settings || {};
+        setVal('s-default_due_days', s.default_due_days ?? '');
+        document.getElementById('s-auto_transmit').checked = !!s.auto_transmit;
+        setVal('s-invoice_footer', s.invoice_footer || '');
+        setVal('s-smtp_host',       s.smtp_host       || '');
+        setVal('s-smtp_port',       s.smtp_port       || '');
+        setVal('s-smtp_user',       s.smtp_user       || '');
+        setVal('s-smtp_from_name',  s.smtp_from_name  || '');
+        setVal('s-smtp_from_email', s.smtp_from_email || '');
+        document.getElementById('s-smtp_secure').checked   = !!s.smtp_secure;
+        document.getElementById('s-email_enabled').checked = !!s.email_enabled;
+        document.getElementById('s-sms_provider').value    = s.sms_provider || '';
+        setVal('s-sms_api_key',    s.sms_api_key    || '');
+        setVal('s-sms_api_secret', s.sms_api_secret || '');
+        setVal('s-sms_from', s.sms_from || '');
+        document.getElementById('s-sms_enabled').checked = !!s.sms_enabled;
+      } catch (e) { toast('Σφάλμα φόρτωσης ρυθμίσεων: ' + e.message, 'error'); }
+    }
+
+    async function saveInvoiceSettings() {
+      try {
+        await api.patch(`/accountant/clients/${bizId}/invoice-settings`, {
+          default_due_days: parseInt(document.getElementById('s-default_due_days').value) || 0,
+          auto_transmit:    document.getElementById('s-auto_transmit').checked ? 1 : 0,
+          invoice_footer:   document.getElementById('s-invoice_footer').value.trim() || null,
+        });
+        toast('Ρυθμίσεις παραστατικών αποθηκεύτηκαν!', 'success');
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function saveEmailSettings() {
+      try {
+        await api.patch(`/accountant/clients/${bizId}/email-settings`, {
+          smtp_host:       document.getElementById('s-smtp_host').value.trim()       || null,
+          smtp_port:       parseInt(document.getElementById('s-smtp_port').value)    || null,
+          smtp_user:       document.getElementById('s-smtp_user').value.trim()       || null,
+          smtp_pass:       document.getElementById('s-smtp_pass').value              || null,
+          smtp_from_name:  document.getElementById('s-smtp_from_name').value.trim()  || null,
+          smtp_from_email: document.getElementById('s-smtp_from_email').value.trim() || null,
+          smtp_secure:     document.getElementById('s-smtp_secure').checked  ? 1 : 0,
+          email_enabled:   document.getElementById('s-email_enabled').checked ? 1 : 0,
+        });
+        toast('Ρυθμίσεις email αποθηκεύτηκαν!', 'success');
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    async function saveSmsSettings() {
+      try {
+        await api.patch(`/accountant/clients/${bizId}/sms-settings`, {
+          sms_provider:   document.getElementById('s-sms_provider').value || null,
+          sms_api_key:    document.getElementById('s-sms_api_key').value  || null,
+          sms_api_secret: document.getElementById('s-sms_api_secret').value || null,
+          sms_from:       document.getElementById('s-sms_from').value.trim() || null,
+          sms_enabled:    document.getElementById('s-sms_enabled').checked ? 1 : 0,
+        });
+        toast('Ρυθμίσεις SMS αποθηκεύτηκαν!', 'success');
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── Remove client ──
+    async function removeClient() {
+      if (!await confirmDialog('Αφαίρεση Πελάτη', 'Η επιχείρηση θα αφαιρεθεί από τη λίστα πελατών σας. Τα δεδομένα δεν διαγράφονται.', true)) return;
+      try {
+        await api.delete(`/accountant/clients/${bizId}`);
+        toast('Ο πελάτης αφαιρέθηκε.', 'success');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+      } catch (e) { toast('Σφάλμα: ' + e.message, 'error'); }
+    }
+
+    // ── Helpers ──
+    function fmtMoney(v) {
+      if (v == null) return '—';
+      return new Intl.NumberFormat('el-GR', { style:'currency', currency:'EUR' }).format(v);
+    }
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('el-GR');
+    }
+    function statusBadge(s) {
+      const map = {
+        draft:       ['pill-gray',  'Πρόχειρο'],
+        issued:      ['pill-blue',  'Εκδόθηκε'],
+        transmitted: ['pill-green', 'Μεταδόθηκε'],
+        failed:      ['pill-red',   'Αποτυχία'],
+        cancelled:   ['pill-gray',  'Ακυρώθηκε'],
+      };
+      const [cls, lbl] = map[s] || ['pill-gray', s || '—'];
+      return `<span class="pill ${cls}">${lbl}</span>`;
+    }
+    function setVal(id, v) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === 'SELECT') el.value = v || '';
+      else el.value = v || '';
+    }
+
+    // ── Keyboard ──
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        ['modal-series','modal-product','modal-customer'].forEach(id => {
+          document.getElementById(id).classList.remove('open');
+        });
+      }
+    });
+    ['modal-series','modal-product','modal-customer'].forEach(id => {
+      document.getElementById(id).addEventListener('click', e => {
+        if (e.target.id === id) document.getElementById(id).classList.remove('open');
+      });
+    });
+  </script>
+
+<!-- ── COMING SOON OVERLAY ────────────────────────────────────────────── -->
+<div id="coming-soon-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0a3042 0%,#0d4a60 45%,#092b36 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+  <div style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);border-radius:28px;padding:40px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="font-size:52px;margin-bottom:16px">🚧</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:.5px">Σύντομα Κοντά Σας</div>
+    <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px">Η <strong style="color:#38BEC9">Πύλη Λογιστών</strong> βρίσκεται σε ανάπτυξη.<br>Θα είναι διαθέσιμη σε επόμενη έκδοση της εφαρμογής.<br><br>Για υποστήριξη επικοινωνήστε με τον διαχειριστή.</div>
+    <a href="/fishbill/" style="display:inline-flex;align-items:center;gap:8px;background:rgba(56,190,201,.18);border:1.5px solid rgba(56,190,201,.5);color:#38BEC9;font-size:15px;font-weight:700;padding:12px 28px;border-radius:14px;text-decoration:none;" onmouseover="this.style.background='rgba(56,190,201,.28)'" onmouseout="this.style.background='rgba(56,190,201,.18)'">← Επιστροφή στην Αρχική</a>
+  </div>
+</div>
+</body>
+</html>

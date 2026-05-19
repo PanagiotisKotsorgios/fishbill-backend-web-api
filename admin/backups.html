@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Αντίγραφα Ασφαλείας</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .35s ease-out both; }
+    .stat-card { transition: transform .15s, box-shadow .15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    tbody tr:hover td { background: #f9fafb; }
+    .running-pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Αντίγραφα Ασφαλείας</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Διαχείριση αντιγράφων βάσης δεδομένων</p>
+      </div>
+      <button id="btn-create" onclick="runBackup()"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span id="btn-create-text">Δημιουργία Αντιγράφου</span>
+      </button>
+    </div>
+
+    <!-- Info banner -->
+    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3 anim" style="animation-delay:.05s">
+      <svg class="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>
+        <p class="text-sm font-semibold text-blue-800">Αυτόματα αντίγραφα ασφαλείας</p>
+        <p class="text-sm text-blue-600 mt-0.5">Δημιουργούνται αυτόματα κάθε βράδυ. Μπορείτε επίσης να δημιουργήσετε χειροκίνητα αντίγραφο ασφαλείας οποιαδήποτε στιγμή.</p>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div id="stats-row" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.1s">
+      <!-- populated by JS -->
+      <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse"><div class="h-3 bg-gray-100 rounded w-2/3 mb-3"></div><div class="h-7 bg-gray-100 rounded w-1/2"></div></div>
+      <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse"><div class="h-3 bg-gray-100 rounded w-2/3 mb-3"></div><div class="h-7 bg-gray-100 rounded w-1/2"></div></div>
+      <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse"><div class="h-3 bg-gray-100 rounded w-2/3 mb-3"></div><div class="h-7 bg-gray-100 rounded w-1/2"></div></div>
+      <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse"><div class="h-3 bg-gray-100 rounded w-2/3 mb-3"></div><div class="h-7 bg-gray-100 rounded w-1/2"></div></div>
+    </div>
+
+    <!-- Table card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden anim" style="animation-delay:.15s">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <h2 class="text-base font-bold text-gray-900">Ιστορικό Αντιγράφων</h2>
+        <button onclick="loadBackups(currentPage)"
+          class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Ανανέωση
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 bg-gray-50/40">
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Αρχείο</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden sm:table-cell">Μέγεθος</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Τύπος</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Κατάσταση</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Έναρξη</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Διάρκεια</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">Ενέργειες</th>
+            </tr>
+          </thead>
+          <tbody id="backups-body">
+            <tr><td colspan="7" class="py-16 text-center text-gray-400 text-sm">Φόρτωση...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="backups-pagination"></div>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/page.js"></script>
+<script>
+  initPage({ requireRole: 'super_admin' });
+
+  let currentPage = 1;
+  let LIMIT       = 25;
+  let autoRefreshTimer = null;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '—';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), 3);
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  }
+
+  function formatDuration(startedAt, finishedAt) {
+    if (!startedAt || !finishedAt) return '—';
+    const ms = new Date(finishedAt) - new Date(startedAt);
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────────
+  function renderStats(backups) {
+    const total     = backups.length;
+    const completed = backups.filter(b => b.status === 'completed' || b.status === 'success').length;
+    const failed    = backups.filter(b => b.status === 'failed' || b.status === 'error').length;
+    const running   = backups.filter(b => b.status === 'running' || b.status === 'pending').length;
+
+    const latest = backups.find(b => b.status === 'completed' || b.status === 'success');
+    const latestDate = latest ? fmtDate(latest.created_at || latest.startedAt || latest.createdAt) : '—';
+
+    const statCard = (icon, label, value, cls = 'text-gray-900') => `
+      <div class="stat-card bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-lg">${icon}</span>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">${label}</p>
+        </div>
+        <p class="text-2xl font-bold ${cls}">${value}</p>
+      </div>`;
+
+    document.getElementById('stats-row').innerHTML =
+      statCard('<i class="fas fa-database text-blue-600"></i>', 'Σύνολο', total) +
+      statCard('<i class="fas fa-circle-check text-emerald-600"></i>', 'Επιτυχή', completed, 'text-emerald-600') +
+      statCard('<i class="fas fa-circle-xmark text-red-500"></i>', 'Αποτυχίες', failed, failed > 0 ? 'text-red-600' : 'text-gray-900') +
+      statCard('<i class="fas fa-calendar-check text-blue-600"></i>', 'Τελευταίο', latestDate, 'text-blue-600 text-lg');
+  }
+
+  // ── Load backups ─────────────────────────────────────────────────────────────
+  async function loadBackups(page = 1) {
+    currentPage = page;
+    const tbody = document.getElementById('backups-body');
+    tbody.innerHTML = '<tr><td colspan="7" class="py-12 text-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></td></tr>';
+
+    try {
+      const res = await api.get(`/backups?page=${page}&limit=${LIMIT}`);
+      const backups = res.data || res.backups || res || [];
+      const total   = res.total || backups.length;
+
+      if (!backups.length) {
+        showEmpty('backups-body', 'Δεν υπάρχουν αντίγραφα ασφαλείας ακόμα', '<i class="fas fa-database"></i>');
+        document.getElementById('backups-pagination').innerHTML = '';
+        if (page === 1) renderStats([]);
+        return;
+      }
+
+      if (page === 1) renderStats(backups);
+
+      const hasRunning = backups.some(b => b.status === 'running' || b.status === 'pending');
+      scheduleAutoRefresh(hasRunning);
+
+      tbody.innerHTML = backups.map(b => {
+        const isRunning   = b.status === 'running' || b.status === 'pending';
+        const isCompleted = b.status === 'completed' || b.status === 'success';
+        const filename    = b.filename || b.fileName || b.file_name || `backup_${b.id}`;
+        const createdAt   = b.created_at || b.createdAt || b.startedAt || b.started_at;
+        const finishedAt  = b.finished_at || b.finishedAt;
+
+        const exportedAt = b.exported_at || createdAt;
+        const dlBtn = isCompleted
+          ? `<div class="flex items-center gap-1">
+              <button onclick="downloadBackup('${b.id}','${filename}')" title="Λήψη"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span class="hidden sm:inline">Λήψη</span>
+              </button>
+              <button onclick="restoreBackup('${b.id}','${filename}','${exportedAt}')" title="Επαναφορά"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-amber-600 hover:bg-amber-50 transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span class="hidden sm:inline">Επαναφορά</span>
+              </button>
+            </div>`
+          : `<span class="text-xs text-gray-300">—</span>`;
+
+        return `<tr class="border-b border-gray-50">
+          <td class="px-5 py-3">
+            <span class="font-mono text-xs text-gray-700 ${isRunning ? 'running-pulse' : ''}">${filename}</span>
+          </td>
+          <td class="px-5 py-3 hidden sm:table-cell text-xs text-gray-600">${formatBytes(b.size || b.fileSize || b.file_size)}</td>
+          <td class="px-5 py-3 hidden md:table-cell">
+            <span class="text-xs text-gray-500 capitalize">${b.type || 'full'}</span>
+          </td>
+          <td class="px-5 py-3">${statusBadge(b.status)}</td>
+          <td class="px-5 py-3 hidden lg:table-cell text-xs text-gray-500 whitespace-nowrap">${fmtDateTime(createdAt)}</td>
+          <td class="px-5 py-3 hidden lg:table-cell text-xs text-gray-500">${formatDuration(createdAt, finishedAt)}</td>
+          <td class="px-5 py-3">${dlBtn}</td>
+        </tr>`;
+      }).join('');
+
+      renderPagination('backups-pagination', total, page, LIMIT, 'loadBackups', function(l) { LIMIT = l; loadBackups(1); });
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-red-500 text-sm">Σφάλμα: ${e.message}</td></tr>`;
+    }
+  }
+
+  // ── Auto-refresh while a backup is running ───────────────────────────────────
+  function scheduleAutoRefresh(hasRunning) {
+    clearInterval(autoRefreshTimer);
+    if (hasRunning) {
+      autoRefreshTimer = setInterval(() => loadBackups(currentPage), 5000);
+    }
+  }
+
+  // ── Create backup ────────────────────────────────────────────────────────────
+  async function runBackup() {
+    const ok = await confirmDialog('Δημιουργία Αντιγράφου', 'Θέλετε να δημιουργήσετε νέο αντίγραφο ασφαλείας τώρα;');
+    if (!ok) return;
+
+    const btn  = document.getElementById('btn-create');
+    const text = document.getElementById('btn-create-text');
+    btn.disabled  = true;
+    text.textContent = 'Δημιουργία...';
+
+    try {
+      await api.post('/backups');
+      // Reload after a short delay
+      setTimeout(() => loadBackups(1), 1500);
+    } catch (e) {
+      alert(`Σφάλμα: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+      text.textContent = 'Δημιουργία Αντιγράφου';
+    }
+  }
+
+  // ── Download ─────────────────────────────────────────────────────────────────
+  function downloadBackup(id, filename) {
+    const token = getToken();
+    window.open(`${CONFIG.API_URL}/backups/${id}/download?token=${encodeURIComponent(token)}`, '_blank');
+  }
+
+  // ── Restore ──────────────────────────────────────────────────────────────────
+  async function restoreBackup(id, filename, exportedAt) {
+    const dateStr = exportedAt ? new Date(exportedAt).toLocaleString('el-GR') : filename;
+    const ok = await confirmDialog(
+      '⚠️ Επαναφορά Αντιγράφου',
+      `Αυτή η ενέργεια θα ΑΝΤΙΚΑΤΑΣΤΉΣΕΙ όλα τα δεδομένα (επιχειρήσεις, τιμολόγια, πελάτες, προϊόντα) με τα δεδομένα από:\n\n${dateStr}\n\nΔΕΝ μπορεί να αναιρεθεί. Συνέχεια;`,
+      true
+    );
+    if (!ok) return;
+
+    const btn = document.getElementById('btn-create');
+    btn.disabled = true;
+    try {
+      const res = await api.post(`/backups/${id}/restore`);
+      const d   = res.data;
+      const statsText = Object.entries(d.stats || {})
+        .map(([t, n]) => `${t}: ${n}`)
+        .join(', ');
+      alert(`✅ Επαναφορά ολοκληρώθηκε!\n\nΕπαναφορά από: ${d.restored_from}\nΕγγραφές: ${statsText}`);
+      loadBackups(1);
+    } catch (e) {
+      alert(`❌ Σφάλμα επαναφοράς: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  loadBackups(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Οδηγός Λογιστή | FishBill</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:        #0B7285;
+      --brand-dark:   #0A5568;
+      --brand-deep:   #064050;
+      --accent:       #38BEC9;
+      --accent-light: #e0f7fa;
+      --bg-page:      #f0f5f7;
+      --bg-dark:      #07303D;
+      --white:        #ffffff;
+      --text-primary: #0d2830;
+      --text-muted:   #4a6a76;
+      --border:       #c8dfe5;
+      --border-strong:#9fcad2;
+      --success:      #1a7f52;
+      --success-bg:   #e4f7ef;
+      --warn-color:   #92400e;
+      --warn-bg:      #fef3c7;
+      --info-color:   #075985;
+      --info-bg:      #e0f2fe;
+      --radius-sm:    8px;
+      --radius-md:    14px;
+      --radius-lg:    20px;
+      --shadow-sm:    0 1px 4px rgba(7,48,61,.08);
+      --shadow-md:    0 4px 20px rgba(7,48,61,.10);
+      --shadow-lg:    0 8px 40px rgba(7,48,61,.13);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    /* ───────── TOPBAR ───────── */
+    .topbar {
+      background: var(--bg-dark);
+      border-bottom: 1px solid rgba(56,190,201,.15);
+      padding: 0 32px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: 0 2px 20px rgba(0,0,0,.25);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .topbar-logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 1.5px;
+    }
+    .topbar-divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255,255,255,.15);
+    }
+    .topbar-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border: 1px solid rgba(56,190,201,.35);
+      border-radius: 6px;
+      padding: 3px 10px;
+    }
+
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+    .btn-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .18s;
+    }
+    .btn-nav.ghost {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.9);
+    }
+    .btn-nav.ghost:hover { background: rgba(255,255,255,.16); }
+    .btn-nav.primary {
+      background: var(--accent);
+      border: 1px solid transparent;
+      color: var(--bg-dark);
+      font-weight: 700;
+    }
+    .btn-nav.primary:hover { background: #2aaab5; }
+    .btn-nav i { font-size: 14px; }
+
+    /* ───────── HERO ───────── */
+    .hero {
+      background: linear-gradient(150deg, var(--bg-dark) 0%, #0D4A5C 55%, #0B3D4E 100%);
+      padding: 72px 24px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 120%, rgba(56,190,201,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-logo { margin-bottom: 20px; position: relative; }
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(34px, 5.5vw, 58px);
+      font-weight: 400;
+      color: #fff;
+      line-height: 1.12;
+      margin-bottom: 18px;
+    }
+    .hero h1 em { font-style: italic; color: var(--accent); }
+    .hero p {
+      font-size: clamp(16px, 2.2vw, 19px);
+      color: rgba(255,255,255,.68);
+      max-width: 560px;
+      margin: 0 auto 36px;
+      font-weight: 300;
+    }
+
+    .toc-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .toc-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,.82);
+      text-decoration: none;
+      transition: all .18s;
+    }
+    .toc-item i { font-size: 12px; color: var(--accent); }
+    .toc-item:hover {
+      background: rgba(56,190,201,.18);
+      border-color: rgba(56,190,201,.4);
+      color: #fff;
+    }
+
+    /* ───────── LAYOUT ───────── */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 44px 20px 100px;
+    }
+
+    /* ───────── SECTION CARD ───────── */
+    .guide-section {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow-md);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 100%);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .section-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-icon i { font-size: 22px; color: #fff; }
+    .section-header-text h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 3px;
+      letter-spacing: -.01em;
+    }
+    .section-header-text p { font-size: 13.5px; color: rgba(255,255,255,.65); font-weight: 400; }
+
+    .section-body { padding: 28px; }
+
+    /* ───────── INTRO TEXT ───────── */
+    .lead {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 22px;
+    }
+
+    /* ───────── FEATURE GRID ───────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .feature-card {
+      background: #f7fbfc;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      transition: box-shadow .18s, border-color .18s;
+    }
+    .feature-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-strong);
+    }
+    .fc-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--brand-deep), var(--brand));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    .fc-icon i { font-size: 18px; color: #fff; }
+    .feature-card h3 { font-size: 15px; font-weight: 700; color: var(--brand-dark); margin-bottom: 6px; }
+    .feature-card p  { font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+
+    /* ───────── STEPS ───────── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 18px 0;
+      border-bottom: 1px dashed var(--border);
+      position: relative;
+    }
+    .step:last-child { border-bottom: none; padding-bottom: 0; }
+    .step:first-child { padding-top: 0; }
+    .step-num {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      box-shadow: 0 3px 10px rgba(11,114,133,.25);
+    }
+    .step-content h3 { font-size: 16px; font-weight: 700; color: var(--brand-dark); margin-bottom: 5px; }
+    .step-content p  { font-size: 15px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ───────── INFO BOXES ───────── */
+    .info-box {
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 20px 0;
+      font-size: 15px;
+      line-height: 1.6;
+      border-left-width: 4px;
+      border-left-style: solid;
+    }
+    .info-box i { font-size: 17px; margin-top: 1px; flex-shrink: 0; }
+    .info-box.tip  { background: var(--info-bg);    border-color: var(--brand);   border-left-width: 4px; border-top: 1px solid #b3d9e8; border-right: 1px solid #b3d9e8; border-bottom: 1px solid #b3d9e8; color: var(--info-color); }
+    .info-box.tip i  { color: var(--brand); }
+    .info-box.warn { background: var(--warn-bg);    border-color: #d97706; border-top: 1px solid #fcd34d; border-right: 1px solid #fcd34d; border-bottom: 1px solid #fcd34d; color: var(--warn-color); }
+    .info-box.warn i { color: #d97706; }
+    .info-box.note { background: var(--success-bg); border-color: #059669; border-top: 1px solid #6ee7b7; border-right: 1px solid #6ee7b7; border-bottom: 1px solid #6ee7b7; color: var(--success); }
+    .info-box.note i { color: #059669; }
+
+    /* ───────── TABLE ───────── */
+    .table-wrap {
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 20px;
+    }
+    .guide-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    .guide-table thead tr {
+      background: linear-gradient(135deg, var(--brand-deep), var(--brand));
+    }
+    .guide-table th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: rgba(255,255,255,.9);
+      border-right: 1px solid rgba(255,255,255,.12);
+    }
+    .guide-table th:last-child { border-right: none; }
+    .guide-table td {
+      padding: 14px 18px;
+      border-bottom: 1.5px solid var(--border);
+      border-right: 1.5px solid var(--border);
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+    .guide-table td:last-child { border-right: none; }
+    .guide-table tr:last-child td { border-bottom: none; }
+    .guide-table tbody tr:nth-child(even) td { background: #f7fbfc; }
+    .guide-table tbody tr:hover td { background: #edf7f9; }
+
+    /* ───────── BADGES ───────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .03em;
+      white-space: nowrap;
+    }
+    .badge.blue   { background: rgba(11,114,133,.12); color: var(--brand); border: 1px solid rgba(11,114,133,.25); }
+    .badge.green  { background: var(--success-bg);    color: var(--success);  border: 1px solid #6ee7b7; }
+    .badge.orange { background: var(--warn-bg);       color: #b45309;  border: 1px solid #fcd34d; }
+    .badge.red    { background: #fef2f2;               color: #b91c1c;  border: 1px solid #fca5a5; }
+    .badge i      { font-size: 11px; }
+
+    /* ───────── SECTION LABEL ───────── */
+    .sub-heading {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--brand-dark);
+      margin: 24px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sub-heading::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: var(--brand);
+      border-radius: 2px;
+    }
+
+    /* ───────── FAQ ───────── */
+    .faq-item {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color .18s;
+    }
+    .faq-item:hover { border-color: var(--border-strong); }
+    .faq-item.open  { border-color: var(--brand); }
+
+    .faq-q {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 18px 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      transition: background .15s;
+      user-select: none;
+    }
+    .faq-q:hover { background: #f0f9fa; }
+    .faq-item.open .faq-q { background: #e8f7f9; color: var(--brand-dark); }
+    .faq-chevron {
+      width: 32px;
+      height: 32px;
+      background: var(--accent-light);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform .22s, background .15s;
+    }
+    .faq-chevron i { font-size: 14px; color: var(--brand); }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); background: var(--brand); }
+    .faq-item.open .faq-chevron i { color: #fff; }
+    .faq-a {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease, padding .3s ease;
+      padding: 0 20px;
+      border-top: 0px solid var(--border);
+      background: #f9fdfe;
+    }
+    .faq-a.open {
+      max-height: 300px;
+      padding: 16px 20px;
+      border-top: 1.5px solid var(--border);
+    }
+
+    /* ───────── CTA ───────── */
+    .cta-box {
+      background: linear-gradient(150deg, var(--bg-dark) 0%, #0D4A5C 60%, #0B3D4E 100%);
+      border-radius: var(--radius-lg);
+      border: 1.5px solid rgba(56,190,201,.2);
+      padding: 52px 28px;
+      text-align: center;
+      margin-top: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 200px;
+      background: radial-gradient(ellipse, rgba(56,190,201,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-box h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 400;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .cta-box p  { font-size: 16px; color: rgba(255,255,255,.65); margin-bottom: 32px; font-weight: 300; max-width: 460px; margin-left: auto; margin-right: auto; }
+    .cta-btns { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 12px;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .btn-cta i { font-size: 16px; }
+    .btn-cta.primary {
+      background: var(--accent);
+      color: var(--bg-dark);
+      border: 2px solid transparent;
+      box-shadow: 0 4px 20px rgba(56,190,201,.35);
+    }
+    .btn-cta.primary:hover { background: #2aaab5; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(56,190,201,.4); }
+    .btn-cta.outline {
+      background: transparent;
+      color: #fff;
+      border: 2px solid rgba(255,255,255,.4);
+    }
+    .btn-cta.outline:hover { border-color: #fff; background: rgba(255,255,255,.08); }
+
+    /* ───────── MOBILE ───────── */
+    @media (max-width: 640px) {
+      .topbar { padding: 0 16px; height: 60px; }
+      .topbar-logo-text { font-size: 20px; }
+      .topbar-badge, .topbar-divider { display: none; }
+      .btn-nav span { display: none; }
+      .btn-nav { padding: 9px 12px; }
+      .hero { padding: 52px 16px 44px; }
+      .section-body { padding: 20px 16px; }
+      .section-header { padding: 18px 20px; }
+      .section-header-text h2 { font-size: 19px; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .guide-table { font-size: 13px; }
+      .guide-table th, .guide-table td { padding: 10px 12px; }
+      .main { padding: 28px 12px 80px; }
+      .cta-box { padding: 40px 20px; }
+      .btn-cta { padding: 14px 24px; font-size: 15px; }
+      .step-num { width: 34px; height: 34px; min-width: 34px; font-size: 14px; }
+    }
+    @media (max-width: 420px) {
+      .feature-grid { grid-template-columns: 1fr; }
+      .toc-item { font-size: 12px; padding: 7px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="/fishbill/" class="topbar-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="44" height="29">
+        <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <circle cx="138" cy="60" r="5" fill="#064E60"/>
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+      </svg>
+      <span class="topbar-logo-text">FishBill</span>
+    </a>
+    <div class="topbar-divider"></div>
+    <span class="topbar-badge"><i class="fa-solid fa-user-tie" style="margin-right:5px;font-size:10px"></i>Οδηγός Λογιστή</span>
+  </div>
+  <div class="topbar-actions">
+    <a href="/fishbill/" class="btn-nav ghost">
+      <i class="fa-solid fa-house"></i>
+      <span>Κύρια Σελίδα</span>
+    </a>
+    <a href="index.html" class="btn-nav primary">
+      <i class="fa-solid fa-right-to-bracket"></i>
+      <span>Είσοδος</span>
+    </a>
+  </div>
+</div>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="110" height="73">
+      <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+      <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+      <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+      <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+      <circle cx="138" cy="60" r="5" fill="#064E60"/>
+      <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+    </svg>
+  </div>
+  <p class="hero-eyebrow"><i class="fa-solid fa-book-open" style="margin-right:6px"></i>Πλήρης Τεκμηρίωση</p>
+  <h1>Οδηγός Χρήσης<br><em>Πύλης Λογιστών</em></h1>
+  <p>Πλήρης οδηγός για τη διαχείριση πελατών, παραστατικών και ρυθμίσεων μέσω της Πύλης Λογιστών FishBill.</p>
+  <nav class="toc-nav">
+    <a href="#sec-start"        class="toc-item"><i class="fa-solid fa-rocket"></i> Ξεκινήστε</a>
+    <a href="#sec-clients"      class="toc-item"><i class="fa-solid fa-users"></i> Πελάτες</a>
+    <a href="#sec-invoices"     class="toc-item"><i class="fa-solid fa-file-invoice"></i> Παραστατικά</a>
+    <a href="#sec-products"     class="toc-item"><i class="fa-solid fa-fish"></i> Είδη</a>
+    <a href="#sec-analytics"    class="toc-item"><i class="fa-solid fa-chart-line"></i> Αναφορές</a>
+    <a href="#sec-settings"     class="toc-item"><i class="fa-solid fa-gear"></i> Ρυθμίσεις</a>
+    <a href="#sec-verification" class="toc-item"><i class="fa-solid fa-shield-check"></i> Επαλήθευση</a>
+    <a href="#sec-faq"          class="toc-item"><i class="fa-solid fa-circle-question"></i> Συχνές Ερωτήσεις</a>
+  </nav>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- OVERVIEW -->
+  <div class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="section-header-text">
+        <h2>Τι είναι η Πύλη Λογιστών;</h2>
+        <p>Επισκόπηση του συστήματος και των δυνατοτήτων του</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <p class="lead">
+        Η Πύλη Λογιστών του FishBill σας επιτρέπει να διαχειρίζεστε κεντρικά τους πελάτες σας — ψαράδες και αλιευτικές επιχειρήσεις — χωρίς να χρειάζεστε πρόσβαση στον λογαριασμό τους. Έχετε ξεχωριστό λογαριασμό λογιστή που συνδέεται με τις επιχειρήσεις που διαχειρίζεστε.
+      </p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-users"></i></div>
+          <h3>Διαχείριση Πελατών</h3>
+          <p>Σύνδεση με πολλαπλές επιχειρήσεις και κεντρική διαχείριση από έναν λογαριασμό.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-file-invoice"></i></div>
+          <h3>Παραστατικά</h3>
+          <p>Προβολή, έλεγχος και εξαγωγή όλων των παραστατικών ανά πελάτη.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-chart-area"></i></div>
+          <h3>Αναφορές &amp; Στατιστικά</h3>
+          <p>Γραφήματα τζίρου, ΦΠΑ, myDATA μεταδόσεων σε πραγματικό χρόνο.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-sliders"></i></div>
+          <h3>Ρυθμίσεις Πελατών</h3>
+          <p>Ενημέρωση στοιχείων, myDATA, email, SMS ανά πελάτη εύκολα.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-box-open"></i></div>
+          <h3>Είδη &amp; Πελατολόγιο</h3>
+          <p>Διαχείριση προϊόντων και πελατολογίου ανά επιχείρηση.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-table-columns"></i></div>
+          <h3>Dashboard Λογιστή</h3>
+          <p>Επισκόπηση όλων των πελατών και ειδοποιήσεων σε ένα μέρος.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GETTING STARTED -->
+  <div id="sec-start" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-rocket"></i></div>
+      <div class="section-header-text">
+        <h2>Ξεκινήστε</h2>
+        <p>Εγγραφή, σύνδεση και πρώτη ρύθμιση λογαριασμού</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="info-box tip">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Η Πύλη Λογιστών βρίσκεται στη διεύθυνση <strong>/fishbill/accountant/</strong> — ξεχωριστή είσοδο από την πύλη ψαράδων.</span>
+      </div>
+
+      <p class="sub-heading">Πώς να εγγραφείτε</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Ανοίξτε την Πύλη Λογιστών</h3>
+            <p>Μεταβείτε στη σελίδα <strong>fishbill.gr/accountant</strong> και πατήστε το κουμπί "ΕΓΓΡΑΦΗ".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Συμπληρώστε τα στοιχεία σας</h3>
+            <p>Ονοματεπώνυμο, επαγγελματικό email, τηλέφωνο (προαιρετικό) και κωδικό τουλάχιστον 8 χαρακτήρων.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Αποδεχτείτε τους Όρους Χρήσης</h3>
+            <p>Διαβάστε και αποδεχτείτε τους Όρους Χρήσης και την Πολιτική Απορρήτου.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Συνδεθείτε στο Dashboard</h3>
+            <p>Μετά την επιτυχή εγγραφή, συνδεθείτε και αρχίστε να προσθέτετε πελάτες.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Νέοι λογαριασμοί λογιστών χρειάζονται <strong>επαλήθευση από τον διαχειριστή</strong> πριν αποκτήσουν πλήρη πρόσβαση. Δείτε την ενότητα "Επαλήθευση Λογαριασμού".</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div id="sec-clients" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-users"></i></div>
+      <div class="section-header-text">
+        <h2>Διαχείριση Πελατών</h2>
+        <p>Σύνδεση με επιχειρήσεις και πλοήγηση στα στοιχεία τους</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <p class="sub-heading">Σύνδεση νέου πελάτη</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Πατήστε «+ Νέος Πελάτης»</h3>
+            <p>Στη λίστα πελατών (client.html) πατήστε το κουμπί προσθήκης πελάτη.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Εισάγετε το ΑΦΜ της επιχείρησης</h3>
+            <p>Το σύστημα αναζητά την επιχείρηση με βάση το ΑΦΜ. Η επιχείρηση πρέπει να υπάρχει ήδη στο FishBill.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Επιβεβαιώστε τη σύνδεση</h3>
+            <p>Μόλις εντοπιστεί η επιχείρηση, επιβεβαιώστε για να αποκτήσετε πρόσβαση στα δεδομένα της.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box note">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Μπορείτε να συνδέσετε <strong>απεριόριστες επιχειρήσεις</strong> στον λογαριασμό σας. Κάθε επιχείρηση εμφανίζεται ξεχωριστά στη λίστα.</span>
+      </div>
+
+      <p class="sub-heading">Τι μπορείτε να δείτε ανά πελάτη</p>
+      <div class="table-wrap">
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th><i class="fa-solid fa-folder" style="margin-right:6px;opacity:.7"></i>Καρτέλα</th>
+              <th><i class="fa-solid fa-align-left" style="margin-right:6px;opacity:.7"></i>Περιεχόμενο</th>
+              <th><i class="fa-solid fa-bolt" style="margin-right:6px;opacity:.7"></i>Ενέργειες</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge blue"><i class="fa-solid fa-building"></i> Προφίλ</span></td>
+              <td>Στοιχεία επιχείρησης, ΑΦΜ, διεύθυνση, email</td>
+              <td>Επεξεργασία στοιχείων</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue"><i class="fa-solid fa-database"></i> myDATA</span></td>
+              <td>Credentials ΑΑΔΕ, πάροχος μετάδοσης</td>
+              <td>Ενημέρωση credentials</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue"><i class="fa-solid fa-file-lines"></i> Παραστατικά</span></td>
+              <td>Λίστα, φίλτρα, κατάσταση myDATA</td>
+              <td>Εξαγωγή, προβολή PDF</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue"><i class="fa-solid fa-list-ol"></i> Σειρές</span></td>
+              <td>Σειρές παραστατικών (π.χ. ΑΑ, ΤΔΑ)</td>
+              <td>Προσθήκη σειρών</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue"><i class="fa-solid fa-fish"></i> Είδη</span></td>
+              <td>Προϊόντα/υπηρεσίες ψαριών</td>
+              <td>Προσθήκη, επεξεργασία, διαγραφή</td>
+            </tr>
+            <tr>
+              <td><span class="badge blue"><i class="fa-solid fa-address-book"></i> Πελάτες</span></td>
+              <td>Πελατολόγιο της επιχείρησης</td>
+              <td>Προσθήκη, επεξεργασία, διαγραφή</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVOICES -->
+  <div id="sec-invoices" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-file-invoice"></i></div>
+      <div class="section-header-text">
+        <h2>Παραστατικά</h2>
+        <p>Προβολή, φιλτράρισμα και εξαγωγή παραστατικών</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Επιλέξτε πελάτη</h3>
+            <p>Από τη λίστα πελατών, κάντε κλικ στην επιχείρηση που θέλετε να ελέγξετε.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Ανοίξτε την καρτέλα «Παραστατικά»</h3>
+            <p>Εμφανίζεται πλήρης λίστα με δυνατότητα φιλτραρίσματος ανά ημερομηνία, τύπο ή κατάσταση myDATA.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Εξαγωγή / Προβολή PDF</h3>
+            <p>Κάθε παραστατικό μπορεί να εκτυπωθεί ή να εξαχθεί σε CSV για λογιστικά προγράμματα.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="sub-heading">Καταστάσεις myDATA</p>
+      <div class="table-wrap">
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th><i class="fa-solid fa-tag" style="margin-right:6px;opacity:.7"></i>Κατάσταση</th>
+              <th><i class="fa-solid fa-circle-info" style="margin-right:6px;opacity:.7"></i>Τι σημαίνει</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge green"><i class="fa-solid fa-circle-check"></i> Μεταδόθηκε</span></td>
+              <td>Το παραστατικό ενημέρωσε επιτυχώς την ΑΑΔΕ</td>
+            </tr>
+            <tr>
+              <td><span class="badge orange"><i class="fa-solid fa-clock"></i> Εκκρεμεί</span></td>
+              <td>Αναμένει μετάδοση — αυτόματη ή χειροκίνητη</td>
+            </tr>
+            <tr>
+              <td><span class="badge red"><i class="fa-solid fa-circle-xmark"></i> Απέτυχε</span></td>
+              <td>Η μετάδοση απέτυχε — επικοινωνήστε με τον πελάτη</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="sec-products" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-fish-fins"></i></div>
+      <div class="section-header-text">
+        <h2>Είδη &amp; Πελατολόγιο</h2>
+        <p>Διαχείριση προϊόντων αλιείας και πελατών ανά επιχείρηση</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <p class="lead">
+        Ως λογιστής μπορείτε να προσθέτετε, επεξεργάζεστε και διαγράφετε είδη (ψάρια, οστρακοειδή κ.λπ.) και πελάτες για λογαριασμό του πελάτη σας.
+      </p>
+      <p class="sub-heading">Προσθήκη νέου είδους</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Καρτέλα «Είδη» → «+ Νέο Είδος»</h3>
+            <p>Εισάγετε όνομα, κωδικό, κατηγορία, ΦΠΑ και τιμή μονάδας στη φόρμα.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Ορίστε μονάδα μέτρησης</h3>
+            <p>Κιλά (kg), τεμάχια (tem), κιβώτια — σύμφωνα με τις απαιτήσεις myDATA.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Αποθηκεύστε</h3>
+            <p>Το είδος είναι πλέον διαθέσιμο κατά τη δημιουργία παραστατικών από τον πελάτη.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="sec-analytics" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <div class="section-header-text">
+        <h2>Αναφορές &amp; Αναλυτικά</h2>
+        <p>Γραφήματα τζίρου, ΦΠΑ και στατιστικά ανά πελάτη</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <p class="lead">
+        Η σελίδα Αναλυτικών (analytics.html) παρέχει γραφική αναπαράσταση των οικονομικών δεδομένων όλων των πελατών σας ή ξεχωριστά ανά πελάτη.
+      </p>
+      <div class="feature-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-chart-bar"></i></div>
+          <h3>Τζίρος Ανά Μήνα</h3>
+          <p>Γράφημα εξέλιξης τζίρου για κάθε πελάτη ξεχωριστά.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-percent"></i></div>
+          <h3>Ανάλυση ΦΠΑ</h3>
+          <p>Σύνοψη ΦΠΑ 13%, 24% ανά λογιστική περίοδο.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+          <h3>Κατάσταση myDATA</h3>
+          <p>Ποσοστό επιτυχών μεταδόσεων σε πραγματικό χρόνο.</p>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+          <h3>Σύγκριση Πελατών</h3>
+          <p>Σύγκριση απόδοσης πελατών παράλληλα.</p>
+        </div>
+      </div>
+      <div class="info-box tip">
+        <i class="fa-solid fa-lightbulb"></i>
+        <span>Τα δεδομένα ενημερώνονται σε πραγματικό χρόνο. Χρησιμοποιήστε τα φίλτρα ημερομηνίας για ανάλυση συγκεκριμένης περιόδου: μηνιαία, τριμηνιαία ή ετήσια.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="sec-settings" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-gear"></i></div>
+      <div class="section-header-text">
+        <h2>Ρυθμίσεις Λογαριασμού</h2>
+        <p>Επαγγελματικά στοιχεία, ασφάλεια και προτιμήσεις</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="table-wrap">
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th><i class="fa-solid fa-toggle-on" style="margin-right:6px;opacity:.7"></i>Ρύθμιση</th>
+              <th><i class="fa-solid fa-align-left" style="margin-right:6px;opacity:.7"></i>Τι κάνει</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong><i class="fa-solid fa-id-card" style="color:var(--brand);margin-right:7px"></i>Στοιχεία Λογιστή</strong></td>
+              <td>Αλλαγή ονόματος, email, τηλεφώνου, ΑΦΜ λογιστή</td>
+            </tr>
+            <tr>
+              <td><strong><i class="fa-solid fa-lock" style="color:var(--brand);margin-right:7px"></i>Αλλαγή Κωδικού</strong></td>
+              <td>Ενημέρωση κωδικού πρόσβασης (απαιτεί τρέχοντα κωδικό)</td>
+            </tr>
+            <tr>
+              <td><strong><i class="fa-solid fa-moon" style="color:var(--brand);margin-right:7px"></i>Εμφάνιση / Θέμα</strong></td>
+              <td>Εναλλαγή σκοτεινού / φωτεινού θέματος (αποθηκεύεται τοπικά)</td>
+            </tr>
+            <tr>
+              <td><strong><i class="fa-solid fa-bell" style="color:var(--brand);margin-right:7px"></i>Ειδοποιήσεις</strong></td>
+              <td>Επιλογή για ποιες ειδοποιήσεις email θέλετε να λαμβάνετε</td>
+            </tr>
+            <tr>
+              <td><strong><i class="fa-solid fa-shield-halved" style="color:var(--brand);margin-right:7px"></i>Ζητήστε Επαλήθευση</strong></td>
+              <td>Υποβολή αιτήματος επαλήθευσης λογαριασμού λογιστή</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFICATION -->
+  <div id="sec-verification" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-shield-check"></i></div>
+      <div class="section-header-text">
+        <h2>Επαλήθευση Λογαριασμού</h2>
+        <p>Πώς να επαληθεύσετε τον λογαριασμό σας ως εξουσιοδοτημένος λογιστής</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <p class="lead">
+        Για να αποκτήσετε πλήρη πρόσβαση σε όλες τις λειτουργίες, ο λογαριασμός σας πρέπει να επαληθευτεί από τον διαχειριστή FishBill.
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Συνδεθείτε στον λογαριασμό σας</h3>
+            <p>Χρησιμοποιήστε τα στοιχεία εγγραφής σας για να εισέλθετε στην πύλη.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Μεταβείτε στις Ρυθμίσεις → Επαλήθευση</h3>
+            <p>Βρείτε το τμήμα «Επαλήθευση Λογαριασμού» στις Ρυθμίσεις.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Συμπληρώστε τα επαγγελματικά στοιχεία</h3>
+            <p>Αριθμός Άδειας Λογιστή, ΑΦΜ, επωνυμία λογιστικού γραφείου και τηλέφωνο.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Υποβολή αιτήματος</h3>
+            <p>Πατήστε «Αίτημα Επαλήθευσης». Ο διαχειριστής θα ειδοποιηθεί μέσω email και θα επεξεργαστεί το αίτημα εντός 1–2 εργάσιμων ημερών.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>Ενημέρωση αποτελέσματος</h3>
+            <p>Θα λάβετε email ενημέρωσης μόλις ο λογαριασμός εγκριθεί ή εάν χρειαστούν επιπλέον στοιχεία.</p>
+          </div>
+        </div>
+      </div>
+      <div class="info-box tip">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Πριν την επαλήθευση έχετε <strong>περιορισμένη πρόσβαση</strong> (προβολή μόνο). Μετά την επαλήθευση αποκτάτε πλήρεις δυνατότητες διαχείρισης.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div id="sec-faq" class="guide-section">
+    <div class="section-header">
+      <div class="section-icon"><i class="fa-solid fa-circle-question"></i></div>
+      <div class="section-header-text">
+        <h2>Συχνές Ερωτήσεις</h2>
+        <p>Απαντήσεις στις πιο συνηθισμένες απορίες</p>
+      </div>
+    </div>
+    <div class="section-body">
+
+      <div class="faq-item" id="faq1">
+        <div class="faq-q" onclick="toggleFaq('faq1')">
+          <span>Μπορώ να εκδίδω παραστατικά εγώ ο ίδιος για τον πελάτη μου;</span>
+          <div class="faq-chevron"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="faq-a">
+          Ως λογιστής έχετε <strong>πρόσβαση προβολής και διαχείρισης</strong> (είδη, πελάτες, ρυθμίσεις) αλλά δεν μπορείτε να εκδίδετε παραστατικά απευθείας — αυτό γίνεται από τον λογαριασμό της επιχείρησης. Σύντομα θα υποστηρίζεται και έκδοση από τον λογιστή.
+        </div>
+      </div>
+
+      <div class="faq-item" id="faq2">
+        <div class="faq-q" onclick="toggleFaq('faq2')">
+          <span>Πόσους πελάτες μπορώ να συνδέσω;</span>
+          <div class="faq-chevron"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="faq-a">
+          Δεν υπάρχει όριο. Μπορείτε να διαχειρίζεστε <strong>απεριόριστες επιχειρήσεις</strong> από έναν λογαριασμό λογιστή.
+        </div>
+      </div>
+
+      <div class="faq-item" id="faq3">
+        <div class="faq-q" onclick="toggleFaq('faq3')">
+          <span>Ο πελάτης μου δεν υπάρχει στο FishBill. Τι κάνω;</span>
+          <div class="faq-chevron"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="faq-a">
+          Ο πελάτης πρέπει πρώτα να εγγραφεί στο FishBill (www.fishbill.gr → Εγγραφή). Μόλις δημιουργήσει λογαριασμό, μπορείτε να τον συνδέσετε με το ΑΦΜ του.
+        </div>
+      </div>
+
+      <div class="faq-item" id="faq4">
+        <div class="faq-q" onclick="toggleFaq('faq4')">
+          <span>Μπορώ να αλλάξω τα credentials myDATA του πελάτη μου;</span>
+          <div class="faq-chevron"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="faq-a">
+          Ναι. Από την καρτέλα myDATA του πελάτη μπορείτε να ενημερώσετε τα User ID και Subscription Key ΑΑΔΕ, καθώς και τον πάροχο μετάδοσης (Άμεση ΑΑΔΕ ή e-timologiera).
+        </div>
+      </div>
+
+      <div class="faq-item" id="faq5">
+        <div class="faq-q" onclick="toggleFaq('faq5')">
+          <span>Τι γίνεται αν ξεχάσω τον κωδικό μου;</span>
+          <div class="faq-chevron"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="faq-a">
+          Στη σελίδα σύνδεσης, πατήστε «Ξεχάσατε τον κωδικό σας;» και εισάγετε το email σας. Θα λάβετε σύνδεσμο επαναφοράς εντός λίγων λεπτών.
+        </div>
+      </div>
+
+      <div class="faq-item" id="faq6">
+        <div class="faq-q" onclick="toggleFaq('faq6')">
+          <span>Πώς βλέπω αν ένα παραστατικό στάλθηκε στο myDATA;</span>
+          <div class="faq-chevron"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="faq-a">
+          Στη λίστα παραστατικών κάθε εγγραφή έχει ένδειξη κατάστασης myDATA: <strong>πράσινο</strong> για επιτυχή μετάδοση, <strong>πορτοκαλί</strong> για εκκρεμή και <strong>κόκκινο</strong> για αποτυχία μετάδοσης.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="80" height="53" style="margin-bottom:16px;opacity:.9">
+      <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+      <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+      <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+      <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+      <circle cx="138" cy="60" r="5" fill="#064E60"/>
+      <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+    </svg>
+    <h2>Έτοιμοι να ξεκινήσετε;</h2>
+    <p>Συνδεθείτε στην πύλη λογιστών και αρχίστε να διαχειρίζεστε τους πελάτες σας αποτελεσματικά.</p>
+    <div class="cta-btns">
+      <a href="index.html" class="btn-cta primary">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Σύνδεση / Εγγραφή
+      </a>
+      <a href="/fishbill/" class="btn-cta outline">
+        <i class="fa-solid fa-house"></i>
+        Κύρια Ιστοσελίδα
+      </a>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+function toggleFaq(id) {
+  const item = document.getElementById(id);
+  const isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item').forEach(el => {
+    el.classList.remove('open');
+    el.querySelector('.faq-a').classList.remove('open');
+  });
+  // Open clicked if it was closed
+  if (!isOpen) {
+    item.classList.add('open');
+    item.querySelector('.faq-a').classList.add('open');
+  }
+}
+
+// Smooth scroll for toc-item anchors
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      const offset = 80;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  });
+});
+</script>
+
+<!-- ── COMING SOON OVERLAY ────────────────────────────────────────────── -->
+<div id="coming-soon-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0a3042 0%,#0d4a60 45%,#092b36 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Inter',system-ui,sans-serif;">
+  <div style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);border-radius:28px;padding:40px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+    <div style="font-size:52px;margin-bottom:16px">🚧</div>
+    <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:.5px">Σύντομα Κοντά Σας</div>
+    <div style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px">Η <strong style="color:#38BEC9">Πύλη Λογιστών</strong> βρίσκεται σε ανάπτυξη.<br>Θα είναι διαθέσιμη σε επόμενη έκδοση της εφαρμογής.<br><br>Για υποστήριξη επικοινωνήστε με τον διαχειριστή.</div>
+    <a href="/fishbill/" style="display:inline-flex;align-items:center;gap:8px;background:rgba(56,190,201,.18);border:1.5px solid rgba(56,190,201,.5);color:#38BEC9;font-size:15px;font-weight:700;padding:12px 28px;border-radius:14px;text-decoration:none;" onmouseover="this.style.background='rgba(56,190,201,.28)'" onmouseout="this.style.background='rgba(56,190,201,.18)'">← Επιστροφή στην Αρχική</a>
+  </div>
+</div>
+</body>
+</html>

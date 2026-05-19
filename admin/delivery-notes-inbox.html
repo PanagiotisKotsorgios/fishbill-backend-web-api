@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Δελτία Αποστολής</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .22s ease-out both; }
+    .dn-row         { cursor:pointer; transition:background .15s; }
+    .dn-row:hover   { background:#f0f9ff; }
+    .dn-row.selected { background:#e0f2fe; border-left:3px solid #0284c7; }
+    .dn-row-done         { cursor:pointer; transition:background .15s; }
+    .dn-row-done:hover   { background:#f0fdf4; }
+    .dn-row-done.selected { background:#dcfce7; border-left:3px solid #16a34a; }
+    .user-card       { cursor:pointer; transition:all .15s; border-left:3px solid transparent; }
+    .user-card:hover { background:#f8faff; border-left-color:#c7d2fe; }
+    .user-card.active { background:#eef2ff; border-left-color:#4f46e5; }
+    .bell-badge { animation: bellRing 1.5s ease-in-out infinite; }
+    @keyframes bellRing {
+      0%,100% { transform:rotate(0); }
+      10%,30% { transform:rotate(-12deg); }
+      20%,40% { transform:rotate(12deg); }
+      50%     { transform:rotate(0); }
+    }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:#f1f5f9; }
+    ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="sidebar-container"></div>
+
+  <div class="pt-14 lg:pt-0 min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col p-3 lg:p-5 gap-3 overflow-hidden" style="min-height:0">
+
+      <!-- Header -->
+      <div class="anim flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 class="text-2xl font-extrabold text-gray-900">Δελτία Αποστολής</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Χειροκίνητη επεξεργασία Δελτίων Αποστολής μέσω TIMOLOGIO (ΑΑΔΕ)</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div id="global-pending-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+            <i class="fas fa-bell bell-badge"></i>
+            <span id="global-pending-text"></span> εκκρεμή
+          </div>
+          <a href="https://www.timologio.gr" target="_blank"
+             class="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-arrow-up-right-from-square"></i>TIMOLOGIO ΑΑΔΕ
+          </a>
+          <a href="https://app.epsilonsmart.gr" target="_blank"
+             class="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-arrow-up-right-from-square"></i>Epsilon Smart
+          </a>
+          <button onclick="dnRefresh()" class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            <i class="fas fa-rotate-right mr-1"></i>Ανανέωση
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div id="stats-row" class="grid grid-cols-2 sm:grid-cols-4 gap-2 anim" style="animation-delay:.04s"></div>
+
+      <!-- Main 3-column layout -->
+      <div class="flex gap-3 flex-1 min-h-0" style="min-height:0">
+
+        <!-- Column 1: User list -->
+        <div class="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden anim flex-shrink-0" style="animation-delay:.05s; width:220px; min-width:180px;">
+          <div class="px-3 py-2 border-b border-gray-100">
+            <div class="relative">
+              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+              <input id="user-search" type="text" placeholder="Αναζήτηση χρήστη…" oninput="dnFilterUsers()"
+                class="w-full pl-7 pr-2 py-1.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-indigo-400 bg-gray-50" />
+            </div>
+          </div>
+          <div class="px-3 py-1.5 border-b border-gray-50 flex items-center justify-between">
+            <span class="text-xs text-gray-400 font-semibold">Μόνο εκκρεμείς</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="pending-only-toggle" class="sr-only peer" onchange="dnFilterUsers()" />
+              <div class="w-8 h-4 bg-gray-200 peer-checked:bg-indigo-600 rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4"></div>
+            </label>
+          </div>
+          <div id="user-all" onclick="dnSelectUser(null)"
+               class="user-card active px-3 py-2.5 flex items-center gap-2.5 border-b border-gray-100">
+            <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-layer-group text-indigo-600 text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-gray-800 truncate">Όλοι οι χρήστες</p>
+            </div>
+            <span id="badge-all-pending" class="hidden text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold"></span>
+          </div>
+          <div id="user-list" class="flex-1 overflow-y-auto divide-y divide-gray-50">
+            <div class="flex justify-center py-8"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div></div>
+          </div>
+          <div id="user-count" class="px-3 py-1.5 text-xs text-gray-400 border-t border-gray-100 text-center"></div>
+        </div>
+
+        <!-- Column 2: DN list + filters -->
+        <div class="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden anim flex-shrink-0" style="animation-delay:.09s; width:400px; min-width:280px;">
+
+          <div id="selected-user-header" class="hidden px-4 py-2 border-b border-gray-100 bg-indigo-50">
+            <p id="selected-user-name" class="text-xs font-bold text-indigo-800 truncate"></p>
+            <p id="selected-user-info" class="text-xs text-indigo-500 truncate"></p>
+          </div>
+
+          <!-- Tabs -->
+          <div class="flex border-b border-gray-100">
+            <button id="tab-pending" onclick="dnSwitchTab('pending')"
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50">
+              <i class="fas fa-clock mr-1"></i>Εκκρεμή
+              <span id="badge-pending" class="ml-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold"></span>
+            </button>
+            <button id="tab-done" onclick="dnSwitchTab('done')"
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+              <i class="fas fa-circle-check mr-1"></i>Διαβιβάστηκαν
+              <span id="badge-done" class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold"></span>
+            </button>
+          </div>
+
+          <!-- Filter bar -->
+          <div class="px-3 py-2 border-b border-gray-100 space-y-2 bg-gray-50">
+            <div class="relative">
+              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+              <input type="text" id="dn-search-input" placeholder="Αρ. ΔΑ, παραλήπτης, επιχ., ΜΑΡΚ…"
+                oninput="dnOnSearch()"
+                class="w-full pl-8 pr-8 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-indigo-400 bg-white" />
+              <button id="clear-search" onclick="dnClearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                <i class="fas fa-times text-xs"></i>
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="month-filter" type="month" onchange="dnLoadNotes(1)" title="Φίλτρο μήνα"
+                class="px-2 py-1 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-indigo-400 bg-white" />
+              <select id="sort-select" onchange="dnLoadNotes(1)"
+                class="flex-1 text-xs text-gray-600 bg-white border border-gray-200 rounded-xl px-2 py-1.5 focus:outline-none focus:border-indigo-400">
+                <option id="sort-opt-primary" value="date_asc">Παλαιότερα πρώτα</option>
+                <option value="date_desc">Νεότερα πρώτα</option>
+                <option value="business">Αλφαβητικά (επιχ.)</option>
+              </select>
+              <button onclick="dnClearAllFilters()" title="Καθαρισμός φίλτρων"
+                class="px-2 py-1.5 rounded-xl border border-gray-200 text-xs text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors bg-white">
+                <i class="fas fa-filter-circle-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- List -->
+          <div id="dn-list" class="flex-1 overflow-y-auto divide-y divide-gray-50">
+            <div class="flex justify-center py-12"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div></div>
+          </div>
+          <div id="dn-pagination" class="border-t border-gray-100"></div>
+        </div>
+
+        <!-- Column 3: detail panel -->
+        <div id="detail-panel" class="flex-1 flex flex-col gap-3 overflow-y-auto pb-6 opacity-0 pointer-events-none" style="transition:opacity .2s; min-width:0"></div>
+
+        <!-- Placeholder -->
+        <div id="detail-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-300 anim" style="animation-delay:.13s; min-width:0">
+          <i class="fas fa-truck text-5xl mb-3"></i>
+          <p class="text-sm font-semibold">Επιλέξτε Δελτίο Αποστολής</p>
+          <p class="text-xs mt-1">για διαχείριση & διαβίβαση</p>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="dn-toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>buildSidebar();</script>
+  <script>
+    requireAuth();
+    var _curUser    = getCurrentUser();
+    var _isEmployee = _curUser && _curUser.role === 'employee';
+    // Route non-admin non-employee away
+    if (_curUser && _curUser.role !== 'super_admin' && _curUser.role !== 'employee') {
+      location.href = 'dashboard.html';
+    }
+
+    // API base switches between super_admin platform routes and employee-scoped routes
+    var _dnBase = _isEmployee ? '/employee-actions/delivery-notes' : '/platform/delivery-notes';
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    var dnCurrentTab    = 'pending';
+    var dnCurrentPage   = 1;
+    var dnSelected      = null;
+    var dnSelectedBizId = null;
+    var dnSelectedBiz   = null;
+    var dnAllNotes      = [];
+    var dnUserList      = [];
+    var dnSearchTimer   = null;
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      if (_isEmployee) {
+        // Verify employee has the admin_delivery_notes privilege
+        try {
+          var privRes = await api.get('/employees/my-privileges');
+          var privs = privRes.privileges || [];
+          if (!privs.includes('admin_delivery_notes')) {
+            document.querySelector('main').innerHTML =
+              '<div class="flex flex-col items-center justify-center h-64 text-red-400">' +
+              '<i class="fas fa-lock text-4xl mb-3"></i>' +
+              '<p class="font-semibold">Δεν έχετε πρόσβαση στα Δελτία Αποστολής.</p>' +
+              '<p class="text-sm text-gray-400 mt-1">Ζητήστε από τον Admin να σας δώσει δικαίωμα admin_delivery_notes.</p>' +
+              '</div>';
+            return;
+          }
+        } catch(e) { return; }
+        // Show employee scope banner
+        var hdr = document.querySelector('h1').closest('div.anim');
+        if (hdr) {
+          var banner = document.createElement('div');
+          banner.className = 'mt-2 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 flex items-center gap-2';
+          banner.innerHTML = '<i class="fas fa-user-shield"></i> Εργαζόμενος — βλέπετε μόνο τις επιχειρήσεις που σας έχουν ανατεθεί.';
+          hdr.appendChild(banner);
+        }
+      }
+      dnLoadUserSummaries();
+      dnLoadNotes(1);
+    });
+
+    function dnRefresh() {
+      dnSelected = null;
+      dnHideDetail();
+      dnLoadUserSummaries();
+      dnLoadNotes(1);
+    }
+
+    // ── Stats ──────────────────────────────────────────────────────────────────
+    function dnRenderStats(pending, transmitted, cancelled) {
+      var total = pending + transmitted + cancelled;
+      document.getElementById('stats-row').innerHTML = [
+        { icon:'⏳', label:'Εκκρεμή',       value: pending,     cls:'text-orange-600' },
+        { icon:'✅', label:'Διαβιβάστηκαν', value: transmitted, cls:'text-emerald-600'},
+        { icon:'🚫', label:'Ακυρωμένα',     value: cancelled,   cls:'text-gray-500'   },
+        { icon:'📋', label:'Σύνολο',         value: total,       cls:'text-indigo-600' },
+      ].map(function(s) {
+        return '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex items-center gap-2">' +
+          '<span class="text-lg">' + s.icon + '</span>' +
+          '<div><p class="text-xs text-gray-400 mb-0.5">' + s.label + '</p>' +
+          '<p class="font-extrabold text-lg ' + s.cls + ' leading-none">' + s.value + '</p></div></div>';
+      }).join('');
+    }
+
+    // ── User summaries ─────────────────────────────────────────────────────────
+    async function dnLoadUserSummaries() {
+      try {
+        var res = await api.get(_dnBase + '/users-summary');
+        dnUserList = res.data || [];
+
+        var totalPending     = dnUserList.reduce(function(s,u){ return s + parseInt(u.pending_count||0); }, 0);
+        var totalTransmitted = dnUserList.reduce(function(s,u){ return s + parseInt(u.transmitted_count||0); }, 0);
+        var totalCancelled   = dnUserList.reduce(function(s,u){ return s + parseInt(u.cancelled_count||0); }, 0);
+
+        var badgeAll = document.getElementById('badge-all-pending');
+        var gb       = document.getElementById('global-pending-badge');
+        if (totalPending > 0) {
+          badgeAll.textContent = totalPending; badgeAll.classList.remove('hidden');
+          gb.classList.remove('hidden'); gb.classList.add('flex');
+          document.getElementById('global-pending-text').textContent = totalPending;
+        } else {
+          badgeAll.classList.add('hidden');
+          gb.classList.add('hidden'); gb.classList.remove('flex');
+        }
+
+        dnRenderStats(totalPending, totalTransmitted, totalCancelled);
+        dnFilterUsers();
+      } catch(e) {
+        document.getElementById('user-list').innerHTML =
+          '<div class="text-center py-6 text-red-400 text-xs px-3">' + e.message + '</div>';
+      }
+    }
+
+    function dnFilterUsers() {
+      var q   = (document.getElementById('user-search').value || '').toLowerCase().trim();
+      var pen = document.getElementById('pending-only-toggle').checked;
+      var users = dnUserList;
+      if (pen) users = users.filter(function(u){ return parseInt(u.pending_count||0) > 0; });
+      if (q)   users = users.filter(function(u){
+        return (u.business_name||'').toLowerCase().includes(q) ||
+               (u.owner_email||'').toLowerCase().includes(q)   ||
+               (u.business_afm||'').includes(q);
+      });
+      dnRenderUserList(users);
+      document.getElementById('user-count').textContent = users.length + ' / ' + dnUserList.length + ' επιχ.';
+    }
+
+    function dnRenderUserList(users) {
+      if (!users.length) {
+        document.getElementById('user-list').innerHTML =
+          '<div class="text-center py-8 text-gray-300 text-xs">Δεν βρέθηκαν χρήστες</div>';
+        return;
+      }
+      document.getElementById('user-list').innerHTML = users.map(function(u) {
+        var pending     = parseInt(u.pending_count||0);
+        var transmitted = parseInt(u.transmitted_count||0);
+        var cancelled   = parseInt(u.cancelled_count||0);
+        var hasPending  = pending > 0;
+        var initials    = (u.business_name||'?').trim().split(' ').slice(0,2).map(function(w){ return w[0]; }).join('').toUpperCase();
+        var isActive    = dnSelectedBizId === u.business_id;
+        return '<div id="user-card-' + u.business_id + '" onclick="dnSelectUser(\'' + u.business_id + '\')"' +
+          ' class="user-card ' + (isActive?'active':'') + ' px-3 py-2.5 flex items-start gap-2.5 relative">' +
+          (hasPending ? '<div class="absolute top-2 right-2"><i class="fas fa-bell text-red-500 text-xs bell-badge"></i></div>' : '') +
+          '<div class="w-8 h-8 rounded-lg ' + (hasPending?'bg-red-100':'bg-gray-100') + ' flex items-center justify-center flex-shrink-0 text-xs font-extrabold ' + (hasPending?'text-red-600':'text-gray-500') + '">' + initials + '</div>' +
+          '<div class="flex-1 min-w-0 pr-4">' +
+            '<p class="text-xs font-bold text-gray-800 truncate leading-tight">' + u.business_name + '</p>' +
+            '<p class="text-xs text-gray-400 truncate">' + (u.owner_email||u.business_afm||'') + '</p>' +
+            '<div class="flex items-center gap-1.5 mt-1 flex-wrap">' +
+              (hasPending ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">' + pending + ' εκκρ.</span>' : '') +
+              (transmitted > 0 ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">' + transmitted + ' ✓</span>' : '') +
+              (cancelled > 0 ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">' + cancelled + ' ακυρ.</span>' : '') +
+            '</div>' +
+          '</div></div>';
+      }).join('');
+    }
+
+    function dnSelectUser(bizId) {
+      dnSelectedBizId = bizId;
+      dnSelectedBiz   = bizId ? dnUserList.find(function(u){ return u.business_id === bizId; }) : null;
+      dnSelected      = null;
+      dnHideDetail();
+
+      document.getElementById('user-all').className =
+        'user-card ' + (!bizId?'active':'') + ' px-3 py-2.5 flex items-center gap-2.5 border-b border-gray-100';
+      dnUserList.forEach(function(u) {
+        var el = document.getElementById('user-card-' + u.business_id);
+        if (el) el.className = 'user-card ' + (u.business_id===bizId?'active':'') + ' px-3 py-2.5 flex items-start gap-2.5 relative';
+      });
+
+      var hdr = document.getElementById('selected-user-header');
+      if (dnSelectedBiz) {
+        hdr.classList.remove('hidden');
+        document.getElementById('selected-user-name').textContent = dnSelectedBiz.business_name;
+        document.getElementById('selected-user-info').textContent =
+          dnSelectedBiz.owner_email || ('ΑΦΜ: ' + dnSelectedBiz.business_afm);
+      } else {
+        hdr.classList.add('hidden');
+      }
+      dnLoadNotes(1);
+    }
+
+    // ── Filters ────────────────────────────────────────────────────────────────
+    function dnClearSearch() {
+      document.getElementById('dn-search-input').value = '';
+      document.getElementById('clear-search').classList.add('hidden');
+      dnLoadNotes(1);
+    }
+
+    function dnClearAllFilters() {
+      document.getElementById('dn-search-input').value = '';
+      document.getElementById('clear-search').classList.add('hidden');
+      document.getElementById('month-filter').value = '';
+      document.getElementById('sort-select').value = dnCurrentTab === 'pending' ? 'date_asc' : 'date_desc';
+      dnLoadNotes(1);
+    }
+
+    function dnOnSearch() {
+      var v = document.getElementById('dn-search-input').value;
+      document.getElementById('clear-search').classList.toggle('hidden', !v);
+      clearTimeout(dnSearchTimer);
+      dnSearchTimer = setTimeout(function(){ dnLoadNotes(1); }, 300);
+    }
+
+    // ── Tabs ───────────────────────────────────────────────────────────────────
+    function dnSwitchTab(tab) {
+      dnCurrentTab  = tab;
+      dnCurrentPage = 1;
+      dnSelected    = null;
+      dnHideDetail();
+
+      if (tab === 'pending') {
+        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50';
+        document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        document.getElementById('sort-select').value = 'date_asc';
+        document.getElementById('sort-opt-primary').textContent = 'Παλαιότερα πρώτα';
+      } else {
+        document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50';
+        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        document.getElementById('sort-select').value = 'date_desc';
+        document.getElementById('sort-opt-primary').textContent = 'Νεότερα πρώτα';
+      }
+      dnLoadNotes(1);
+    }
+
+    // ── Load notes ─────────────────────────────────────────────────────────────
+    async function dnLoadNotes(page) {
+      dnCurrentPage = page || 1;
+      document.getElementById('dn-list').innerHTML =
+        '<div class="flex justify-center py-10"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div></div>';
+
+      var endpoint = dnCurrentTab === 'pending'
+        ? _dnBase + '/pending'
+        : _dnBase + '/transmitted';
+
+      var params = { page: dnCurrentPage, limit: 30 };
+      if (dnSelectedBizId) params.business_id = dnSelectedBizId;
+      var q = document.getElementById('dn-search-input').value.trim();
+      if (q) params.search = q;
+      var m = document.getElementById('month-filter').value;
+      if (m) params.month = m;
+      params.sort = document.getElementById('sort-select').value || (dnCurrentTab === 'pending' ? 'date_asc' : 'date_desc');
+
+      try {
+        var res = await api.get(endpoint, params);
+        dnAllNotes = res.data || [];
+        var badgeEl = document.getElementById(dnCurrentTab === 'pending' ? 'badge-pending' : 'badge-done');
+        if (badgeEl) badgeEl.textContent = res.total;
+        dnRenderList(dnAllNotes);
+        dnRenderPagination(dnCurrentPage, res.total, 30);
+      } catch(e) {
+        document.getElementById('dn-list').innerHTML =
+          '<div class="text-center py-10 text-red-400 text-xs px-4">' + e.message + '</div>';
+      }
+    }
+
+    // ── Render list ────────────────────────────────────────────────────────────
+    function dnRenderList(rows) {
+      if (!rows.length) {
+        var msg = dnCurrentTab === 'pending'
+          ? '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Όλα έχουν ΜΑΡΚ!</p>'
+          : '<i class="fas fa-inbox text-5xl mb-3"></i><p class="font-semibold text-sm">Δεν βρέθηκαν δελτία</p>';
+        document.getElementById('dn-list').innerHTML =
+          '<div class="flex flex-col items-center justify-center py-14 text-gray-300">' + msg + '</div>';
+        return;
+      }
+      var isPending = dnCurrentTab === 'pending';
+      document.getElementById('dn-list').innerHTML = rows.map(function(dn) {
+        var statusBadge = isPending
+          ? dnStatusChip(dn.status)
+          : '<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold"><i class="fas fa-check mr-0.5"></i>' + (dn.mydata_mark||'').slice(0,14) + '…</span>';
+        var rowCls = isPending ? 'dn-row' : 'dn-row-done';
+        var selected = dnSelected && dnSelected.id === dn.id ? ' selected' : '';
+        return '<div class="' + rowCls + selected + ' px-3 py-2.5 flex items-center gap-2.5" onclick="dnSelectNote(\'' + dn.id + '\')">' +
+          '<div class="flex-shrink-0 w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center">' +
+            '<i class="fas fa-truck text-blue-600 text-xs"></i></div>' +
+          '<div class="flex-1 min-w-0">' +
+            '<div class="flex items-center gap-1.5 flex-wrap">' +
+              '<span class="font-bold text-gray-900 text-xs">' + (dn.full_number||dn.id.slice(0,8)) + '</span>' +
+              statusBadge + '</div>' +
+            '<div class="text-xs text-gray-600 truncate mt-0.5 font-medium">' + dn.business_name + '</div>' +
+            '<div class="text-xs text-gray-400 truncate">' + (dn.recipient_name||'—') + ' · ' + fmtDate(dn.issue_date) +
+              (dn.vehicle_plate ? ' · 🚛 ' + dn.vehicle_plate : '') + '</div>' +
+          '</div></div>';
+      }).join('');
+    }
+
+    function dnStatusChip(status) {
+      if (status === 'draft')  return '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-semibold">Πρόχειρο</span>';
+      if (status === 'issued') return '<span class="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-semibold">Εκκρεμεί</span>';
+      if (status === 'failed') return '<span class="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">Απέτυχε</span>';
+      return '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">' + status + '</span>';
+    }
+
+    function dnRenderPagination(page, total, limit) {
+      var pages = Math.ceil(total / limit);
+      var el = document.getElementById('dn-pagination');
+      if (pages <= 1) { el.innerHTML = ''; return; }
+      var start = Math.max(1, page - 3);
+      var end   = Math.min(pages, start + 6);
+      var nums  = [];
+      for (var i = start; i <= end; i++) nums.push(i);
+      el.innerHTML = '<div class="flex gap-1 justify-center p-2 flex-wrap items-center">' +
+        (page > 1 ? '<button onclick="dnLoadNotes(' + (page-1) + ')" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-left"></i></button>' : '') +
+        nums.map(function(p){ return '<button onclick="dnLoadNotes(' + p + ')" class="px-2.5 py-1 rounded-lg text-xs font-bold ' + (p===page?'bg-indigo-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200') + '">' + p + '</button>'; }).join('') +
+        (page < pages ? '<button onclick="dnLoadNotes(' + (page+1) + ')" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-right"></i></button>' : '') +
+        '<span class="text-xs text-gray-400 ml-1">' + total + ' σύνολο</span></div>';
+    }
+
+    // ── Select note ────────────────────────────────────────────────────────────
+    function dnSelectNote(id) {
+      dnSelected = dnAllNotes.find(function(x){ return x.id === id; });
+      if (!dnSelected) return;
+
+      document.querySelectorAll('.dn-row, .dn-row-done').forEach(function(el){ el.classList.remove('selected'); });
+      event.currentTarget.classList.add('selected');
+
+      document.getElementById('detail-placeholder').classList.add('hidden');
+      var panel = document.getElementById('detail-panel');
+      panel.style.opacity = '1';
+      panel.style.pointerEvents = 'auto';
+
+      if (dnCurrentTab === 'pending') {
+        dnRenderPendingDetail(dnSelected);
+      } else {
+        dnRenderTransmittedDetail(dnSelected);
+      }
+    }
+
+    function dnHideDetail() {
+      var panel = document.getElementById('detail-panel');
+      panel.style.opacity = '0';
+      panel.style.pointerEvents = 'none';
+      panel.innerHTML = '';
+      document.getElementById('detail-placeholder').classList.remove('hidden');
+    }
+
+    // ── Pending detail ─────────────────────────────────────────────────────────
+    function dnRenderPendingDetail(dn) {
+      document.getElementById('detail-panel').innerHTML =
+        '<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">' +
+          dnSummaryHtml(dn) +
+          // Auto-transmit
+          '<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">' +
+            '<div class="flex items-center gap-2 mb-1">' +
+              '<i class="fas fa-satellite-dish text-blue-600"></i>' +
+              '<span class="font-bold text-blue-900 text-sm">Αυτόματη Διαβίβαση στην ΑΑΔΕ</span>' +
+            '</div>' +
+            '<p class="text-xs text-blue-700 mb-3 ml-6">Χρησιμοποιεί τα διαπιστευτήρια της επιχείρησης ή τα κεντρικά admin credentials (e-timologiera, myDATA τύπος 9.3).</p>' +
+            '<button onclick="dnTransmitNote(\'' + dn.id + '\')" id="btn-transmit"' +
+              ' class="ml-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">' +
+              '<i class="fas fa-paper-plane"></i>Διαβίβαση στην ΑΑΔΕ</button>' +
+          '</div>' +
+          // Manual MARK
+          '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
+            '<p class="font-bold text-gray-700 text-sm mb-3"><i class="fas fa-keyboard mr-1"></i>Ή καταχωρήστε ΜΑΡΚ χειροκίνητα</p>' +
+            '<div class="space-y-2">' +
+              '<input type="text" id="mark-input-new" placeholder="π.χ. 400120260001234"' +
+                ' class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-mono focus:outline-none focus:border-indigo-400 bg-white" />' +
+              '<button onclick="dnSubmitMark(\'' + dn.id + '\', false)"' +
+                ' class="w-full py-2.5 rounded-xl font-extrabold text-white text-sm bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">' +
+                '<i class="fas fa-circle-check"></i>Καταχώρηση ΜΑΡΚ</button>' +
+            '</div>' +
+          '</div>' +
+          // Uploaded PDF preview (if already uploaded)
+          (dn.pdf_path
+            ? '<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                  '<i class="fas fa-file-pdf text-red-500"></i>' +
+                  '<span class="font-bold text-emerald-900 text-sm">Ανεβασμένο PDF</span>' +
+                  '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold"><i class="fas fa-check mr-1"></i>Ανέβηκε</span>' +
+                '</div>' +
+                '<div id="dn-cur-pdf-wrap" class="rounded-xl overflow-hidden border border-emerald-200 bg-gray-50 flex items-center justify-center" style="height:380px">' +
+                  '<div class="animate-spin rounded-full h-7 w-7 border-b-2 border-emerald-600"></div>' +
+                '</div>' +
+              '</div>'
+            : '') +
+          // PDF upload form
+          '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
+            '<div class="flex items-center gap-2 mb-3">' +
+              '<i class="fas fa-file-pdf text-red-500"></i>' +
+              '<span class="font-bold text-gray-800 text-sm">' + (dn.pdf_path ? 'Αντικατάσταση PDF' : 'Ανέβασμα PDF Δελτίου') + '</span>' +
+            '</div>' +
+            (dn.pdf_path ? '' : '<p class="text-xs text-gray-500 mb-3">Ανεβάστε το επίσημο PDF που δημιουργήσατε στο TIMOLOGIO/Epsilon Smart. Ο χρήστης θα μπορεί να το κατεβάσει από την εφαρμογή.</p>') +
+            '<label class="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-200 bg-white cursor-pointer hover:border-red-400 transition-colors">' +
+              '<i class="fas fa-file-pdf text-red-400 text-lg flex-shrink-0"></i>' +
+              '<span id="pdf-label-pend" class="text-sm text-gray-400 truncate min-w-0">Επιλέξτε PDF…</span>' +
+              '<input type="file" id="pdf-input-pend" accept="application/pdf" class="hidden" onchange="dnOnPdfSelected(this,\'pdf-label-pend\')" />' +
+            '</label>' +
+            '<div id="pdf-preview-pend" class="hidden mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50" style="height:320px">' +
+              '<iframe id="pdf-frame-pend" src="" class="w-full h-full border-0" allow="fullscreen"></iframe>' +
+            '</div>' +
+            '<button onclick="dnUploadPdf(\'' + dn.id + '\',\'pdf-input-pend\')"' +
+              ' class="mt-2 w-full py-2 rounded-xl bg-gray-700 text-white text-xs font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">' +
+              '<i class="fas fa-cloud-upload-alt"></i>' + (dn.pdf_path ? 'Ανέβασμα νέου PDF' : 'Ανέβασμα PDF') + '</button>' +
+          '</div>' +
+          // Cancel
+          '<button onclick="dnCancelNote(\'' + dn.id + '\')"' +
+            ' class="w-full py-2 rounded-xl border border-red-200 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">' +
+            '<i class="fas fa-ban"></i>Ακύρωση Δελτίου</button>' +
+        '</div>';
+      if (dn.pdf_path) dnLoadUploadedPdf(dn.id);
+    }
+
+    // ── Transmitted detail ─────────────────────────────────────────────────────
+    function dnRenderTransmittedDetail(dn) {
+      var apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+      var token   = localStorage.getItem('fishbill_token') || '';
+      document.getElementById('detail-panel').innerHTML =
+        '<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">' +
+          dnSummaryHtml(dn) +
+          // MARK info
+          '<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-3">' +
+            '<div class="flex items-center gap-2 mb-2">' +
+              '<i class="fas fa-circle-check text-emerald-600"></i>' +
+              '<span class="font-bold text-emerald-800 text-sm">Στοιχεία Διαβίβασης</span>' +
+            '</div>' +
+            '<div class="ml-6 grid grid-cols-2 gap-2 text-xs">' +
+              '<div class="bg-white rounded-lg p-2.5 border border-emerald-100 col-span-2">' +
+                '<p class="text-emerald-500 mb-0.5">Αριθμός ΜΑΡΚ</p>' +
+                '<p class="font-bold font-mono text-gray-800 text-sm break-all">' + (dn.mydata_mark||'—') + '</p>' +
+              '</div>' +
+              (dn.mydata_uid ? '<div class="bg-white rounded-lg p-2.5 border border-emerald-100 col-span-2"><p class="text-emerald-500 mb-0.5">UID</p><p class="font-mono text-gray-700 text-xs break-all">' + dn.mydata_uid + '</p></div>' : '') +
+              '<div class="bg-white rounded-lg p-2.5 border border-emerald-100">' +
+                '<p class="text-emerald-500 mb-0.5">Διαβιβάστηκε</p>' +
+                '<p class="font-bold text-gray-800">' + fmtDateTime(dn.transmitted_at) + '</p>' +
+              '</div>' +
+              '<div class="bg-white rounded-lg p-2.5 border border-emerald-100">' +
+                '<p class="text-emerald-500 mb-0.5">Αρ. Δελτίου</p>' +
+                '<p class="font-bold text-gray-800 font-mono">' + (dn.full_number||'—') + '</p>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          // PDF — uploaded preview (emerald) or auto-generate button
+          (dn.pdf_path
+            ? '<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                  '<i class="fas fa-file-pdf text-red-500"></i>' +
+                  '<span class="font-bold text-emerald-900 text-sm">Ανεβασμένο PDF</span>' +
+                  '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold"><i class="fas fa-check mr-1"></i>Ανέβηκε</span>' +
+                '</div>' +
+                '<div id="dn-cur-pdf-wrap" class="rounded-xl overflow-hidden border border-emerald-200 bg-gray-50 flex items-center justify-center" style="height:380px">' +
+                  '<div class="animate-spin rounded-full h-7 w-7 border-b-2 border-emerald-600"></div>' +
+                '</div>' +
+                '<button onclick="dnOpenPdfTab(\'' + dn.id + '\')"' +
+                  ' class="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors">' +
+                  '<i class="fas fa-download"></i>Λήψη PDF</button>' +
+              '</div>'
+            : '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                  '<i class="fas fa-file-pdf text-red-500"></i>' +
+                  '<span class="font-bold text-gray-800 text-sm">PDF Δελτίου</span>' +
+                  '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 font-semibold">Αυτόματο</span>' +
+                '</div>' +
+                '<div id="dn-auto-preview" class="rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center mb-2" style="height:60px">' +
+                  '<button onclick="dnLoadAutoPdf(\'' + dn.id + '\')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5">' +
+                    '<i class="fas fa-eye"></i>Φόρτωση Προεπισκόπησης</button>' +
+                '</div>' +
+                '<button onclick="dnOpenPdfTab(\'' + dn.id + '\')"' +
+                  ' class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors">' +
+                  '<i class="fas fa-download"></i>Λήψη PDF</button>' +
+              '</div>') +
+          // Replace / new upload
+          '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
+            '<div class="flex items-center gap-2 mb-2">' +
+              '<i class="fas fa-cloud-upload-alt text-gray-500"></i>' +
+              '<span class="font-bold text-gray-700 text-sm">' + (dn.pdf_path ? 'Αντικατάσταση PDF' : 'Ανέβασμα PDF') + '</span>' +
+            '</div>' +
+            '<label class="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-200 bg-white cursor-pointer hover:border-indigo-400 transition-colors">' +
+              '<i class="fas fa-file-pdf text-red-400 text-lg flex-shrink-0"></i>' +
+              '<span id="pdf-label-tr" class="text-sm text-gray-400 truncate min-w-0">Επιλέξτε PDF…</span>' +
+              '<input type="file" id="pdf-input-tr" accept="application/pdf" class="hidden" onchange="dnOnPdfSelected(this,\'pdf-label-tr\')" />' +
+            '</label>' +
+            '<div id="pdf-preview-tr" class="hidden mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50" style="height:340px">' +
+              '<iframe id="pdf-frame-tr" src="" class="w-full h-full border-0" allow="fullscreen"></iframe>' +
+            '</div>' +
+            '<button onclick="dnUploadPdf(\'' + dn.id + '\',\'pdf-input-tr\')"' +
+              ' class="mt-2 w-full py-2 rounded-xl bg-gray-700 text-white text-xs font-bold hover:bg-gray-800 transition-colors">' +
+              '<i class="fas fa-cloud-upload-alt mr-1"></i>Ανέβασμα νέου PDF</button>' +
+          '</div>' +
+          // Edit MARK
+          '<div class="bg-amber-50 border border-amber-200 rounded-xl p-4">' +
+            '<div class="flex items-center gap-2 mb-3">' +
+              '<i class="fas fa-pen-to-square text-amber-600"></i>' +
+              '<span class="font-bold text-amber-900 text-sm">Διόρθωση ΜΑΡΚ</span>' +
+            '</div>' +
+            '<div class="space-y-2">' +
+              '<input type="text" id="mark-input-edit" placeholder="Νέος ΜΑΡΚ…" value="' + (dn.mydata_mark||'') + '"' +
+                ' class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-mono focus:outline-none focus:border-amber-400 bg-white" />' +
+              '<button onclick="dnSubmitMark(\'' + dn.id + '\', true)"' +
+                ' class="w-full py-2.5 rounded-xl font-extrabold text-white text-sm bg-amber-600 hover:bg-amber-700 transition-colors flex items-center justify-center gap-2">' +
+                '<i class="fas fa-rotate"></i>Ενημέρωση ΜΑΡΚ</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      if (dn.pdf_path) dnLoadUploadedPdf(dn.id);
+    }
+
+    async function dnLoadUploadedPdf(id) {
+      var wrapper = document.getElementById('dn-cur-pdf-wrap');
+      if (!wrapper) return;
+      try {
+        var token   = localStorage.getItem('fishbill_token') || '';
+        var apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+        var resp    = await fetch(apiBase + '/uploads/delivery-notes/' + id + '.pdf', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var url = URL.createObjectURL(await resp.blob());
+        wrapper.style.display = 'block';
+        wrapper.innerHTML = '<iframe src="' + url + '" class="w-full h-full border-0" allow="fullscreen" style="height:380px"></iframe>';
+      } catch(e) {
+        wrapper.style.height = 'auto';
+        wrapper.innerHTML =
+          '<div class="flex flex-col items-center gap-2 py-4 px-4 text-center">' +
+            '<i class="fas fa-triangle-exclamation text-amber-400 text-xl"></i>' +
+            '<p class="text-xs text-gray-500">Αδυναμία φόρτωσης PDF (' + e.message + ')</p>' +
+          '</div>';
+      }
+    }
+
+    // ── Summary HTML helper ────────────────────────────────────────────────────
+    function dnSummaryHtml(dn) {
+      var dispatchDateTime = '';
+      if (dn.dispatch_date) {
+        dispatchDateTime = fmtDate(dn.dispatch_date) + (dn.dispatch_time ? ' ' + dn.dispatch_time : '');
+      }
+      return '<div class="flex items-start justify-between gap-3 mb-4">' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-center gap-2 flex-wrap">' +
+            '<h2 class="text-xl font-extrabold text-gray-900">' + (dn.full_number||'—') + '</h2>' +
+            '<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">ΔΑ 9.3</span>' +
+            (dn.for_weighing ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">⚖️ Προς Ζύγιση</span>' : '') +
+          '</div>' +
+          '<p class="text-sm text-gray-500 mt-0.5">' + dn.business_name + ' · ΑΦΜ ' + (dn.business_afm||'—') + '</p>' +
+          '<p class="text-xs text-gray-400 mt-0.5">Ημ. Έκδοσης: <strong>' + fmtDate(dn.issue_date) + '</strong> · Παραλήπτης: <strong>' + (dn.recipient_name||'—') + '</strong>' + (dn.recipient_afm?' (ΑΦΜ: '+dn.recipient_afm+')':'') + '</p>' +
+          (dispatchDateTime ? '<p class="text-xs text-gray-400 mt-0.5">📅 Ημ/Ώρα Αποστολής: <strong>' + dispatchDateTime + '</strong></p>' : '') +
+          (dn.vehicle_plate ? '<p class="text-xs text-gray-400 mt-0.5">🚛 Πινακίδα: <strong class="font-mono">' + dn.vehicle_plate + '</strong></p>' : '') +
+          (dn.loading_place ? '<p class="text-xs text-gray-400 mt-0.5">📍 Τόπος Φόρτωσης: <strong>' + dn.loading_place + '</strong></p>' : '') +
+          (dn.transport_purpose ? '<p class="text-xs text-gray-400 mt-0.5">🎯 Σκοπός Διακίνησης: <strong>' + dn.transport_purpose + '</strong></p>' : '') +
+          (dn.dispatch_location ? '<p class="text-xs text-gray-400 mt-0.5">📤 Τόπος Αποστολής: ' + dn.dispatch_location + '</p>' : '') +
+          (dn.delivery_location ? '<p class="text-xs text-gray-400 mt-0.5">📥 Τόπος Παράδοσης: ' + dn.delivery_location + '</p>' : '') +
+          (dn.notes ? '<p class="text-xs text-gray-400 mt-0.5 italic">Σημ: ' + dn.notes + '</p>' : '') +
+        '</div>' +
+        '<div class="text-right flex-shrink-0 text-xs text-gray-400">' + (dn.recipient_city||'') + '</div>' +
+      '</div>';
+    }
+
+    // ── Actions ────────────────────────────────────────────────────────────────
+    async function dnTransmitNote(id) {
+      var btn = document.getElementById('btn-transmit');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Διαβίβαση…'; }
+      try {
+        var res = await api.post(_dnBase + '/' + id + '/transmit', {});
+        dnShowToast('✅ ΜΑΡΚ: ' + res.data.mark + ' — Διαβίβαση επιτυχής!', 'success');
+        dnAllNotes = dnAllNotes.filter(function(x){ return x.id !== id; });
+        dnRenderList(dnAllNotes);
+        await dnLoadUserSummaries();
+        dnHideDetail();
+      } catch(e) {
+        dnShowToast('Σφάλμα διαβίβασης: ' + e.message, 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Διαβίβαση στην ΑΑΔΕ'; }
+      }
+    }
+
+    async function dnCancelNote(id) {
+      if (!confirm('Σίγουρα θέλετε να ακυρώσετε το δελτίο;')) return;
+      try {
+        await api.patch(_dnBase + '/' + id + '/cancel', {});
+        dnShowToast('Το δελτίο ακυρώθηκε.', 'success');
+        dnAllNotes = dnAllNotes.filter(function(x){ return x.id !== id; });
+        dnRenderList(dnAllNotes);
+        await dnLoadUserSummaries();
+        dnHideDetail();
+      } catch(e) {
+        dnShowToast('Σφάλμα ακύρωσης: ' + e.message, 'error');
+      }
+    }
+
+    async function dnSubmitMark(id, isEdit) {
+      var inputId = isEdit ? 'mark-input-edit' : 'mark-input-new';
+      var mark = (document.getElementById(inputId)||{}).value;
+      if (!mark || !mark.trim()) { dnShowToast('Εισάγετε τον αριθμό ΜΑΡΚ', 'error'); return; }
+      try {
+        await api.patch(_dnBase + '/' + id + '/mark', { mark: mark.trim() });
+        dnShowToast('✅ ΜΑΡΚ ' + mark.trim() + (isEdit ? ' ενημερώθηκε' : ' καταχωρήθηκε') + ' επιτυχώς!', 'success');
+        if (!isEdit) {
+          dnAllNotes = dnAllNotes.filter(function(x){ return x.id !== id; });
+          dnRenderList(dnAllNotes);
+        } else {
+          await dnLoadNotes(dnCurrentPage);
+        }
+        await dnLoadUserSummaries();
+        dnHideDetail();
+      } catch(e) {
+        dnShowToast('Σφάλμα: ' + e.message, 'error');
+      }
+    }
+
+    async function dnUploadPdf(id, inputId) {
+      var file = (document.getElementById(inputId)||{}).files;
+      if (!file || !file[0]) { dnShowToast('Επιλέξτε ένα PDF αρχείο', 'error'); return; }
+      try {
+        var form  = new FormData();
+        form.append('pdf', file[0]);
+        var token = localStorage.getItem('fishbill_token') || '';
+        var apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+        var uploadPath = _isEmployee ? '/api/employee-actions/delivery-notes/' : '/api/platform/delivery-notes/';
+        var resp = await fetch(apiBase + uploadPath + id + '/upload-pdf',
+          { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: form });
+        if (!resp.ok) {
+          var err = await resp.json().catch(function(){ return {}; });
+          throw new Error(err.error || resp.status);
+        }
+        dnShowToast('✅ PDF ανέβηκε επιτυχώς!', 'success');
+      } catch(e) {
+        dnShowToast('Σφάλμα ανεβάσματος PDF: ' + e.message, 'error');
+      }
+    }
+
+    async function dnLoadAutoPdf(id) {
+      var wrapper = document.getElementById('dn-auto-preview');
+      if (!wrapper) return;
+      var apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+      wrapper.style.height = '380px';
+      wrapper.innerHTML = '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div></div>';
+      try {
+        var token = localStorage.getItem('fishbill_token') || '';
+        var resp  = await fetch(apiBase + '/api/platform/delivery-notes/' + id + '/pdf', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var blob  = await resp.blob();
+        var url   = URL.createObjectURL(blob);
+        wrapper.innerHTML = '<iframe src="' + url + '" class="w-full h-full border-0" allow="fullscreen"></iframe>';
+      } catch(e) {
+        wrapper.style.height = 'auto';
+        wrapper.innerHTML =
+          '<div class="flex flex-col items-center gap-2 py-4 px-4 text-center">' +
+            '<i class="fas fa-triangle-exclamation text-amber-400 text-xl"></i>' +
+            '<p class="text-xs text-gray-500">Η προεπισκόπηση δεν φορτώθηκε (' + e.message + ').</p>' +
+            '<button onclick="dnOpenPdfTab(\'' + id + '\')"' +
+              ' class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors">' +
+              '<i class="fas fa-external-link-alt"></i>Άνοιγμα σε νέο παράθυρο</button>' +
+          '</div>';
+      }
+    }
+
+    async function dnOpenPdfTab(id) {
+      try {
+        var token   = localStorage.getItem('fishbill_token') || '';
+        var apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
+        var resp    = await fetch(apiBase + '/api/platform/delivery-notes/' + id + '/pdf', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var url = URL.createObjectURL(await resp.blob());
+        window.open(url, '_blank');
+      } catch(e) {
+        dnShowToast('Σφάλμα φόρτωσης PDF: ' + e.message, 'error');
+      }
+    }
+
+    function dnOnPdfSelected(input, labelId) {
+      var el = document.getElementById(labelId);
+      if (el) el.textContent = input.files[0] ? input.files[0].name : 'Επιλέξτε PDF…';
+      var suffix  = labelId.replace('pdf-label-', '');
+      var preview = document.getElementById('pdf-preview-' + suffix);
+      var frame   = document.getElementById('pdf-frame-' + suffix);
+      if (input.files[0] && preview && frame) {
+        if (frame._prevUrl) URL.revokeObjectURL(frame._prevUrl);
+        var url = URL.createObjectURL(input.files[0]);
+        frame._prevUrl = url;
+        frame.src = url;
+        preview.classList.remove('hidden');
+      } else if (preview) {
+        preview.classList.add('hidden');
+      }
+    }
+
+    function dnShowToast(msg, type) {
+      var t = document.getElementById('dn-toast');
+      t.textContent = msg;
+      t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl ' +
+        (type === 'error' ? 'bg-red-500' : 'bg-emerald-500');
+      t.classList.remove('hidden');
+      setTimeout(function(){ t.classList.add('hidden'); }, 4500);
+    }
+  </script>
+</body>
+</html>

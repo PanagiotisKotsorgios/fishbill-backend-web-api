@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Αναφορές</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .kpi-card { transition: transform .15s, box-shadow .15s; }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="sidebar-container"></div>
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Header -->
+      <div class="mb-6 anim">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Αναφορές & Ανάλυση</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Στατιστικά τιμολόγησης και εσόδων</p>
+          </div>
+          <div class="flex gap-2 flex-wrap items-center">
+            <select id="period-select" onchange="loadAll()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+              <option value="30">Τελευταίες 30 ημέρες</option>
+              <option value="90">Τελευταίες 90 ημέρες</option>
+              <option value="365">Τελευταίο έτος</option>
+              <option value="0">Τρέχον μήνας</option>
+            </select>
+            <button onclick="exportReport()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
+              ⬇ Εξαγωγή CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI row -->
+      <div id="kpi-row" class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.04s">
+        <div class="kpi-card bg-white rounded-xl border border-gray-100 p-5 shadow-sm animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div><div class="h-8 bg-gray-200 rounded w-1/2"></div></div>
+        <div class="kpi-card bg-white rounded-xl border border-gray-100 p-5 shadow-sm animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div><div class="h-8 bg-gray-200 rounded w-1/2"></div></div>
+        <div class="kpi-card bg-white rounded-xl border border-gray-100 p-5 shadow-sm animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div><div class="h-8 bg-gray-200 rounded w-1/2"></div></div>
+        <div class="kpi-card bg-white rounded-xl border border-gray-100 p-5 shadow-sm animate-pulse"><div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div><div class="h-8 bg-gray-200 rounded w-1/2"></div></div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6 anim" style="animation-delay:.08s">
+        <!-- Revenue chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-chart-line mr-1.5 text-blue-500"></i>Έσοδα ανά μήνα</h2>
+          <div class="relative h-56">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+        <!-- Invoice count chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-file-invoice mr-1.5"></i>Παραστατικά ανά μήνα</h2>
+          <div class="relative h-56">
+            <canvas id="countChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tables row -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6 anim" style="animation-delay:.12s">
+        <!-- Top customers -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-trophy mr-1.5 text-amber-500"></i>Κορυφαίοι Πελάτες</h2>
+          <div id="top-customers-table">
+            <div class="animate-pulse space-y-2"><div class="h-10 bg-gray-100 rounded-lg"></div><div class="h-10 bg-gray-100 rounded-lg"></div><div class="h-10 bg-gray-100 rounded-lg"></div></div>
+          </div>
+        </div>
+        <!-- Top products -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-fish mr-1.5 text-cyan-600"></i>Κορυφαία Είδη / Υπηρεσίες</h2>
+          <div id="top-products-table">
+            <div class="animate-pulse space-y-2"><div class="h-10 bg-gray-100 rounded-lg"></div><div class="h-10 bg-gray-100 rounded-lg"></div><div class="h-10 bg-gray-100 rounded-lg"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment method breakdown -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 anim" style="animation-delay:.16s">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-credit-card mr-1.5 text-purple-500"></i>Τρόποι Πληρωμής</h2>
+          <div class="relative h-48">
+            <canvas id="paymentChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-chart-pie mr-1.5 text-teal-500"></i>Κατάσταση Παραστατικών</h2>
+          <div class="relative h-48">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-sm font-semibold text-gray-700 mb-4"><i class="fas fa-calendar-week mr-1.5 text-violet-500"></i>Αυτή η εβδομάδα</h2>
+          <div id="week-stats" class="space-y-3 text-sm">
+            <div class="animate-pulse"><div class="h-8 bg-gray-100 rounded-lg mb-2"></div><div class="h-8 bg-gray-100 rounded-lg"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    requireAuth();
+    buildSidebar();
+
+    let revenueChartInst = null, countChartInst = null, paymentChartInst = null, statusChartInst = null;
+
+    function getPeriod() { return parseInt(document.getElementById('period-select').value); }
+
+    function kpiCard(icon, label, value, sub, colorClass) {
+      return `<div class="kpi-card bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">${label}</p>
+            <p class="text-2xl font-extrabold text-gray-900 mt-1.5 leading-none">${value}</p>
+            ${sub ? `<p class="text-xs text-gray-400 mt-1.5">${sub}</p>` : ''}
+          </div>
+          <div class="w-11 h-11 rounded-xl ${colorClass} flex items-center justify-center text-xl flex-shrink-0 ml-3">${icon}</div>
+        </div>
+      </div>`;
+    }
+
+    async function loadAll() {
+      await Promise.all([loadKPIs(), loadCharts(), loadTopCustomers(), loadTopProducts(), loadWeekStats()]);
+    }
+
+    async function loadKPIs() {
+      try {
+        const r = await api.get('/stats/summary', { days: getPeriod() || 30 });
+        const s = r.data || r || {};
+        document.getElementById('kpi-row').innerHTML =
+          kpiCard('<i class="fas fa-file-invoice text-blue-600"></i>', 'Παραστατικά', s.invoice_count ?? '—', `Περίοδος ${getPeriod() || 'μήνα'}`, 'bg-blue-100') +
+          kpiCard('<i class="fas fa-euro-sign text-amber-600"></i>', 'Έσοδα (net)', s.total_net !== undefined ? ui.formatMoney(s.total_net) : '—', 'Καθαρή αξία', 'bg-emerald-100') +
+          kpiCard('<i class="fas fa-receipt text-yellow-600"></i>', 'ΦΠΑ', s.total_vat !== undefined ? ui.formatMoney(s.total_vat) : '—', 'Σύνολο ΦΠΑ', 'bg-yellow-100') +
+          kpiCard('<i class="fas fa-users text-purple-600"></i>', 'Πελάτες', s.unique_customers ?? '—', 'Μοναδικοί', 'bg-purple-100');
+      } catch (e) {
+        // Try dashboard stats as fallback
+        try {
+          const r = await api.get('/dashboard/stats');
+          const s = r.stats || r.data || {};
+          document.getElementById('kpi-row').innerHTML =
+            kpiCard('<i class="fas fa-file-invoice text-blue-600"></i>', 'Παραστατικά', s.totalInvoices ?? '—', 'Σύνολο', 'bg-blue-100') +
+            kpiCard('<i class="fas fa-euro-sign text-amber-600"></i>', 'Έσοδα Μήνα', s.monthlyRevenue !== undefined ? ui.formatMoney(s.monthlyRevenue) : '—', 'Τρέχων μήνας', 'bg-emerald-100') +
+            kpiCard('<i class="fas fa-calendar-day text-emerald-600"></i>', 'Σήμερα', s.todayInvoices ?? '—', 'Παραστατικά σήμερα', 'bg-yellow-100') +
+            kpiCard('<i class="fas fa-triangle-exclamation text-red-500"></i>', 'Αποτυχίες', s.failedTransmissions ?? '—', 'Μεταδόσεις', 'bg-red-100');
+        } catch(e2) {
+          document.getElementById('kpi-row').innerHTML = `<div class="col-span-4 text-sm text-red-500 py-4">Σφάλμα φόρτωσης KPIs</div>`;
+        }
+      }
+    }
+
+    async function loadCharts() {
+      try {
+        const r = await api.get('/stats/monthly', { months: getPeriod() <= 30 ? 6 : 12 });
+        const rows = r.data || [];
+
+        const labels  = rows.map(r => r.month || r.label || '');
+        const revenue = rows.map(r => parseFloat(r.total_value || r.revenue || 0));
+        const counts  = rows.map(r => parseInt(r.invoice_count || r.count || 0));
+
+        if (revenueChartInst) revenueChartInst.destroy();
+        if (countChartInst)   countChartInst.destroy();
+
+        revenueChartInst = new Chart(document.getElementById('revenueChart').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Έσοδα (€)',
+              data: revenue,
+              backgroundColor: 'rgba(37,99,235,.15)',
+              borderColor: '#2563eb',
+              borderWidth: 2,
+              borderRadius: 6,
+            }]
+          },
+          options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+        });
+
+        countChartInst = new Chart(document.getElementById('countChart').getContext('2d'), {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Αριθμός',
+              data: counts,
+              backgroundColor: 'rgba(16,185,129,.1)',
+              borderColor: '#10b981',
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4,
+              pointBackgroundColor: '#10b981',
+            }]
+          },
+          options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+        });
+      } catch(e) {
+        // No monthly stats endpoint — skip charts gracefully
+        document.getElementById('revenueChart').parentElement.innerHTML = '<p class="text-xs text-gray-400 text-center py-10">Δεν υπάρχουν δεδομένα</p>';
+        document.getElementById('countChart').parentElement.innerHTML = '<p class="text-xs text-gray-400 text-center py-10">Δεν υπάρχουν δεδομένα</p>';
+      }
+
+      // Payment & status breakdown from invoices
+      try {
+        const r2 = await api.get('/invoices', { limit: 200 });
+        const invs = r2.data || [];
+
+        // Payment methods
+        const pmCount = {};
+        invs.forEach(inv => { const pm = inv.payment_method || 'other'; pmCount[pm] = (pmCount[pm]||0)+1; });
+        const pmLabels = { cash:'Μετρητά', bank_transfer:'Τραπεζική', bank:'Τραπεζική', card:'Κάρτα', credit_card:'Κάρτα', iris:'IRIS', check:'Επιταγή', other:'Άλλο' };
+
+        if (paymentChartInst) paymentChartInst.destroy();
+        paymentChartInst = new Chart(document.getElementById('paymentChart').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(pmCount).map(k => pmLabels[k] || k),
+            datasets: [{ data: Object.values(pmCount), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#6366f1','#ec4899','#14b8a6'] }]
+          },
+          options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11} } } } }
+        });
+
+        // Status breakdown
+        const stCount = {};
+        invs.forEach(inv => { const st = inv.status || 'draft'; stCount[st] = (stCount[st]||0)+1; });
+        const stColors = { draft:'#94a3b8', issued:'#3b82f6', transmitted:'#10b981', failed:'#ef4444', cancelled:'#f97316' };
+        const stLabels = { draft:'Προσχέδιο', issued:'Εκδόθηκε', transmitted:'Μεταδόθηκε', failed:'Απέτυχε', cancelled:'Ακυρώθηκε' };
+
+        if (statusChartInst) statusChartInst.destroy();
+        statusChartInst = new Chart(document.getElementById('statusChart').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(stCount).map(k => stLabels[k] || k),
+            datasets: [{ data: Object.values(stCount), backgroundColor: Object.keys(stCount).map(k => stColors[k] || '#94a3b8') }]
+          },
+          options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11} } } } }
+        });
+      } catch(e) { /* skip */ }
+    }
+
+    async function loadTopCustomers() {
+      try {
+        const r = await api.get('/stats/top-customers', { limit: 5 });
+        const rows = r.data || [];
+        if (!rows.length) {
+          document.getElementById('top-customers-table').innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">Χωρίς δεδομένα</p>';
+          return;
+        }
+        document.getElementById('top-customers-table').innerHTML = `
+          <div class="space-y-2">
+            ${rows.map((c, i) => `
+              <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">${i+1}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-800 truncate">${c.name || c.customer_name || '—'}</p>
+                  <p class="text-xs text-gray-400">${c.invoice_count || 0} παραστατικά</p>
+                </div>
+                <span class="text-sm font-bold text-gray-900">€${parseFloat(c.total_amount || c.total_value || 0).toLocaleString('el-GR',{minimumFractionDigits:2})}</span>
+              </div>`).join('')}
+          </div>`;
+      } catch(e) {
+        // Fallback: load from dashboard stats
+        try {
+          const r = await api.get('/dashboard/top-customers');
+          const rows = r.data || [];
+          document.getElementById('top-customers-table').innerHTML = rows.length
+            ? `<div class="space-y-2">${rows.map((c,i)=>`<div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50"><span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">${i+1}</span><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-800 truncate">${c.name||'—'}</p><p class="text-xs text-gray-400">${c.invoice_count||0} παρ.</p></div><span class="text-sm font-bold">€${parseFloat(c.total_amount||0).toLocaleString('el-GR',{minimumFractionDigits:2})}</span></div>`).join('')}</div>`
+            : '<p class="text-sm text-gray-400 py-4 text-center">Χωρίς δεδομένα</p>';
+        } catch(e2) {
+          document.getElementById('top-customers-table').innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">Χωρίς δεδομένα</p>';
+        }
+      }
+    }
+
+    async function loadTopProducts() {
+      try {
+        const r = await api.get('/stats/top-products', { limit: 5 });
+        const rows = r.data || [];
+        document.getElementById('top-products-table').innerHTML = rows.length
+          ? `<div class="space-y-2">${rows.map((p,i)=>`
+              <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50">
+                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center">${i+1}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-800 truncate">${p.name||p.description||'—'}</p>
+                  <p class="text-xs text-gray-400">${p.quantity ? parseFloat(p.quantity).toLocaleString('el-GR')+(p.unit?' '+p.unit:'') : ''}</p>
+                </div>
+                <span class="text-sm font-bold">€${parseFloat(p.total_value||p.total_amount||0).toLocaleString('el-GR',{minimumFractionDigits:2})}</span>
+              </div>`).join('')}</div>`
+          : '<p class="text-sm text-gray-400 py-4 text-center">Χωρίς δεδομένα</p>';
+      } catch(e) {
+        document.getElementById('top-products-table').innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">Χωρίς δεδομένα</p>';
+      }
+    }
+
+    async function loadWeekStats() {
+      try {
+        const r = await api.get('/dashboard/stats');
+        const s = r.stats || r.data || {};
+        document.getElementById('week-stats').innerHTML = `
+          <div class="bg-blue-50 rounded-xl p-3">
+            <p class="text-xs text-blue-500 font-semibold uppercase tracking-wider">Σήμερα</p>
+            <p class="text-2xl font-extrabold text-blue-700">${s.todayInvoices ?? '—'}</p>
+            <p class="text-xs text-blue-400">παραστατικά</p>
+          </div>
+          <div class="bg-emerald-50 rounded-xl p-3">
+            <p class="text-xs text-emerald-500 font-semibold uppercase tracking-wider">Μήνας</p>
+            <p class="text-2xl font-extrabold text-emerald-700">${s.monthlyRevenue !== undefined ? ui.formatMoney(s.monthlyRevenue) : '—'}</p>
+            <p class="text-xs text-emerald-400">έσοδα</p>
+          </div>
+          ${s.failedTransmissions > 0 ? `<div class="bg-red-50 rounded-xl p-3"><p class="text-xs text-red-500 font-semibold uppercase">Αποτυχίες</p><p class="text-2xl font-extrabold text-red-600">${s.failedTransmissions}</p><p class="text-xs text-red-400"><a href="integrations.html" class="underline">Δείτε τις</a></p></div>` : ''}
+        `;
+      } catch(e) { document.getElementById('week-stats').innerHTML = '<p class="text-xs text-gray-400">Χωρίς δεδομένα</p>'; }
+    }
+
+    async function exportReport() {
+      try {
+        const r = await api.get('/exports/invoices', { format: 'csv', days: getPeriod() || 30 });
+        if (r && r.data && r.data.url) {
+          window.open(CONFIG.API_URL.replace('/api','') + r.data.url, '_blank');
+        } else {
+          alert('Η εξαγωγή ξεκίνησε. Ελέγξτε τη σελίδα Εξαγωγών.');
+          window.location.href = 'exports.html';
+        }
+      } catch(e) {
+        window.location.href = 'exports.html';
+      }
+    }
+
+    loadAll();
+    window.loadAll = loadAll;
+    window.exportReport = exportReport;
+  </script>
+</body>
+</html>

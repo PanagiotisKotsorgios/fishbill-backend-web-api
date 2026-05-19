@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Πελάτες Λογιστή — FishBill</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/></svg>" />
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/sidebar.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #F4F6F9; color: #1a1a2e; }
+
+    /* ── Two-panel layout ─────────────────────────────────────────────── */
+    .workspace {
+      display: flex;
+      height: calc(100vh - 56px);
+      margin-top: 56px;
+      overflow: hidden;
+    }
+    @media(min-width:1024px) { .workspace { height: 100vh; margin-top: 0; } }
+
+    /* ── Left: client list ────────────────────────────────────────────── */
+    #left-col {
+      width: 380px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #dde1e8;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .lc-toolbar {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid #eef0f4;
+      flex-shrink: 0;
+      background: #fafbfc;
+    }
+    .lc-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .lc-count {
+      font-size: 11px;
+      background: #EBF0FA;
+      color: #3B5998;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 700;
+    }
+    .search-row {
+      display: flex;
+      gap: 6px;
+    }
+    .search-row input {
+      flex: 1;
+      padding: 7px 10px 7px 30px;
+      border: 1px solid #dde1e8;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fff;
+      color: #111;
+      outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 9px center;
+      transition: border .15s;
+    }
+    .search-row input:focus { border-color: #2563EB; }
+    .btn-add {
+      padding: 7px 12px;
+      background: #1D4ED8;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      transition: background .12s;
+    }
+    .btn-add:hover { background: #1e40af; }
+
+    /* Client table */
+    .client-table-wrap { flex: 1; overflow-y: auto; }
+    table.ctable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .ctable thead th {
+      position: sticky;
+      top: 0;
+      background: #f8f9fb;
+      border-bottom: 2px solid #dde1e8;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .ctable tbody tr {
+      cursor: pointer;
+      border-bottom: 1px solid #f1f3f6;
+      transition: background .08s;
+    }
+    .ctable tbody tr:hover { background: #f0f5ff; }
+    .ctable tbody tr.active { background: #EBF3FF; }
+    .ctable tbody tr.active td { color: #1D4ED8; }
+    .ctable tbody tr.active td:first-child { border-left: 3px solid #1D4ED8; padding-left: 7px; }
+    .ctable td { padding: 9px 10px; vertical-align: middle; }
+    .biz-name-cell { font-weight: 600; color: #111; }
+    .biz-sub-cell { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green { background: #10b981; }
+    .dot-red   { background: #ef4444; }
+    .dot-gray  { background: #d1d5db; }
+    .dot-amber { background: #f59e0b; }
+
+    .plan-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .plan-pro { background: #EDE9FE; color: #5B21B6; }
+    .plan-basic { background: #DBEAFE; color: #1D4ED8; }
+    .plan-free, .plan-trial { background: #F3F4F6; color: #6B7280; }
+    .plan-enterprise { background: #FEF3C7; color: #92400E; }
+
+    /* ── Right: detail panel ──────────────────────────────────────────── */
+    #right-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #F4F6F9;
+    }
+
+    .rp-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      gap: 10px;
+    }
+    .rp-empty svg { opacity: .2; }
+    .rp-empty p { font-size: 14px; }
+
+    /* Detail header */
+    .detail-header {
+      background: #fff;
+      border-bottom: 1px solid #dde1e8;
+      padding: 14px 20px;
+      flex-shrink: 0;
+    }
+    .detail-hrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .detail-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      background: #1D4ED8;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .detail-name { font-size: 17px; font-weight: 800; color: #111; }
+    .detail-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .detail-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+    .dbadge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .dbadge-green { background: #D1FAE5; color: #065F46; }
+    .dbadge-red { background: #FEE2E2; color: #991B1B; }
+    .dbadge-blue { background: #DBEAFE; color: #1E40AF; }
+    .dbadge-yellow { background: #FEF3C7; color: #92400E; }
+    .dbadge-gray { background: #F3F4F6; color: #374151; }
+
+    .detail-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn-sm {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #dde1e8;
+      background: #fff;
+      cursor: pointer;
+      color: #374151;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .12s;
+      font-family: inherit;
+    }
+    .btn-sm:hover { background: #f3f4f6; }
+    .btn-sm.danger { color: #991B1B; border-color: #FECACA; }
+    .btn-sm.danger:hover { background: #FEE2E2; }
+    .btn-sm.primary { background: #1D4ED8; color: #fff; border-color: #1D4ED8; }
+    .btn-sm.primary:hover { background: #1e40af; }
+
+    /* Tabs */
+    .tabs-bar {
+      display: flex;
+      gap: 0;
+      background: #fff;
+      border-bottom: 1px solid #dde1e8;
+      padding: 0 20px;
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: color .12s, border-color .12s;
+      font-family: inherit;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: #1D4ED8; }
+    .tab-btn.active { color: #1D4ED8; border-bottom-color: #1D4ED8; }
+
+    /* Tab content */
+    .tab-content { flex: 1; overflow-y: auto; padding: 20px; }
+
+    /* Cards within tab content */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #dde1e8;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title span { display: flex; align-items: center; gap: 7px; }
+
+    /* Stat grid */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .stat-box {
+      background: #f8f9fb;
+      border: 1px solid #eef0f4;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .stat-val { font-size: 24px; font-weight: 800; color: #111; }
+    .stat-lbl { font-size: 11px; color: #9ca3af; margin-top: 3px; font-weight: 500; }
+
+    /* Data table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th {
+      background: #f8f9fb;
+      border-bottom: 1px solid #dde1e8;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .data-table td { padding: 9px 10px; border-bottom: 1px solid #f1f3f6; vertical-align: middle; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover td { background: #f8f9fb; }
+
+    /* Invoice status */
+    .st-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .st-transmitted { background: #D1FAE5; color: #065F46; }
+    .st-failed { background: #FEE2E2; color: #991B1B; }
+    .st-pending { background: #FEF3C7; color: #92400E; }
+    .st-draft { background: #F3F4F6; color: #6B7280; }
+    .st-issued { background: #DBEAFE; color: #1E40AF; }
+    .st-cancelled { background: #F3F4F6; color: #9CA3AF; text-decoration: line-through; }
+
+    /* Form grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 5px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #dde1e8;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #111;
+      background: #fafbfc;
+      outline: none;
+      transition: border .15s, background .15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: #2563EB; background: #fff; }
+    .form-group.span2 { grid-column: span 2; }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .input-hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+
+    .save-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid #dde1e8;
+      background: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .12s;
+      font-family: inherit;
+      color: #374151;
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-primary { background: #1D4ED8; color: #fff; border-color: #1D4ED8; }
+    .btn-primary:hover:not(:disabled) { background: #1e40af; }
+    .btn-danger { background: #FEE2E2; color: #991B1B; border-color: #FECACA; }
+    .btn-danger:hover { background: #FECACA; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #111;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+    }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 16px; padding: 2px;
+    }
+    .modal-close:hover { color: #374151; }
+    .modal-err {
+      background: #FEE2E2;
+      border: 1px solid #FECACA;
+      color: #991B1B;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* Toast */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: #1F2937;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+      max-width: 300px;
+      animation: tslide .18s ease;
+    }
+    .toast.success { background: #064E3B; }
+    .toast.error { background: #7F1D1D; }
+    @keyframes tslide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Annual table alternating rows */
+    #annual-tbody tr:nth-child(even) td { background: #fafbfc; }
+
+    @media(max-width: 900px) {
+      #left-col { width: 100%; display: none; }
+      #left-col.visible { display: flex; position: fixed; inset: 0; top: 56px; z-index: 100; }
+    }
+
+    /* Empty state */
+    .empty-state { padding: 40px 20px; text-align: center; color: #9ca3af; }
+    .empty-state svg { margin: 0 auto 12px; opacity: .3; display: block; }
+    .empty-state p { font-size: 13px; }
+  </style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+
+<div class="workspace">
+
+  <!-- ── LEFT: client list ────────────────────────────────────────────── -->
+  <div id="left-col">
+    <div class="lc-toolbar">
+      <div class="lc-title">
+        Πελάτες μου
+        <span class="lc-count" id="client-count">0</span>
+      </div>
+      <div class="search-row">
+        <input type="text" id="client-search" placeholder="Αναζήτηση πελάτη…" oninput="filterClients(this.value)" />
+        <button class="btn-add" onclick="openAddModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+          Προσθήκη
+        </button>
+      </div>
+    </div>
+    <div class="client-table-wrap">
+      <table class="ctable">
+        <thead>
+          <tr>
+            <th>Επωνυμία / ΑΦΜ</th>
+            <th>Πλάνο</th>
+            <th style="text-align:center">myDATA</th>
+            <th style="text-align:center">Κατ.</th>
+          </tr>
+        </thead>
+        <tbody id="client-tbody">
+          <tr><td colspan="4" class="empty-state"><p>Φόρτωση…</p></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: client detail ─────────────────────────────────────────── -->
+  <div id="right-col">
+    <div class="rp-empty" id="rp-empty">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <p>Επιλέξτε πελάτη για να δείτε τα στοιχεία του</p>
+    </div>
+
+    <div id="rp-detail" style="display:none;flex-direction:column;height:100%">
+      <!-- Header -->
+      <div class="detail-header">
+        <div class="detail-hrow">
+          <div class="detail-avatar" id="d-avatar">ΑΛ</div>
+          <div style="flex:1;min-width:0">
+            <div class="detail-name" id="d-name">—</div>
+            <div class="detail-meta" id="d-meta">—</div>
+            <div class="detail-badges" id="d-badges"></div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn-sm" onclick="openGsisModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              ΓΓΠΣ
+            </button>
+            <button class="btn-sm" onclick="openMyDataModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              myDATA
+            </button>
+            <button class="btn-sm" onclick="openEditModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Επεξεργασία
+            </button>
+            <button class="btn-sm danger" onclick="confirmRemoveClient()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              Αφαίρεση
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview', this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Επισκόπηση
+        </button>
+        <button class="tab-btn" data-tab="invoices" onclick="switchTab('invoices', this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Παραστατικά
+        </button>
+        <button class="tab-btn" data-tab="profile" onclick="switchTab('profile', this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Στοιχεία
+        </button>
+        <button class="tab-btn" data-tab="mydata" onclick="switchTab('mydata', this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          myDATA
+        </button>
+        <button class="tab-btn" data-tab="gsis" onclick="switchTab('gsis', this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          ΓΓΠΣ
+        </button>
+        <button class="tab-btn" data-tab="annual" onclick="switchTab('annual', this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Ετήσια
+        </button>
+      </div>
+
+      <!-- Tab panels -->
+      <div class="tab-content" id="tab-content">
+        <div class="empty-state"><p>Φόρτωση…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Add client ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span>Σύνδεση Νέου Πελάτη</span>
+      <button class="modal-close" onclick="closeModal('add-modal')">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px;line-height:1.5">
+      Ζητήστε από τον αλιέα το <strong>ΑΦΜ</strong> και τον <strong>Κωδικό Σύνδεσης</strong> (6-ψήφιος, από Εφαρμογή → Προφίλ).
+    </p>
+    <div class="modal-err" id="add-err"></div>
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>ΑΦΜ Αλιέα *</label>
+        <input id="add-afm" type="text" placeholder="123456789" maxlength="9" inputmode="numeric"
+               oninput="this.value=this.value.replace(/\D/g,'')" />
+      </div>
+      <div class="form-group">
+        <label>Κωδικός Σύνδεσης *</label>
+        <input id="add-code" type="text" placeholder="6-ψήφιος κωδικός" maxlength="6" inputmode="numeric"
+               oninput="this.value=this.value.replace(/\D/g,'')" />
+        <div class="input-hint">Ο αλιέας το βρίσκει στην εφαρμογή του.</div>
+      </div>
+      <div class="form-group span2">
+        <label>Σημείωση (προαιρετική)</label>
+        <input id="add-notes" type="text" placeholder="π.χ. Πελάτης από Χαλκίδα" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('add-modal')">Άκυρο</button>
+      <button class="btn btn-primary" id="add-btn" onclick="doAddClient()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Σύνδεση Πελάτη
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Edit profile ────────────────────────────────────────────── -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-title">
+      <span>Επεξεργασία Στοιχείων Πελάτη</span>
+      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="modal-err" id="edit-err"></div>
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Επωνυμία</label>
+        <input id="e-name" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Εμπ. Επωνυμία</label>
+        <input id="e-tradename" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Δ.Ο.Υ.</label>
+        <input id="e-doy" type="text" />
+      </div>
+      <div class="form-group">
+        <label>ΚΑΔ</label>
+        <input id="e-activity" type="text" />
+      </div>
+      <div class="form-group span2">
+        <label>Διεύθυνση</label>
+        <input id="e-address" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Πόλη</label>
+        <input id="e-city" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Τ.Κ.</label>
+        <input id="e-postal" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Τηλέφωνο</label>
+        <input id="e-phone" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input id="e-email" type="email" />
+      </div>
+      <div class="form-group">
+        <label>Λογιστής Ονοματεπώνυμο</label>
+        <input id="e-acc-name" type="text" />
+      </div>
+      <div class="form-group">
+        <label>Λογιστής Email</label>
+        <input id="e-acc-email" type="email" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('edit-modal')">Άκυρο</button>
+      <button class="btn btn-primary" id="edit-btn" onclick="doSaveProfile()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Αποθήκευση
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: myDATA ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="mydata-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span>Ρύθμιση myDATA</span>
+      <button class="modal-close" onclick="closeModal('mydata-modal')">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:14px">Διαπιστευτήρια από <strong>portal.aade.gr</strong> για αποστολή παραστατικών στην ΑΑΔΕ.</p>
+    <div class="modal-err" id="mydata-err"></div>
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-group span2">
+        <label>myDATA User ID</label>
+        <input id="md-userid" type="text" placeholder="User ID από portal.aade.gr" />
+      </div>
+      <div class="form-group span2">
+        <label>Subscription Key</label>
+        <input id="md-subkey" type="text" placeholder="Κλειδί συνδρομής" />
+      </div>
+      <div class="form-group span2">
+        <label>Πάροχος (αν χρησιμοποιεί)</label>
+        <select id="md-provider">
+          <option value="">— Χωρίς πάροχο (απ' ευθείας ΑΑΔΕ) —</option>
+          <option value="etimologiera">e-timologiera (BRATNET E.E.)</option>
+          <option value="softone">SoftOne</option>
+          <option value="epsilonnet">EpsilonNet</option>
+          <option value="unidoc">Unidoc</option>
+          <option value="other">Άλλος</option>
+        </select>
+      </div>
+      <div class="form-group span2" id="md-provider-key-row">
+        <label>Provider API Key</label>
+        <input id="md-provkey" type="text" placeholder="API Key παρόχου" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('mydata-modal')">Άκυρο</button>
+      <button class="btn btn-primary" id="mydata-btn" onclick="doSaveMyData()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Αποθήκευση
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: ΓΓΠΣ ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="gsis-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span>Διαπιστευτήρια ΓΓΠΣ / Taxisnet</span>
+      <button class="modal-close" onclick="closeModal('gsis-modal')">✕</button>
+    </div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:14px">
+      Τα στοιχεία Taxisnet <strong>του αλιέα</strong> για αυτόματη άντληση στοιχείων ΑΦΜ. Παρέχονται από τον ίδιο.
+    </p>
+    <div class="modal-err" id="gsis-err"></div>
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Όνομα Χρήστη</label>
+        <input id="gs-user" type="text" placeholder="Username Taxisnet" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Κωδικός</label>
+        <input id="gs-pass" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeModal('gsis-modal')">Άκυρο</button>
+      <button class="btn btn-primary" id="gsis-btn" onclick="doSaveGsis()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Αποθήκευση
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ─── Auth ───────────────────────────────────────────────────────────────────
+requireAuth();
+requireRole('accountant', 'owner', 'super_admin');
+buildSidebar();
+
+// ─── State ──────────────────────────────────────────────────────────────────
+let allClients = [];
+let selectedId = null;
+let selectedData = null; // { business, settings, stats }
+let activeTab = 'overview';
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+(async () => { await loadClients(); })();
+
+// ─── Load client list ────────────────────────────────────────────────────────
+async function loadClients() {
+  try {
+    const res = await api.get('/accountant/clients', { limit: 200 });
+    allClients = res.data || [];
+    renderClientTable(allClients);
+    document.getElementById('client-count').textContent = allClients.length;
+  } catch(e) {
+    document.getElementById('client-tbody').innerHTML =
+      `<tr><td colspan="4" class="empty-state" style="color:#ef4444">${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ─── Render client table ─────────────────────────────────────────────────────
+function renderClientTable(list) {
+  const tbody = document.getElementById('client-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">
+      <p>Δεν υπάρχουν πελάτες ακόμα.<br>Πατήστε «Προσθήκη» για να συνδέσετε αλιέα.</p>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const initials = (c.name||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '??';
+    const planCls = 'plan-' + (c.plan||'free').toLowerCase();
+    const planLbl = { trial:'Δοκιμή', basic:'Basic', pro:'Pro', enterprise:'Enterprise', free:'Δωρεάν' }[c.plan||'free'] || c.plan;
+    const statusDot = c.is_active ? 'dot-green' : 'dot-gray';
+    const mdDot = c.mydata_user_id ? 'dot-green' : 'dot-red';
+    const isActive = selectedId === c.id ? 'active' : '';
+    return `<tr class="${isActive}" onclick="selectClient('${c.id}')">
+      <td>
+        <div class="biz-name-cell">${esc(c.name||'—')}</div>
+        <div class="biz-sub-cell">ΑΦΜ: ${esc(c.afm||'—')} ${c.city ? '· ' + esc(c.city) : ''}</div>
+      </td>
+      <td><span class="plan-badge ${planCls}">${planLbl}</span></td>
+      <td style="text-align:center"><span class="dot ${mdDot}" title="${c.mydata_user_id ? 'Ρυθμισμένο' : 'Μη ρυθμισμένο'}"></span></td>
+      <td style="text-align:center"><span class="dot ${statusDot}" title="${c.is_active ? 'Ενεργός' : 'Ανενεργός'}"></span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Filter ──────────────────────────────────────────────────────────────────
+function filterClients(q) {
+  q = q.toLowerCase().trim();
+  const filtered = q ? allClients.filter(c =>
+    (c.name||'').toLowerCase().includes(q) ||
+    (c.afm||'').includes(q) ||
+    (c.city||'').toLowerCase().includes(q) ||
+    (c.email||'').toLowerCase().includes(q)
+  ) : allClients;
+  renderClientTable(filtered);
+}
+
+// ─── Select client ────────────────────────────────────────────────────────────
+async function selectClient(id) {
+  if (selectedId === id) return;
+  selectedId = id;
+  renderClientTable(allClients.filter(c => {
+    const q = document.getElementById('client-search').value.toLowerCase().trim();
+    return !q || (c.name||'').toLowerCase().includes(q) || (c.afm||'').includes(q) || (c.city||'').toLowerCase().includes(q);
+  }));
+
+  document.getElementById('rp-empty').style.display = 'none';
+  document.getElementById('rp-detail').style.display = 'flex';
+  document.getElementById('tab-content').innerHTML = '<div class="empty-state"><p>Φόρτωση…</p></div>';
+
+  try {
+    const res = await api.get(`/accountant/clients/${id}`);
+    selectedData = res.data;
+    renderDetailHeader(selectedData.business);
+    renderTab(activeTab);
+  } catch(e) {
+    toast(e.message, 'error');
+    document.getElementById('tab-content').innerHTML = `<div class="empty-state" style="color:#ef4444">${esc(e.message)}</div>`;
+  }
+}
+
+// ─── Render detail header ─────────────────────────────────────────────────────
+function renderDetailHeader(b) {
+  const initials = (b.name||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '??';
+  document.getElementById('d-avatar').textContent = initials;
+  document.getElementById('d-name').textContent = b.name || b.trade_name || '—';
+  document.getElementById('d-meta').textContent = [
+    b.afm ? 'ΑΦΜ: ' + b.afm : null,
+    b.doy ? 'ΔΟΥ: ' + b.doy : null,
+    b.city || null,
+    b.phone || null,
+  ].filter(Boolean).join(' · ');
+
+  const badges = [];
+  if (b.is_active) badges.push('<span class="dbadge dbadge-green">Ενεργός</span>');
+  else badges.push('<span class="dbadge dbadge-red">Ανενεργός</span>');
+  if (b.is_suspended) badges.push('<span class="dbadge dbadge-red">Αναστολή</span>');
+  if (b.mydata_user_id) badges.push('<span class="dbadge dbadge-blue">myDATA ✓</span>');
+  else badges.push('<span class="dbadge dbadge-yellow">myDATA —</span>');
+  if (b.gsis_username) badges.push('<span class="dbadge dbadge-blue">ΓΓΠΣ ✓</span>');
+  else badges.push('<span class="dbadge dbadge-gray">ΓΓΠΣ —</span>');
+  if (b.plan) badges.push(`<span class="dbadge dbadge-gray">${{trial:'Δοκιμή',basic:'Basic',pro:'Pro',enterprise:'Enterprise',free:'Δωρεάν'}[b.plan]||b.plan}</span>`);
+  document.getElementById('d-badges').innerHTML = badges.join('');
+}
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTab(tab);
+}
+
+async function renderTab(tab) {
+  const el = document.getElementById('tab-content');
+  if (!selectedData) return;
+  const { business: b, settings: s, stats } = selectedData;
+
+  if (tab === 'overview') {
+    el.innerHTML = renderOverviewTab(b, stats);
+  } else if (tab === 'invoices') {
+    el.innerHTML = '<div class="empty-state"><p>Φόρτωση τιμολογίων…</p></div>';
+    try {
+      const res = await api.get(`/accountant/clients/${b.id}/invoices`, { limit: 50, page: 1 });
+      el.innerHTML = renderInvoicesTab(res.data || [], res.total || 0);
+    } catch(e) {
+      el.innerHTML = `<div class="empty-state" style="color:#ef4444">${esc(e.message)}</div>`;
+    }
+  } else if (tab === 'profile') {
+    el.innerHTML = renderProfileTab(b);
+  } else if (tab === 'mydata') {
+    el.innerHTML = renderMyDataTab(b);
+  } else if (tab === 'gsis') {
+    el.innerHTML = renderGsisTab(b);
+  } else if (tab === 'annual') {
+    el.innerHTML = '<div class="empty-state"><p>Φόρτωση ετήσιων στοιχείων…</p></div>';
+    renderAnnualTab(b.id);
+  }
+}
+
+// ─── Overview tab ─────────────────────────────────────────────────────────────
+function renderOverviewTab(b, stats) {
+  const s = stats || {};
+  return `
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-val">${s.total_invoices||0}</div>
+      <div class="stat-lbl">Σύνολο Παραστατικών</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">${s.transmitted||0}</div>
+      <div class="stat-lbl">Διαβιβάστηκαν</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" style="color:${s.failed>0?'#ef4444':'inherit'}">${s.failed||0}</div>
+      <div class="stat-lbl">Αποτυχίες myDATA</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">${s.today||0}</div>
+      <div class="stat-lbl">Τιμολόγια Σήμερα</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">${fmtMoney(s.monthly_revenue||0)}</div>
+      <div class="stat-lbl">Έσοδα Τρέχ. Μήνα</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Στοιχεία Επιχείρησης</span></div>
+    <table class="data-table">
+      <tbody>
+        ${row('ΑΦΜ', b.afm)} ${row('Δ.Ο.Υ.', b.doy)} ${row('ΚΑΔ', b.activity_code)}
+        ${row('Διεύθυνση', [b.address, b.city, b.postal_code].filter(Boolean).join(', '))}
+        ${row('Email', b.email)} ${row('Τηλέφωνο', b.phone)}
+        ${row('Κωδικός Αλιέα', b.fisherman_code)}
+        ${row('Λογιστής', b.accountant_name || '—')}
+        ${row('Πλάνο', ({trial:'Δοκιμή',basic:'Basic',pro:'Pro',enterprise:'Enterprise',free:'Δωρεάν'}[b.plan]||b.plan||'—'))}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Κατάσταση Διαπιστευτηρίων</span></div>
+    <table class="data-table">
+      <tbody>
+        ${row('myDATA User ID', b.mydata_user_id ? '✓ ' + b.mydata_user_id : '— Δεν έχει ρυθμιστεί')}
+        ${row('Subscription Key', b.mydata_subscription_key ? '✓ ••••••••' : '—')}
+        ${row('Πάροχος', b.provider_name || '— (Απ. ευθείας ΑΑΔΕ)')}
+        ${row('ΓΓΠΣ Username', b.gsis_username ? '✓ ' + b.gsis_username : '— Δεν έχει ρυθμιστεί')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function row(label, val) {
+  return `<tr><td style="width:170px;color:#6b7280;font-weight:600;font-size:12px">${esc(label)}</td><td>${esc(val||'—')}</td></tr>`;
+}
+
+// ─── Invoices tab ─────────────────────────────────────────────────────────────
+function renderInvoicesTab(invoices, total) {
+  const ST_LBL = { transmitted:'Διαβιβάστηκε', sent:'Διαβιβάστηκε', approved:'Διαβιβάστηκε', failed:'Αποτυχία', rejected:'Αποτυχία', pending:'Εκκρεμεί', draft:'Πρόχειρο', cancelled:'Ακυρώθηκε', issued:'Εκδόθηκε' };
+  const ST_CLS = { transmitted:'st-transmitted', sent:'st-transmitted', approved:'st-transmitted', failed:'st-failed', rejected:'st-failed', pending:'st-pending', draft:'st-draft', cancelled:'st-cancelled', issued:'st-issued' };
+  return `
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 18px;border-bottom:1px solid #eef0f4;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:700;color:#374151">Παραστατικά (${total})</span>
+      <a href="invoices.html?business_id=${selectedId}" style="font-size:12px;font-weight:600;color:#1D4ED8;text-decoration:none">Άνοιγμα στο μητρώο →</a>
+    </div>
+    ${!invoices.length ? '<div class="empty-state"><p>Δεν υπάρχουν παραστατικά ακόμα.</p></div>' : `
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Αρ. Παραστατικού</th>
+            <th>Ημ/νία</th>
+            <th>Πελάτης</th>
+            <th style="text-align:right">Αξία</th>
+            <th>Κατάσταση</th>
+            <th>ΜΑΡΚ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${invoices.map(inv => {
+            const st = (inv.status||'draft').toLowerCase();
+            return `<tr>
+              <td style="font-weight:600">${esc(inv.full_number||'—')}</td>
+              <td>${inv.issue_date ? new Date(inv.issue_date).toLocaleDateString('el-GR') : '—'}</td>
+              <td>${esc(inv.customer_name||'—')}</td>
+              <td style="text-align:right">${fmtMoney(inv.total_value)}</td>
+              <td><span class="st-badge ${ST_CLS[st]||'st-draft'}">${ST_LBL[st]||st}</span></td>
+              <td style="font-size:11px;color:#9ca3af">${esc(inv.mydata_mark||'—')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`}
+  </div>`;
+}
+
+// ─── Profile tab ──────────────────────────────────────────────────────────────
+function renderProfileTab(b) {
+  return `
+  <div class="card">
+    <div class="card-title"><span>Στοιχεία Επιχείρησης</span></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Επωνυμία</label>
+        <input id="pf-name" type="text" value="${escAttr(b.name||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Εμπ. Επωνυμία</label>
+        <input id="pf-tradename" type="text" value="${escAttr(b.trade_name||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Δ.Ο.Υ.</label>
+        <input id="pf-doy" type="text" value="${escAttr(b.doy||'')}" />
+      </div>
+      <div class="form-group">
+        <label>ΚΑΔ</label>
+        <input id="pf-activity" type="text" value="${escAttr(b.activity_code||'')}" />
+      </div>
+      <div class="form-group span2">
+        <label>Διεύθυνση</label>
+        <input id="pf-address" type="text" value="${escAttr(b.address||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Πόλη</label>
+        <input id="pf-city" type="text" value="${escAttr(b.city||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Τ.Κ.</label>
+        <input id="pf-postal" type="text" value="${escAttr(b.postal_code||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Τηλέφωνο</label>
+        <input id="pf-phone" type="text" value="${escAttr(b.phone||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input id="pf-email" type="email" value="${escAttr(b.email||'')}" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn btn-primary" id="pf-btn" onclick="doSaveProfileInline()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Αποθήκευση
+      </button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Στοιχεία Λογιστή</span></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Ονοματεπώνυμο Λογιστή</label>
+        <input id="pf-acc-name" type="text" value="${escAttr(b.accountant_name||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Email Λογιστή</label>
+        <input id="pf-acc-email" type="email" value="${escAttr(b.accountant_email||'')}" />
+      </div>
+      <div class="form-group">
+        <label>Τηλέφωνο Λογιστή</label>
+        <input id="pf-acc-phone" type="text" value="${escAttr(b.accountant_phone||'')}" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn btn-primary" onclick="doSaveProfileInline()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Αποθήκευση
+      </button>
+    </div>
+  </div>`;
+}
+
+async function doSaveProfileInline() {
+  if (!selectedId) return;
+  const body = {
+    name: v('pf-name'), trade_name: v('pf-tradename'), doy: v('pf-doy'),
+    activity_code: v('pf-activity'), address: v('pf-address'),
+    city: v('pf-city'), postal_code: v('pf-postal'),
+    phone: v('pf-phone'), email: v('pf-email'),
+    accountant_name: v('pf-acc-name'), accountant_email: v('pf-acc-email'), accountant_phone: v('pf-acc-phone'),
+  };
+  setBtnLoading('pf-btn', true);
+  try {
+    await api.patch(`/accountant/clients/${selectedId}/profile`, body);
+    Object.assign(selectedData.business, body);
+    renderDetailHeader(selectedData.business);
+    toast('Αποθηκεύτηκε', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+  finally { setBtnLoading('pf-btn', false); }
+}
+
+// ─── myDATA tab ───────────────────────────────────────────────────────────────
+function renderMyDataTab(b) {
+  return `
+  <div class="card">
+    <div class="card-title"><span>Διαπιστευτήρια myDATA (ΑΑΔΕ)</span></div>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:14px">Από <strong>portal.aade.gr</strong> — Developer → Εγγραφή Χρήστη.</p>
+    <div class="form-grid">
+      <div class="form-group span2">
+        <label>User ID</label>
+        <input id="md2-userid" type="text" value="${escAttr(b.mydata_user_id||'')}" placeholder="User ID" />
+      </div>
+      <div class="form-group span2">
+        <label>Subscription Key</label>
+        <input id="md2-subkey" type="text" value="${escAttr(b.mydata_subscription_key||'')}" placeholder="Κλειδί" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn btn-primary" id="md2-btn" onclick="doSaveMyDataInline()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Αποθήκευση
+      </button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Πάροχος ΗΛ.ΤΙΜ.</span></div>
+    <div class="form-grid">
+      <div class="form-group span2">
+        <label>Πάροχος</label>
+        <select id="md2-provider">
+          <option value="" ${!b.provider_name?'selected':''}>— Χωρίς πάροχο —</option>
+          <option value="etimologiera" ${b.mydata_provider==='etimologiera'?'selected':''}>e-timologiera (BRATNET)</option>
+          <option value="softone" ${b.mydata_provider==='softone'?'selected':''}>SoftOne</option>
+          <option value="epsilonnet" ${b.mydata_provider==='epsilonnet'?'selected':''}>EpsilonNet</option>
+          <option value="unidoc" ${b.mydata_provider==='unidoc'?'selected':''}>Unidoc</option>
+        </select>
+      </div>
+      <div class="form-group span2">
+        <label>Provider API Key</label>
+        <input id="md2-provkey" type="text" value="${escAttr(b.provider_api_key||b.etimologiera_api_key||'')}" placeholder="API Key παρόχου" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn btn-primary" onclick="doSaveMyDataInline()">Αποθήκευση</button>
+    </div>
+  </div>`;
+}
+
+async function doSaveMyDataInline() {
+  if (!selectedId) return;
+  setBtnLoading('md2-btn', true);
+  try {
+    await api.patch(`/accountant/clients/${selectedId}/mydata`, {
+      mydata_user_id: v('md2-userid') || null,
+      mydata_subscription_key: v('md2-subkey') || null,
+      provider_name: v('md2-provider') || null,
+      provider_api_key: v('md2-provkey') || null,
+    });
+    Object.assign(selectedData.business, {
+      mydata_user_id: v('md2-userid'),
+      mydata_subscription_key: v('md2-subkey'),
+      provider_name: v('md2-provider'),
+    });
+    renderDetailHeader(selectedData.business);
+    refreshClientRow();
+    toast('myDATA αποθηκεύτηκε', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+  finally { setBtnLoading('md2-btn', false); }
+}
+
+// ─── ΓΓΠΣ tab ─────────────────────────────────────────────────────────────────
+function renderGsisTab(b) {
+  return `
+  <div class="card">
+    <div class="card-title"><span>Διαπιστευτήρια ΓΓΠΣ / Taxisnet</span></div>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:14px">
+      Τα στοιχεία σύνδεσης <strong>του αλιέα</strong> στο gsis.gr για αυτόματη άντληση στοιχείων ΑΦΜ.
+      Δεν χρησιμοποιούνται οι κωδικοί του λογιστή.
+    </p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Όνομα Χρήστη</label>
+        <input id="gs2-user" type="text" value="${escAttr(b.gsis_username||'')}" placeholder="Username Taxisnet" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Κωδικός</label>
+        <input id="gs2-pass" type="password" placeholder="••••••••" autocomplete="new-password" />
+        <div class="input-hint">Αφήστε κενό για να μην αλλάξει.</div>
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn btn-primary" id="gs2-btn" onclick="doSaveGsisInline()">Αποθήκευση</button>
+    </div>
+  </div>`;
+}
+
+async function doSaveGsisInline() {
+  if (!selectedId) return;
+  const payload = { gsis_username: v('gs2-user') || null };
+  const pass = v('gs2-pass');
+  if (pass) payload.gsis_password = pass;
+  setBtnLoading('gs2-btn', true);
+  try {
+    await api.patch(`/accountant/clients/${selectedId}/gsis`, payload);
+    selectedData.business.gsis_username = payload.gsis_username;
+    renderDetailHeader(selectedData.business);
+    toast('ΓΓΠΣ αποθηκεύτηκε', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+  finally { setBtnLoading('gs2-btn', false); }
+}
+
+// ─── Annual tab ───────────────────────────────────────────────────────────────
+async function renderAnnualTab(bizId) {
+  const el = document.getElementById('tab-content');
+  try {
+    const res = await api.get(`/accountant/clients/${bizId}/invoices`, { limit: 500, page: 1 });
+    const invoices = res.data || [];
+    const year = new Date().getFullYear();
+
+    const months = Array.from({length:12}, (_,i) => ({
+      label: new Date(year,i,1).toLocaleDateString('el-GR',{month:'long'}),
+      count: 0, total: 0, vat: 0, net: 0
+    }));
+
+    invoices.forEach(inv => {
+      const d = new Date(inv.issue_date);
+      if (d.getFullYear() !== year) return;
+      const m = d.getMonth();
+      months[m].count++;
+      months[m].total += parseFloat(inv.total_value||0);
+    });
+
+    const rows = months.map((m,i) => `
+      <tr id="annual-row-${i}">
+        <td style="font-weight:600;color:#374151">${m.label}</td>
+        <td style="text-align:right">${m.count||'—'}</td>
+        <td style="text-align:right;font-weight:600">${m.count ? fmtMoney(m.total) : '—'}</td>
+        <td style="text-align:right;color:#6b7280">${m.count ? fmtMoney(m.total*0.13) : '—'}</td>
+        <td style="text-align:right;color:#6b7280">${m.count ? fmtMoney(m.total*0.87) : '—'}</td>
+      </tr>`).join('');
+
+    const totCount = months.reduce((a,m) => a+m.count, 0);
+    const totTotal = months.reduce((a,m) => a+m.total, 0);
+
+    el.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid #eef0f4">
+        <span style="font-size:13px;font-weight:700;color:#374151">Ετήσια Επισκόπηση ${year}</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="annual-tbody">
+          <thead>
+            <tr>
+              <th>Μήνας</th>
+              <th style="text-align:right">Τιμολόγια</th>
+              <th style="text-align:right">Σύνολο</th>
+              <th style="text-align:right">ΦΠΑ (~13%)</th>
+              <th style="text-align:right">Καθαρό</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr style="background:#f0f5ff;font-weight:800">
+              <td style="padding:10px">Σύνολο ${year}</td>
+              <td style="padding:10px;text-align:right">${totCount}</td>
+              <td style="padding:10px;text-align:right;color:#1D4ED8">${fmtMoney(totTotal)}</td>
+              <td style="padding:10px;text-align:right;color:#6b7280">${fmtMoney(totTotal*0.13)}</td>
+              <td style="padding:10px;text-align:right;color:#6b7280">${fmtMoney(totTotal*0.87)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state" style="color:#ef4444">${esc(e.message)}</div>`;
+  }
+}
+
+// ─── Add client modal ─────────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('add-afm').value = '';
+  document.getElementById('add-code').value = '';
+  document.getElementById('add-notes').value = '';
+  setModalErr('add-err', '');
+  document.getElementById('add-modal').classList.add('open');
+}
+
+async function doAddClient() {
+  const afm = document.getElementById('add-afm').value.trim();
+  const code = document.getElementById('add-code').value.trim();
+  const notes = document.getElementById('add-notes').value.trim();
+
+  if (!afm || afm.length !== 9) { setModalErr('add-err', 'Απαιτείται ΑΦΜ 9 ψηφίων.'); return; }
+  if (!code || code.length !== 6) { setModalErr('add-err', 'Απαιτείται Κωδικός Σύνδεσης 6 ψηφίων.'); return; }
+
+  setBtnLoading('add-btn', true);
+  try {
+    const res = await api.post('/accountant/clients', { afm, fisherman_code: code, notes: notes||null });
+    closeModal('add-modal');
+    toast('Ο αλιέας προστέθηκε στη λίστα σας!', 'success');
+    await loadClients();
+    if (res.data?.business?.id) selectClient(res.data.business.id);
+  } catch(e) {
+    setModalErr('add-err', e.message);
+  } finally { setBtnLoading('add-btn', false); }
+}
+
+// ─── Edit profile modal ───────────────────────────────────────────────────────
+function openEditModal() {
+  if (!selectedData) return;
+  const b = selectedData.business;
+  setV('e-name', b.name); setV('e-tradename', b.trade_name);
+  setV('e-doy', b.doy); setV('e-activity', b.activity_code);
+  setV('e-address', b.address); setV('e-city', b.city);
+  setV('e-postal', b.postal_code); setV('e-phone', b.phone);
+  setV('e-email', b.email); setV('e-acc-name', b.accountant_name);
+  setV('e-acc-email', b.accountant_email);
+  setModalErr('edit-err', '');
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+async function doSaveProfile() {
+  if (!selectedId) return;
+  const body = {
+    name: v('e-name'), trade_name: v('e-tradename'), doy: v('e-doy'),
+    activity_code: v('e-activity'), address: v('e-address'),
+    city: v('e-city'), postal_code: v('e-postal'),
+    phone: v('e-phone'), email: v('e-email'),
+    accountant_name: v('e-acc-name'), accountant_email: v('e-acc-email'),
+  };
+  setBtnLoading('edit-btn', true);
+  try {
+    await api.patch(`/accountant/clients/${selectedId}/profile`, body);
+    Object.assign(selectedData.business, body);
+    renderDetailHeader(selectedData.business);
+    refreshClientRow();
+    closeModal('edit-modal');
+    toast('Στοιχεία αποθηκεύτηκαν', 'success');
+  } catch(e) { setModalErr('edit-err', e.message); }
+  finally { setBtnLoading('edit-btn', false); }
+}
+
+// ─── myDATA modal ─────────────────────────────────────────────────────────────
+function openMyDataModal() {
+  if (!selectedData) return;
+  const b = selectedData.business;
+  setV('md-userid', b.mydata_user_id); setV('md-subkey', b.mydata_subscription_key);
+  document.getElementById('md-provider').value = b.mydata_provider || b.provider_name || '';
+  setV('md-provkey', b.provider_api_key || b.etimologiera_api_key || '');
+  setModalErr('mydata-err', '');
+  document.getElementById('mydata-modal').classList.add('open');
+}
+
+async function doSaveMyData() {
+  if (!selectedId) return;
+  setBtnLoading('mydata-btn', true);
+  try {
+    await api.patch(`/accountant/clients/${selectedId}/mydata`, {
+      mydata_user_id: v('md-userid') || null,
+      mydata_subscription_key: v('md-subkey') || null,
+      provider_name: v('md-provider') || null,
+      provider_api_key: v('md-provkey') || null,
+    });
+    Object.assign(selectedData.business, {
+      mydata_user_id: v('md-userid'),
+      provider_name: v('md-provider'),
+    });
+    renderDetailHeader(selectedData.business);
+    refreshClientRow();
+    closeModal('mydata-modal');
+    toast('myDATA αποθηκεύτηκε', 'success');
+  } catch(e) { setModalErr('mydata-err', e.message); }
+  finally { setBtnLoading('mydata-btn', false); }
+}
+
+// ─── ΓΓΠΣ modal ───────────────────────────────────────────────────────────────
+function openGsisModal() {
+  if (!selectedData) return;
+  setV('gs-user', selectedData.business.gsis_username);
+  setV('gs-pass', '');
+  setModalErr('gsis-err', '');
+  document.getElementById('gsis-modal').classList.add('open');
+}
+
+async function doSaveGsis() {
+  if (!selectedId) return;
+  const payload = { gsis_username: v('gs-user') || null };
+  const pass = v('gs-pass');
+  if (pass) payload.gsis_password = pass;
+  setBtnLoading('gsis-btn', true);
+  try {
+    await api.patch(`/accountant/clients/${selectedId}/gsis`, payload);
+    selectedData.business.gsis_username = payload.gsis_username;
+    renderDetailHeader(selectedData.business);
+    closeModal('gsis-modal');
+    toast('ΓΓΠΣ αποθηκεύτηκε', 'success');
+  } catch(e) { setModalErr('gsis-err', e.message); }
+  finally { setBtnLoading('gsis-btn', false); }
+}
+
+// ─── Remove client ────────────────────────────────────────────────────────────
+async function confirmRemoveClient() {
+  if (!selectedId || !selectedData) return;
+  const name = selectedData.business.name || 'αυτόν τον πελάτη';
+  if (!confirm(`Αφαίρεση του «${name}» από τη λίστα σας;\nΤα δεδομένα του δεν θα διαγραφούν.`)) return;
+  try {
+    await api.delete(`/accountant/clients/${selectedId}`);
+    toast('Ο πελάτης αφαιρέθηκε', 'success');
+    selectedId = null;
+    selectedData = null;
+    document.getElementById('rp-empty').style.display = '';
+    document.getElementById('rp-detail').style.display = 'none';
+    await loadClients();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function refreshClientRow() {
+  if (!selectedId || !selectedData) return;
+  const b = selectedData.business;
+  const idx = allClients.findIndex(c => c.id === selectedId);
+  if (idx >= 0) Object.assign(allClients[idx], b);
+  const q = document.getElementById('client-search').value.toLowerCase().trim();
+  renderClientTable(q ? allClients.filter(c => (c.name||'').toLowerCase().includes(q)||(c.afm||'').includes(q)) : allClients);
+}
+
+function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
+function setV(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function fmtMoney(v) { return '€' + parseFloat(v||0).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function setModalErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function setBtnLoading(id, loading) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .6s linear infinite"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg> Αποθήκευση…';
+  } else if (btn._orig) {
+    btn.innerHTML = btn._orig;
+  }
+}
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  el.innerHTML = `<span>${icon}</span> ${esc(msg)}`;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// Spin keyframe for loading button
+const _style = document.createElement('style');
+_style.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+document.head.appendChild(_style);
+</script>
+</body>
+</html>

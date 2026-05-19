@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Χρήστες</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .input-field { @apply w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none transition-all; }
+    .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+    select.input-field { cursor: pointer; }
+    .stat-card { transition: transform .15s, box-shadow .15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .35s ease-out both; }
+    .highlight-row { background: #eff6ff !important; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 anim">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Χρήστες</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Διαχείριση χρηστών &amp; δικαιωμάτων</p>
+      </div>
+      <button id="btn-new-user" onclick="openCreateModal()"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Νέος Χρήστης
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats-bar" class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6 anim">
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse"><div class="h-4 bg-gray-100 rounded w-1/2 mb-2"></div><div class="h-8 bg-gray-100 rounded w-1/3"></div></div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse"><div class="h-4 bg-gray-100 rounded w-1/2 mb-2"></div><div class="h-8 bg-gray-100 rounded w-1/3"></div></div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse"><div class="h-4 bg-gray-100 rounded w-1/2 mb-2"></div><div class="h-8 bg-gray-100 rounded w-1/3"></div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5 anim">
+      <div class="flex flex-wrap gap-3">
+        <div class="flex-1 min-w-48 relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="f-search" placeholder="Αναζήτηση ονόματος, email..."
+            class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500"
+            oninput="debouncedLoad()" />
+        </div>
+        <select id="f-role" onchange="loadUsers(1)"
+          class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+          <option value="">Όλοι οι Ρόλοι</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="owner">Ιδιοκτήτης</option>
+          <option value="accountant">Λογιστής</option>
+          <option value="captain">Καπετάνιος</option>
+          <option value="employee">Υπάλληλος</option>
+        </select>
+        <select id="f-active" onchange="loadUsers(1)"
+          class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+          <option value="">Όλοι</option>
+          <option value="1">Ενεργοί</option>
+          <option value="0">Ανενεργοί</option>
+        </select>
+        <button onclick="clearFilters()"
+          class="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+          Καθαρισμός
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 anim">
+      <div id="users-table"></div>
+      <div id="users-pagination"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CREATE / EDIT USER MODAL
+═══════════════════════════════════════ -->
+<div id="modal-user" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 id="modal-user-title" class="text-lg font-bold text-gray-900">Νέος Χρήστης</h2>
+      <button onclick="closeModal('modal-user')" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+      <input type="hidden" id="u-id" />
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ονοματεπώνυμο *</label>
+        <input type="text" id="u-name" placeholder="Γιώργος Παπαδόπουλος" data-autofocus
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email *</label>
+        <input type="email" id="u-email" placeholder="user@example.com"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+      </div>
+      <div id="password-field">
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Κωδικός *</label>
+        <div class="relative">
+          <input type="password" id="u-password" placeholder="Τουλάχιστον 8 χαρακτήρες"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 pr-10 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+          <button type="button" onclick="togglePwd('u-password', 'eye-create')"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <svg id="eye-create" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ρόλος *</label>
+        <select id="u-role"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer transition-all">
+          <option value="owner">Ιδιοκτήτης</option>
+          <option value="accountant">Λογιστής</option>
+          <option value="captain">Καπετάνιος</option>
+          <option value="employee">Υπάλληλος</option>
+        </select>
+      </div>
+      <div id="biz-field" class="hidden">
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Επιχείρηση</label>
+        <select id="u-business"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer transition-all">
+          <option value="">— Επιλέξτε —</option>
+        </select>
+      </div>
+      <div id="active-field" class="hidden">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="u-active" class="w-4 h-4 rounded text-blue-600 border-gray-300 cursor-pointer" />
+          <span class="text-sm font-semibold text-gray-700">Ενεργός χρήστης</span>
+        </label>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex gap-3">
+      <button onclick="saveUser()" id="btn-save-user"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+        <span id="save-user-text">Αποθήκευση</span>
+      </button>
+      <button onclick="closeModal('modal-user')"
+        class="px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+        Άκυρο
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RESET PASSWORD MODAL -->
+<div id="modal-reset-pwd" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="text-lg font-bold text-gray-900">Επαναφορά Κωδικού</h2>
+      <button onclick="closeModal('modal-reset-pwd')" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <input type="hidden" id="reset-user-id" />
+      <p id="reset-user-name" class="text-sm text-gray-500"></p>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Νέος Κωδικός *</label>
+        <div class="relative">
+          <input type="password" id="reset-password" placeholder="Τουλάχιστον 8 χαρακτήρες"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 pr-10 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+          <button type="button" onclick="togglePwd('reset-password','eye-reset')"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <svg id="eye-reset" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Επιβεβαίωση Κωδικού *</label>
+        <input type="password" id="reset-confirm"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all"
+          placeholder="Επαναλάβετε τον κωδικό" />
+      </div>
+    </div>
+    <div class="px-6 pb-5 flex gap-3">
+      <button onclick="doResetPassword()"
+        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+        Αλλαγή Κωδικού
+      </button>
+      <button onclick="closeModal('modal-reset-pwd')"
+        class="px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+        Άκυρο
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PERMANENT DELETE CONFIRM MODAL -->
+<div id="modal-delete-confirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+    <div class="bg-red-600 rounded-t-2xl px-6 py-4 flex items-center gap-3">
+      <i class="fas fa-skull-crossbones text-white text-xl"></i>
+      <h2 id="del-user-name" class="text-lg font-bold text-white flex-1">Επιβεβαίωση Διαγραφής</h2>
+      <button onclick="closeModal('modal-delete-confirm')" class="text-red-200 hover:text-white">
+        <i class="fas fa-xmark text-lg"></i>
+      </button>
+    </div>
+    <input type="hidden" id="del-user-id" />
+    <div class="px-6 py-5 space-y-3">
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <i class="fas fa-triangle-exclamation mr-2"></i>
+        <strong>Μόνιμη &amp; μη αναστρέψιμη ενέργεια.</strong> Ο χρήστης και όλα τα δεδομένα του θα διαγραφούν οριστικά.
+      </div>
+      <div id="del-email-status" class="hidden"></div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+          Token Επιβεβαίωσης <span class="text-xs text-gray-400 font-normal">(συμπληρώνεται αυτόματα)</span>
+        </label>
+        <input type="text" id="del-token" placeholder="Token..."
+          class="w-full border border-red-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-red-500 font-mono transition-all" />
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-100 flex gap-3">
+      <button onclick="confirmPermanentDelete()"
+        class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+        <i class="fas fa-trash-can"></i> Επιβεβαίωση Μόνιμης Διαγραφής
+      </button>
+      <button onclick="closeModal('modal-delete-confirm')"
+        class="px-5 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Άκυρο</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/page.js"></script>
+<script>
+  requireAuth();
+  buildSidebar();
+
+  const myRole = getUserRole();
+  const myId   = getCurrentUser()?.id;
+
+  // Hide new-user button for non-managers
+  if (!['super_admin','owner'].includes(myRole)) {
+    document.getElementById('btn-new-user')?.classList.add('hidden');
+  }
+
+  // If super_admin, show role option + business dropdown in modal
+  if (myRole === 'super_admin') {
+    document.getElementById('u-role').innerHTML += '<option value="super_admin">Super Admin</option>';
+    document.getElementById('biz-field').classList.remove('hidden');
+    loadBusinessList();
+  }
+
+  let currentPage = 1, totalUsers = 0;
+  let usersLimit  = 25;
+  let businesses = [];
+  let usersMap = {};
+
+  const debouncedLoad = debounce(() => loadUsers(1), 350);
+
+  // ── Load business list for dropdown ──
+  async function loadBusinessList() {
+    try {
+      const res = await api.get('/businesses', { limit: 200 });
+      businesses = res.data || [];
+      const sel = document.getElementById('u-business');
+      businesses.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = `${b.name} (${b.afm})`;
+        sel.appendChild(opt);
+      });
+    } catch(e) { /* ignore */ }
+  }
+
+  // ── Load users ──
+  async function loadUsers(page = 1) {
+    currentPage = page;
+    showSpinner('users-table');
+    document.getElementById('users-pagination').innerHTML = '';
+
+    const params = { page, limit: usersLimit };
+    const q = val('f-search');
+    const role = val('f-role');
+    const active = val('f-active');
+    if (q)      params.q = q;
+    if (role)   params.role = role;
+    if (active !== '') params.active = active;
+
+    try {
+      const res = await api.get('/users', params);
+      const users = res.data || [];
+      totalUsers = res.total || users.length;
+
+      usersMap = {};
+      users.forEach(u => { usersMap[u.id] = u; });
+
+      updateStats(users, totalUsers);
+
+      if (!users.length) {
+        showEmpty('users-table', 'Δεν βρέθηκαν χρήστες', '<i class="fas fa-users"></i>');
+        return;
+      }
+
+      const roleColors = {
+        super_admin: 'bg-purple-100 text-purple-700',
+        owner:       'bg-blue-100 text-blue-700',
+        accountant:  'bg-emerald-100 text-emerald-700',
+        captain:     'bg-orange-100 text-orange-700',
+        employee:    'bg-gray-100 text-gray-600',
+      };
+      const roleLabels = {
+        super_admin: 'Super Admin', owner: 'Ιδιοκτήτης',
+        accountant: 'Λογιστής', captain: 'Καπετάνιος', employee: 'Υπάλληλος',
+      };
+
+      const rows = users.map(u => {
+        const isMe = u.id === myId;
+        const roleClr = roleColors[u.role] || 'bg-gray-100 text-gray-600';
+        const actions = buildActions(u);
+        return `
+          <tr class="hover:bg-gray-50 transition-colors ${isMe ? 'highlight-row' : ''} ${!u.is_active ? 'opacity-60' : ''}">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                ${u.avatar_url
+                  ? `<img src="${(typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace('/api', '')}${u.avatar_url.startsWith('/') ? '' : '/'}${u.avatar_url}" alt="${u.name||''}" class="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-gray-200" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="w-9 h-9 rounded-xl ${roleClr} items-center justify-center text-xs font-bold flex-shrink-0" style="display:none">${(u.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}</div>`
+                  : `<div class="w-9 h-9 rounded-xl ${roleClr} flex items-center justify-center text-xs font-bold flex-shrink-0">${(u.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}</div>`
+                }
+                <div>
+                  <p class="text-sm font-semibold text-gray-900">${u.name || '—'}${isMe ? ' <span class="text-xs text-blue-500">(εσείς)</span>' : ''}</p>
+                  <p class="text-xs text-gray-400">${u.email || '—'}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${roleClr}">
+                ${roleLabels[u.role] || u.role}
+              </span>
+            </td>
+            ${myRole === 'super_admin' ? `<td class="px-4 py-3 text-sm text-gray-500">${u.business_name || '<span class="text-gray-300">—</span>'}</td>` : ''}
+            <td class="px-4 py-3 text-xs text-gray-400">${u.last_login ? fmtDateTime(u.last_login) : '<span class="text-gray-300">Ποτέ</span>'}</td>
+            <td class="px-4 py-3">${activeBadge(u.is_active)}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-1">${actions}</div>
+            </td>
+          </tr>`;
+      }).join('');
+
+      const headerCols = myRole === 'super_admin'
+        ? ['Χρήστης', 'Ρόλος', 'Επιχείρηση', 'Τελ. Σύνδεση', 'Κατάσταση', 'Ενέργειες']
+        : ['Χρήστης', 'Ρόλος', 'Τελ. Σύνδεση', 'Κατάσταση', 'Ενέργειες'];
+
+      document.getElementById('users-table').innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>${headerCols.map(h => `<th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">${h}</th>`).join('')}</tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">${rows}</tbody>
+          </table>
+        </div>`;
+
+      renderPagination('users-pagination', totalUsers, page, usersLimit, 'loadUsers', function(l) { usersLimit = l; loadUsers(1); });
+    } catch(err) {
+      showError('users-table', err.message);
+    }
+  }
+
+  function buildActions(u) {
+    const canManage = ['super_admin','owner'].includes(myRole);
+    let html = '';
+
+    // Edit
+    if (canManage) {
+      html += `<button onclick="openEditModal('${u.id}')"
+        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors" title="Επεξεργασία">
+        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <span class="hidden sm:inline">Επεξεργασία</span>
+      </button>`;
+
+      // Reset password
+      html += `<button onclick="openResetModal('${u.id}','${(u.name||'').replace(/'/g,"\\'")}' )"
+        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors" title="Αλλαγή Κωδικού">
+        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        <span class="hidden sm:inline">Κωδικός</span>
+      </button>`;
+
+      // Activate/Deactivate
+      if (u.id !== myId) {
+        if (u.is_active) {
+          html += `<button onclick="toggleActive('${u.id}', 0)"
+            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors" title="Απενεργοποίηση">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            <span class="hidden sm:inline">Απενεργ.</span>
+          </button>`;
+        } else {
+          html += `<button onclick="toggleActive('${u.id}', 1)"
+            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition-colors" title="Ενεργοποίηση">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="hidden sm:inline">Ενεργοπ.</span>
+          </button>`;
+        }
+
+        // Verify accountant (super_admin only)
+        if (myRole === 'super_admin' && u.role === 'accountant') {
+          if (!u.is_verified) {
+            html += `<button onclick="verifyUser('${u.id}', true, '${(u.name||'').replace(/'/g,"\\'")}' )"
+              class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-teal-700 hover:bg-teal-50 border border-teal-200 transition-colors" title="Επαλήθευση Λογιστή">
+              <i class="fas fa-circle-check"></i><span class="hidden sm:inline"> Επαλήθευση</span>
+            </button>`;
+          } else {
+            html += `<button onclick="verifyUser('${u.id}', false, '${(u.name||'').replace(/'/g,"\\'")}' )"
+              class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-orange-600 hover:bg-orange-50 border border-orange-200 transition-colors" title="Ανάκληση Επαλήθευσης">
+              <i class="fas fa-triangle-exclamation"></i><span class="hidden sm:inline"> Ανάκληση</span>
+            </button>`;
+          }
+        }
+
+        // Delete
+        if (myRole === 'super_admin') {
+          html += `<button onclick="deleteUser('${u.id}', '${(u.name||'').replace(/'/g,"\\'")}' )"
+            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 transition-colors" title="Διαγραφή">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span class="hidden sm:inline">Διαγραφή</span>
+          </button>`;
+        }
+      }
+    }
+
+    return html;
+  }
+
+  async function verifyUser(id, verify, name) {
+    const action = verify ? 'Επαλήθευση' : 'Ανάκληση επαλήθευσης';
+    if (!confirm(`${action} λογιστή "${name}";`)) return;
+    try {
+      await api.patch(`/users/${id}/verify`, { is_verified: verify });
+      showToast(verify ? `Ο "${name}" επαληθεύτηκε επιτυχώς.` : `Η επαλήθευση "${name}" ανακλήθηκε.`, verify ? 'success' : 'warning');
+      loadUsers(currentPage);
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+
+  async function deleteUser(id, name) {
+    const ok = await confirmDialog(
+      `Μόνιμη Διαγραφή: "${name}"`,
+      'Αυτή η ενέργεια είναι ΜΗ ΑΝΑΣΤΡΕΨΙΜΗ. Το token επιβεβαίωσης θα εμφανιστεί αμέσως.',
+      true
+    );
+    if (!ok) return;
+    try {
+      const r = await api.post(`/users/${id}/request-permanent-delete`);
+      openDeleteConfirmModal(id, name, r.data?.token || '', r.data?.email_sent, r.data?.email_error);
+    } catch(e) { showToast(e.message || 'Σφάλμα', 'error'); }
+  }
+
+  function openDeleteConfirmModal(userId, name, token, emailSent, emailError) {
+    document.getElementById('del-user-id').value = userId;
+    document.getElementById('del-user-name').textContent = `Επιβεβαίωση διαγραφής: ${name}`;
+    document.getElementById('del-token').value = token || '';
+
+    // Email status banner
+    const banner = document.getElementById('del-email-status');
+    if (banner) {
+      if (emailSent) {
+        banner.className = 'mb-3 p-3 rounded-xl text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200';
+        banner.innerHTML = '<i class="fas fa-envelope-circle-check mr-1.5"></i>Email επιβεβαίωσης εστάλη. Μπορείτε επίσης να χρησιμοποιήσετε το token παρακάτω.';
+      } else {
+        banner.className = 'mb-3 p-3 rounded-xl text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200';
+        banner.innerHTML = '<i class="fas fa-triangle-exclamation mr-1.5"></i>Email δεν εστάλη (ρυθμίστε το στο <a href="platform.html" class="underline font-bold">Platform → Ρυθμίσεις</a>). Το token είναι ήδη συμπληρωμένο — πατήστε <strong>Επιβεβαίωση</strong>.';
+      }
+      banner.classList.remove('hidden');
+    }
+
+    document.getElementById('modal-delete-confirm').classList.remove('hidden');
+    document.getElementById('modal-delete-confirm').classList.add('flex');
+  }
+
+  async function confirmPermanentDelete() {
+    const userId = document.getElementById('del-user-id').value;
+    const token  = document.getElementById('del-token').value.trim();
+    if (!token) { showToast('Εισάγετε το token επιβεβαίωσης.', 'error'); return; }
+    try {
+      const r = await api.post(`/users/${userId}/confirm-permanent-delete`, { token });
+      showToast(r.data?.message || 'Ο χρήστης διαγράφηκε μόνιμα.', 'success');
+      closeModal('modal-delete-confirm');
+      loadUsers(currentPage);
+    } catch(e) { showToast(e.message || 'Σφάλμα', 'error'); }
+  }
+
+  // Handle confirmation via URL params (from email link)
+  const _urlParams = new URLSearchParams(window.location.search);
+  if (_urlParams.get('confirmDelete') === '1') {
+    const uid   = _urlParams.get('userId');
+    const token = _urlParams.get('token');
+    if (uid && token) {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => openDeleteConfirmModal(uid, 'χρήστη (από email link)', token), 1000);
+      });
+    }
+  }
+
+  function updateStats(users, total) {
+    const active  = users.filter(u => u.is_active).length;
+    const byRole  = {};
+    users.forEach(u => { byRole[u.role] = (byRole[u.role]||0) + 1; });
+    const roleLabels = { super_admin:'Super Admin', owner:'Ιδιοκτ.', accountant:'Λογ.', captain:'Καπ.', employee:'Υπαλ.' };
+    const roleText = Object.entries(byRole).map(([r,c]) => `${roleLabels[r]||r}: ${c}`).join(' · ') || '—';
+
+    document.getElementById('stats-bar').innerHTML = `
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Σύνολο Χρηστών</p><p class="text-2xl font-extrabold text-gray-900 mt-1">${total}</p></div>
+          <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><i class="fas fa-users text-blue-600"></i></div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Ενεργοί</p><p class="text-2xl font-extrabold text-emerald-600 mt-1">${active}</p><p class="text-xs text-gray-400 mt-0.5">${total - active} ανενεργοί</p></div>
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-circle-check text-emerald-600"></i></div>
+        </div>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-start justify-between">
+          <div><p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Ρόλοι</p><p class="text-xs text-gray-600 mt-2 leading-relaxed font-medium">${roleText}</p></div>
+          <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><i class="fas fa-user-tag text-purple-600"></i></div>
+        </div>
+      </div>`;
+  }
+
+  // ── Modals ──
+  function openCreateModal() {
+    document.getElementById('modal-user-title').textContent = 'Νέος Χρήστης';
+    setVal('u-id', '');
+    setVal('u-name', '');
+    setVal('u-email', '');
+    setVal('u-password', '');
+    setVal('u-role', 'owner');
+    document.getElementById('password-field').classList.remove('hidden');
+    document.getElementById('active-field').classList.add('hidden');
+    openModal('modal-user');
+  }
+
+  function openEditModal(id) {
+    const u = usersMap[id];
+    if (!u) { showToast('Χρήστης δεν βρέθηκε', 'error'); return; }
+    document.getElementById('modal-user-title').textContent = 'Επεξεργασία Χρήστη';
+    setVal('u-id', u.id);
+    setVal('u-name', u.name);
+    setVal('u-email', u.email);
+    setVal('u-role', u.role);
+    setVal('u-business', u.business_id || '');
+    setChecked('u-active', !!u.is_active);
+    document.getElementById('password-field').classList.add('hidden');
+    document.getElementById('active-field').classList.remove('hidden');
+    openModal('modal-user');
+  }
+
+  function openResetModal(id, name) {
+    setVal('reset-user-id', id);
+    document.getElementById('reset-user-name').textContent = `Αλλαγή κωδικού για: ${name}`;
+    setVal('reset-password', '');
+    setVal('reset-confirm', '');
+    openModal('modal-reset-pwd');
+  }
+
+  async function saveUser() {
+    const id    = val('u-id');
+    const name  = val('u-name');
+    const email = val('u-email');
+    const role  = val('u-role');
+
+    if (!name || !email) { showToast('Συμπληρώστε όλα τα υποχρεωτικά πεδία', 'error'); return; }
+
+    const btn = document.getElementById('btn-save-user');
+    btn.disabled = true;
+    document.getElementById('save-user-text').textContent = 'Αποθήκευση...';
+
+    try {
+      if (id) {
+        const body = { name, email, role };
+        body.is_active = getChecked('u-active') ? 1 : 0;
+        await api.put(`/users/${id}`, body);
+        showToast('Χρήστης ενημερώθηκε', 'success');
+      } else {
+        const pwd = val('u-password');
+        if (pwd.length < 8) { showToast('Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες', 'error'); return; }
+        const body = { name, email, password: pwd, role };
+        if (myRole === 'super_admin') {
+          const biz = val('u-business');
+          if (biz) body.business_id = biz;
+        }
+        await api.post('/users', body);
+        showToast('Χρήστης δημιουργήθηκε', 'success');
+      }
+      closeModal('modal-user');
+      loadUsers(currentPage);
+    } catch(err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('save-user-text').textContent = 'Αποθήκευση';
+    }
+  }
+
+  async function doResetPassword() {
+    const id  = val('reset-user-id');
+    const pwd = val('reset-password');
+    const cfm = val('reset-confirm');
+    if (pwd.length < 8) { showToast('Τουλάχιστον 8 χαρακτήρες', 'error'); return; }
+    if (pwd !== cfm) { showToast('Οι κωδικοί δεν ταιριάζουν', 'error'); return; }
+    try {
+      await api.post(`/users/${id}/reset-password`, { password: pwd });
+      showToast('Κωδικός αλλάχτηκε επιτυχώς', 'success');
+      closeModal('modal-reset-pwd');
+    } catch(err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function toggleActive(id, active) {
+    const msg = active ? 'Ενεργοποίηση χρήστη;' : 'Απενεργοποίηση χρήστη;';
+    const ok = await confirmDialog(msg, active ? 'Ο χρήστης θα αποκτήσει πρόσβαση στο σύστημα.' : 'Ο χρήστης δεν θα μπορεί να συνδεθεί.', !active);
+    if (!ok) return;
+    try {
+      await api.put(`/users/${id}`, { is_active: active });
+      showToast(active ? 'Χρήστης ενεργοποιήθηκε' : 'Χρήστης απενεργοποιήθηκε', 'success');
+      loadUsers(currentPage);
+    } catch(err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  function clearFilters() {
+    setVal('f-search', '');
+    setVal('f-role', '');
+    setVal('f-active', '');
+    loadUsers(1);
+  }
+
+  function togglePwd(inputId, eyeId) {
+    const inp = document.getElementById(inputId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  loadUsers(1);
+</script>
+</body>
+</html>

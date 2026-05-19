@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Ρυθμίσεις</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .if { display:block; width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; font-size:14px; background:#f9fafb; outline:none; transition:all .15s; }
+    .if:focus { border-color:#3b82f6; background:#fff; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+    .if:read-only { background:#f3f4f6; color:#6b7280; cursor:not-allowed; }
+    select.if { cursor:pointer; }
+    textarea.if { resize:vertical; min-height:80px; }
+    .tab-nav-btn { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px; font-size:14px; font-weight:500; transition:all .15s; cursor:pointer; width:100%; text-align:left; border:none; background:none; color:#6b7280; }
+    .tab-nav-btn:hover { background:#f3f4f6; color:#111827; }
+    .tab-nav-btn.active { background:#eff6ff; color:#1d4ed8; font-weight:600; }
+    .tab-nav-btn .tab-icon { width:20px; height:20px; text-align:center; flex-shrink:0; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation:fadeUp .25s ease-out both; }
+    .section-title { font-size:13px; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #f3f4f6; }
+    .toggle-wrap { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f9fafb; }
+    .toggle-wrap:last-child { border-bottom:none; }
+    .toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:#d1d5db; border-radius:24px; transition:.2s; cursor:pointer; }
+    .toggle-slider:before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+    .toggle input:checked + .toggle-slider { background:#2563eb; }
+    .toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+    .save-btn { display:inline-flex; align-items:center; gap:8px; background:#2563eb; color:#fff; border:none; border-radius:12px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .save-btn:hover { background:#1d4ed8; }
+    .save-btn:disabled { opacity:.6; cursor:not-allowed; }
+    .color-swatch { width:36px; height:36px; border-radius:10px; cursor:pointer; transition:all .15s; border:3px solid transparent; }
+    .color-swatch.selected { border-color:#111827; transform:scale(1.1); }
+    .accent-preview { height:6px; border-radius:3px; transition:background .2s; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed top-4 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold max-w-xs pointer-events-none"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6">
+
+    <!-- Header -->
+    <div class="mb-4 anim">
+      <h1 class="text-2xl font-bold text-gray-900">Ρυθμίσεις</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Διαμόρφωση εφαρμογής, ενοποιήσεων &amp; εμφάνισης</p>
+    </div>
+
+
+    <div class="flex flex-col lg:flex-row gap-6 anim" style="animation-delay:.05s">
+
+      <!-- Left: Tab Navigation -->
+      <aside class="lg:w-52 flex-shrink-0">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 flex lg:flex-col flex-row overflow-x-auto gap-1 lg:gap-0">
+          <button class="tab-nav-btn active" onclick="switchTab('profile')" id="tab-btn-profile">
+            <span class="tab-icon"><i class="fas fa-building"></i></span><span class="hidden lg:inline">Επιχείρηση</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('mydata')" id="tab-btn-mydata">
+            <span class="tab-icon"><i class="fas fa-satellite-dish"></i></span><span class="hidden lg:inline">myDATA</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('invoice')" id="tab-btn-invoice">
+            <span class="tab-icon"><i class="fas fa-file-invoice"></i></span><span class="hidden lg:inline">Παραστατικά</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('email')" id="tab-btn-email">
+            <span class="tab-icon"><i class="fas fa-envelope"></i></span><span class="hidden lg:inline">Email</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('sms')" id="tab-btn-sms">
+            <span class="tab-icon"><i class="fas fa-comment-sms"></i></span><span class="hidden lg:inline">SMS</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('notifications')" id="tab-btn-notifications">
+            <span class="tab-icon"><i class="fas fa-bell"></i></span><span class="hidden lg:inline">Ειδοποιήσεις</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('appearance')" id="tab-btn-appearance">
+            <span class="tab-icon"><i class="fas fa-palette"></i></span><span class="hidden lg:inline">Εμφάνιση</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('iris')" id="tab-btn-iris">
+            <span class="tab-icon"><i class="fas fa-credit-card"></i></span><span class="hidden lg:inline">IRIS</span>
+          </button>
+          <button class="tab-nav-btn" onclick="switchTab('about')" id="tab-btn-about">
+            <span class="tab-icon"><i class="fas fa-circle-info"></i></span><span class="hidden lg:inline">Σχετικά</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right: Tab Content -->
+      <div class="flex-1 min-w-0">
+
+        <!-- ── TAB: Profile ─────────────────────────────────────────────── -->
+        <div id="tab-profile" class="tab-panel">
+
+          <!-- Avatar Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+            <p class="section-title">Φωτογραφία Προφίλ</p>
+            <div class="flex items-center gap-5">
+              <div class="relative flex-shrink-0">
+                <div id="avatar-wrap" class="w-20 h-20 rounded-2xl overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl border-2 border-gray-200">
+                  <span id="avatar-initials"></span>
+                  <img id="avatar-img" class="w-full h-full object-cover hidden" alt="Avatar" />
+                </div>
+                <label for="avatar-file-input"
+                  class="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-blue-700 transition-colors" title="Αλλαγή φωτογραφίας">
+                  <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </label>
+                <input id="avatar-file-input" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleAvatarChange(this)" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-700" id="avatar-name-label">—</p>
+                <p class="text-xs text-gray-400 mt-0.5">JPG, PNG ή WebP · Μέγ. 3MB</p>
+                <button id="btn-save-avatar" class="save-btn mt-3 text-sm px-4 py-2" onclick="saveAvatar()" style="display:none">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  Αποθήκευση
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <p class="section-title">Στοιχεία Επιχείρησης</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Επωνυμία *</label>
+                <input id="p-name" type="text" class="if" placeholder="Επωνυμία επιχείρησης" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Διακριτικός Τίτλος</label>
+                <input id="p-trade_name" type="text" class="if" placeholder="Trade name" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">ΑΦΜ</label>
+                <input id="p-afm" type="text" class="if" readonly />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">ΔΟΥ</label>
+                <input id="p-doy" type="text" class="if" placeholder="π.χ. ΔΟΥ Πειραιά" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Κωδικός Δραστηριότητας</label>
+                <input id="p-activity_code" type="text" class="if" placeholder="π.χ. 03.11" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Διεύθυνση</label>
+                <input id="p-address" type="text" class="if" placeholder="Οδός & αριθμός" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Πόλη</label>
+                <input id="p-city" type="text" class="if" placeholder="Πόλη" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">ΤΚ</label>
+                <input id="p-postal_code" type="text" class="if" placeholder="12345" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τηλέφωνο</label>
+                <input id="p-phone" type="tel" class="if" placeholder="+30 210 0000000" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Email</label>
+                <input id="p-email" type="email" class="if" placeholder="info@company.gr" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Καθεστώς ΦΠΑ</label>
+                <select id="p-vat_regime" class="if">
+                  <option value="normal">Κανονικό</option>
+                  <option value="small_business">Μικρή Επιχείρηση</option>
+                  <option value="exempt">Απαλλαγή</option>
+                </select>
+              </div>
+            </div>
+            <p class="section-title mt-6">Στοιχεία Λογιστή</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Ονοματεπώνυμο</label>
+                <input id="p-accountant_name" type="text" class="if" placeholder="Ονοματεπώνυμο λογιστή" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Email Λογιστή</label>
+                <input id="p-accountant_email" type="email" class="if" placeholder="logistis@email.gr" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τηλ. Λογιστή</label>
+                <input id="p-accountant_phone" type="tel" class="if" placeholder="+30 210 0000000" />
+              </div>
+            </div>
+            <button class="save-btn" onclick="saveProfile()" id="btn-save-profile">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Αποθήκευση
+            </button>
+          </div>
+        </div>
+
+        <!-- ── TAB: myDATA ──────────────────────────────────────────────── -->
+        <div id="tab-mydata" class="tab-panel hidden">
+          <div class="space-y-5">
+
+            <!-- myDATA Direct credentials -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <p class="section-title">Διαπιστευτήρια myDATA (ΑΑΔΕ)</p>
+              <p class="text-xs text-gray-500 mb-4">Τα δικά σας credentials από το myDATA portal της ΑΑΔΕ — χρησιμοποιούνται για άμεση μετάδοση ή ως fallback.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">myDATA User ID</label>
+                  <input id="m-mydata_user_id" type="text" class="if" placeholder="User ID από AADE" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Subscription Key</label>
+                  <div class="relative">
+                    <input id="m-mydata_subscription_key" type="password" class="if pr-10" placeholder="••••••••••••" />
+                    <button type="button" onclick="togglePwd('m-mydata_subscription_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 mb-4 flex gap-2">
+                <i class="fas fa-lock mr-1"></i>Τα credentials αποθηκεύονται στον server και δεν εμφανίζονται ξανά.
+              </div>
+              <button class="save-btn" onclick="saveMydata()" id="btn-save-mydata">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Αποθήκευση myDATA
+              </button>
+            </div>
+
+            <!-- ΑΑΔΕ myDATA Test/Prod toggle (super_admin only) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6" id="mydata-env-card" style="display:none">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-flask text-orange-500"></i>
+                <p class="section-title mb-0">Περιβάλλον ΑΑΔΕ myDATA — Δελτία Αποστολής</p>
+              </div>
+              <p class="text-xs text-gray-500 mb-4">Ισχύει μόνο για τη <strong>άμεση μετάδοση δελτίων αποστολής</strong> προς την ΑΑΔΕ. Επιλέξτε Production για πραγματικές μεταδόσεις.</p>
+
+              <!-- Status badge -->
+              <div id="mydata-env-badge" class="mb-4"></div>
+
+              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Λειτουργία Test (Sandbox ΑΑΔΕ)</p>
+                  <p class="text-xs text-gray-500">OFF = Production (πραγματικές μεταδόσεις στο myDATA) &nbsp;·&nbsp; ON = Test sandbox</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="p-mydata_test_mode" onchange="saveMydataTestMode()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div id="mydata-env-warning" class="hidden mt-3 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 flex gap-2">
+                <i class="fas fa-triangle-exclamation flex-shrink-0 mt-0.5"></i>
+                <span><strong>Test mode ενεργό!</strong> Τα δελτία αποστολής στέλνονται στο SANDBOX της ΑΑΔΕ και <strong>δεν παράγουν πραγματικό MARK</strong>. Απενεργοποιήστε για παραγωγή.</span>
+              </div>
+            </div>
+
+            <!-- myDATA Provider — Exclusive Selection -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-plug text-blue-600"></i>
+                <p class="section-title mb-0">Τρόπος Μετάδοσης στο myDATA</p>
+              </div>
+              <p class="text-xs text-gray-500 mb-5">Επιλέξτε <strong>έναν</strong> τρόπο. Αν δεν έχετε ρυθμίσει τίποτα, οι μεταδόσεις είναι ανενεργές. Μόνο ο ενεργός τρόπος θα χρησιμοποιείται.</p>
+
+              <!-- Option Cards -->
+              <div class="grid grid-cols-1 gap-3 mb-5" id="provider-cards">
+
+                <!-- None -->
+                <label class="provider-card flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all" data-provider="none" onclick="selectProvider('none')">
+                  <input type="radio" name="provider_mode" value="none" class="mt-1 accent-blue-600" />
+                  <div>
+                    <p class="text-sm font-bold text-gray-800"><i class="fas fa-ban text-gray-400 mr-1.5"></i>Ανενεργό</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Δεν γίνεται μετάδοση στο myDATA. Τα παραστατικά εκδίδονται χωρίς MARK.</p>
+                  </div>
+                </label>
+
+                <!-- Direct ΑΑΔΕ -->
+                <label class="provider-card flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all" data-provider="direct" onclick="selectProvider('direct')">
+                  <input type="radio" name="provider_mode" value="direct" class="mt-1 accent-blue-600" />
+                  <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-800"><i class="fas fa-satellite-dish text-blue-600 mr-1.5"></i>Άμεση Σύνδεση ΑΑΔΕ (myDATA API)</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Η εφαρμογή στέλνει απευθείας στο myDATA της ΑΑΔΕ χρησιμοποιώντας τα credentials κάθε επιχείρησης από παραπάνω. Δωρεάν, χωρίς ενδιάμεσο.</p>
+                  </div>
+                </label>
+
+                <!-- e-Τιμολογιέρα -->
+                <label class="provider-card flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all" data-provider="etimologiera" onclick="selectProvider('etimologiera')">
+                  <input type="radio" name="provider_mode" value="etimologiera" class="mt-1 accent-blue-600" />
+                  <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-800"><i class="fas fa-file-contract text-green-600 mr-1.5"></i>e-Τιμολογιέρα (Πάροχος ΥΠΑΗΕΣ)</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Πιστοποιημένος πάροχος (BRATNET E.E.) με REST API. Διαχειρίζεται την πολυπλοκότητα του myDATA XML/XSD για λογαριασμό σας.</p>
+                    <!-- e-Τιμολογιέρα fields (shown only when selected) -->
+                    <div id="etimologiera-fields" class="hidden mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4" onclick="event.stopPropagation()">
+                      <div class="sm:col-span-2">
+                        <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-xs text-green-700 mb-3 flex gap-2">
+                          <i class="fas fa-circle-info flex-shrink-0 mt-0.5"></i>
+                          <span>Λαμβάνετε API Key από το e-Τιμολογιέρα μετά τη συμφωνία συνεργασίας. Επικοινωνία: <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="432a2d252c0326372a2e2c2f2c242a2631226d2431">[email&#160;protected]</a></strong> | 2310 989465</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">API Key *</label>
+                        <div class="relative">
+                          <input id="et-api_key" type="password" class="if pr-10" placeholder="••••••••••••••••••" />
+                          <button type="button" onclick="togglePwd('et-api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-eye text-sm"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Subscription ID</label>
+                        <input id="et-subscription_id" type="text" class="if" placeholder="Από dashboard e-Τιμολογιέρα" />
+                      </div>
+                      <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">API URL (Sandbox ή Production)</label>
+                        <select id="et-api_url" class="if">
+                          <option value="https://app.etimologiera.gr/api/v1">Production — app.etimologiera.gr</option>
+                          <option value="https://sandbox.etimologiera.gr/api/v1">Sandbox — sandbox.etimologiera.gr</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+
+              </div>
+
+              <style>
+                .provider-card { border-color: #e5e7eb; background: #f9fafb; }
+                .provider-card.selected { border-color: #2563eb; background: #eff6ff; }
+  </style>
+
+              <div class="flex gap-3 mt-2">
+                <button class="save-btn" onclick="saveProvider()" id="btn-save-provider">
+                  <i class="fas fa-floppy-disk"></i>
+                  Αποθήκευση
+                </button>
+                <button onclick="testProvider()" id="btn-test-provider"
+                  class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                  <i class="fas fa-bolt text-yellow-500"></i>
+                  Test Σύνδεσης
+                </button>
+              </div>
+              <p class="text-xs text-amber-600 mt-3"><i class="fas fa-triangle-exclamation mr-1"></i>Μόνο ένας τρόπος μπορεί να είναι ενεργός ταυτόχρονα. Η επιλογή "Ανενεργό" σταματά όλες τις μεταδόσεις.</p>
+            </div>
+
+            <!-- ΓΓΠΣ (AFM Lookup) Credentials -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-search text-indigo-600"></i>
+                <p class="section-title mb-0">Credentials ΓΓΠΣ (Αναζήτηση ΑΦΜ)</p>
+              </div>
+              <p class="text-xs text-gray-500 mb-4">Προαιρετικά. Χρησιμοποιούνται για αυτόματη αναζήτηση στοιχείων επιχείρησης βάσει ΑΦΜ μέσω ΓΓΠΣ/ΑΑΔΕ.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Username ΓΓΠΣ</label>
+                  <input id="g-gsis_username" type="text" class="if" placeholder="Όνομα χρήστη ΓΓΠΣ" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Password ΓΓΠΣ</label>
+                  <div class="relative">
+                    <input id="g-gsis_password" type="password" class="if pr-10" placeholder="••••••••" />
+                    <button type="button" onclick="togglePwd('g-gsis_password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <button class="save-btn" onclick="saveGsis()" id="btn-save-gsis">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Αποθήκευση ΓΓΠΣ
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── TAB: Invoice Config ──────────────────────────────────────── -->
+        <div id="tab-invoice" class="tab-panel hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <p class="section-title">Προεπιλογές Παραστατικών</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Ημέρες Πληρωμής (default)</label>
+                <input id="i-default_due_days" type="number" min="0" max="365" class="if" placeholder="30" />
+              </div>
+              <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Αυτόματη Μετάδοση myDATA</p>
+                  <p class="text-xs text-gray-500">Αυτόματη αποστολή μετά την έκδοση</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="i-auto_transmit" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Υποσέλιδο Παραστατικού</label>
+                <textarea id="i-invoice_footer" class="if" rows="3" placeholder="Κείμενο στο υποσέλιδο κάθε παραστατικού..."></textarea>
+              </div>
+            </div>
+            <button class="save-btn" onclick="saveInvoice()" id="btn-save-invoice">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Αποθήκευση
+            </button>
+          </div>
+        </div>
+
+        <!-- ── TAB: Email ───────────────────────────────────────────────── -->
+        <div id="tab-email" class="tab-panel hidden">
+          <div class="space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <p class="section-title mb-0 pb-0 border-0">Email Πάροχος</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Αποστολή τιμολογίων &amp; ειδοποιήσεων μέσω email</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="e-email_enabled" onchange="toggleEmailFields()" /><span class="toggle-slider"></span></label>
+              </div>
+
+              <div id="email-fields" class="opacity-50 pointer-events-none">
+                <!-- Provider selector -->
+                <div class="mb-4">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Πάροχος Email</label>
+                  <select id="e-email_provider" class="if" onchange="onEmailProviderChange()">
+                    <option value="smtp">SMTP (Generic)</option>
+                    <option value="brevo">Brevo (ex-Sendinblue) — Προτείνεται</option>
+                    <option value="sendgrid">SendGrid</option>
+                    <option value="mailgun">Mailgun</option>
+                  </select>
+                </div>
+
+                <!-- Common: From name + email -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Όνομα Αποστολέα</label><input id="e-smtp_from_name" type="text" class="if" placeholder="FishBill" /></div>
+                  <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Email Αποστολέα</label><input id="e-smtp_from_email" type="email" class="if" placeholder="noreply@fishbill.gr" /></div>
+                </div>
+
+                <!-- Brevo fields -->
+                <div id="email-prov-brevo" class="hidden">
+                  <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 mb-3">
+                    <i class="fas fa-circle text-blue-500 mr-1"></i><strong>Brevo</strong> (brevo.com) — Δωρεάν έως 300 emails/ημέρα. Δημιουργήστε API key από Brevo Dashboard → Settings → API Keys.
+                  </div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Brevo API Key</label>
+                  <div class="relative"><input id="e-brevo_api_key" type="password" class="if pr-10" placeholder="xkeysib-..." /><button type="button" onclick="togglePwd('e-brevo_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div>
+                </div>
+
+                <!-- SendGrid fields -->
+                <div id="email-prov-sendgrid" class="hidden">
+                  <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-xs text-green-700 mb-3">
+                    <i class="fas fa-circle text-green-500 mr-1"></i><strong>SendGrid</strong> (sendgrid.com) — Δωρεάν έως 100 emails/ημέρα. API key από Settings → API Keys.
+                  </div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">SendGrid API Key</label>
+                  <div class="relative"><input id="e-sendgrid_api_key" type="password" class="if pr-10" placeholder="SG...." /><button type="button" onclick="togglePwd('e-sendgrid_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div>
+                </div>
+
+                <!-- Mailgun fields -->
+                <div id="email-prov-mailgun" class="hidden">
+                  <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700 mb-3">
+                    <i class="fas fa-circle text-red-500 mr-1"></i><strong>Mailgun</strong> (mailgun.com) — 1000 emails/μήνα δωρεάν. Χρειάζεται verified domain.
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Mailgun API Key</label><div class="relative"><input id="e-mailgun_api_key" type="password" class="if pr-10" placeholder="key-..." /><button type="button" onclick="togglePwd('e-mailgun_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Mailgun Domain</label><input id="e-mailgun_domain" type="text" class="if" placeholder="mg.fishbill.gr" /></div>
+                  </div>
+                </div>
+
+                <!-- SMTP fields -->
+                <div id="email-prov-smtp">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">SMTP Host</label><input id="e-smtp_host" type="text" class="if" placeholder="smtp.gmail.com" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">SMTP Port</label><input id="e-smtp_port" type="number" class="if" placeholder="587" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Username</label><input id="e-smtp_user" type="text" class="if" placeholder="user@domain.gr" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Password</label><div class="relative"><input id="e-smtp_pass" type="password" class="if pr-10" placeholder="••••••••" /><button type="button" onclick="togglePwd('e-smtp_pass')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div></div>
+                    <div class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3"><label class="toggle"><input type="checkbox" id="e-smtp_secure" /><span class="toggle-slider"></span></label><div><p class="text-sm font-semibold text-gray-800">TLS/SSL</p><p class="text-xs text-gray-500">Port 465</p></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex gap-3 mt-5">
+                <button class="save-btn" onclick="saveEmail()" id="btn-save-email"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Αποθήκευση</button>
+                <button onclick="testEmail()" class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  Test Email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: SMS ─────────────────────────────────────────────────── -->
+        <div id="tab-sms" class="tab-panel hidden">
+          <div class="space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div><p class="section-title mb-0 pb-0 border-0">SMS Πάροχος</p><p class="text-xs text-gray-500 mt-0.5">Αποστολή SMS ειδοποιήσεων για τιμολόγια &amp; IRIS</p></div>
+                <label class="toggle"><input type="checkbox" id="s-sms_enabled" onchange="toggleSmsFields()" /><span class="toggle-slider"></span></label>
+              </div>
+
+              <div id="sms-fields" class="opacity-50 pointer-events-none">
+                <div class="mb-4">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Πάροχος SMS</label>
+                  <select id="s-sms_provider" class="if" onchange="onSmsProviderChange()">
+                    <optgroup label="Ελληνικοί Πάροχοι (Προτεινόμενοι)">
+                      <option value="infobip">Infobip — Δημοφιλής στην Ελλάδα</option>
+                      <option value="apifon">Apifon — Ελληνικός πάροχος</option>
+                      <option value="routee">Routee — OTE/COSMOTE θυγατρική</option>
+                      <option value="bsms">BSMS (bsms.gr) — Ελληνικός</option>
+                      <option value="yuboto">Yuboto — Ελληνικός</option>
+                    </optgroup>
+                    <optgroup label="Διεθνείς Πάροχοι">
+                      <option value="vonage">Vonage (Nexmo)</option>
+                      <option value="twilio">Twilio</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <!-- Sender ID (common) -->
+                <div class="mb-4"><label class="block text-xs font-semibold text-gray-500 mb-1.5">Sender ID (Αποστολέας)</label><input id="s-sms_from" type="text" class="if" placeholder="FishBill" maxlength="11" /><p class="text-xs text-gray-400 mt-1">Μέγιστο 11 χαρακτήρες, χωρίς ειδικά σύμβολα.</p></div>
+
+                <!-- Infobip -->
+                <div id="sms-prov-infobip">
+                  <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 text-xs text-orange-700 mb-3"><i class="fas fa-bolt text-orange-500 mr-1"></i><strong>Infobip</strong> (infobip.com) — Δημιουργήστε λογαριασμό, πάρτε το API Key και το base URL από το dashboard.</div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Infobip API Key</label><div class="relative"><input id="s-infobip_api_key" type="password" class="if pr-10" placeholder="••••••••••••" /><button type="button" onclick="togglePwd('s-infobip_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Infobip Base URL</label><input id="s-infobip_base_url" type="text" class="if" placeholder="xxxxxx.api.infobip.com" /></div>
+                  </div>
+                </div>
+
+                <!-- Apifon -->
+                <div id="sms-prov-apifon" class="hidden">
+                  <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 mb-3"><i class="fas fa-satellite-dish text-blue-600 mr-1"></i><strong>Apifon</strong> (apifon.com) — Ελληνικός πάροχος. API key από το dashboard.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Apifon API Key</label>
+                  <div class="relative"><input id="s-apifon_api_key" type="password" class="if pr-10" placeholder="••••••••••••" /><button type="button" onclick="togglePwd('s-apifon_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div>
+                </div>
+
+                <!-- Routee -->
+                <div id="sms-prov-routee" class="hidden">
+                  <div class="bg-green-50 border border-green-100 rounded-xl p-3 text-xs text-green-700 mb-3"><i class="fas fa-satellite-dish text-green-600 mr-1"></i><strong>Routee</strong> (routee.net) — Θυγατρική OTE/COSMOTE. Application Key από Routee Dashboard.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Routee Application Key (AppID:AppSecret)</label>
+                  <div class="relative"><input id="s-routee_api_key" type="password" class="if pr-10" placeholder="appId:appSecret" /><button type="button" onclick="togglePwd('s-routee_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div>
+                </div>
+
+                <!-- BSMS -->
+                <div id="sms-prov-bsms" class="hidden">
+                  <div class="bg-purple-50 border border-purple-100 rounded-xl p-3 text-xs text-purple-700 mb-3"><i class="fas fa-satellite-dish text-purple-600 mr-1"></i><strong>BSMS</strong> (bsms.gr) — Ελληνικός πάροχος SMS.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">BSMS API Key</label>
+                  <div class="relative"><input id="s-bsms_api_key" type="password" class="if pr-10" placeholder="••••••••••••" /><button type="button" onclick="togglePwd('s-bsms_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div>
+                </div>
+
+                <!-- Yuboto -->
+                <div id="sms-prov-yuboto" class="hidden">
+                  <div class="bg-teal-50 border border-teal-100 rounded-xl p-3 text-xs text-teal-700 mb-3"><i class="fas fa-satellite-dish text-teal-600 mr-1"></i><strong>Yuboto</strong> (yuboto.com) — Ελληνικός πάροχος SMS &amp; Viber.</div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Yuboto API Key</label>
+                  <div class="relative"><input id="s-yuboto_api_key" type="password" class="if pr-10" placeholder="••••••••••••" /><button type="button" onclick="togglePwd('s-yuboto_api_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div>
+                </div>
+
+                <!-- Vonage -->
+                <div id="sms-prov-vonage" class="hidden">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Vonage API Key</label><input id="s-vonage_api_key" type="text" class="if" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Vonage API Secret</label><div class="relative"><input id="s-vonage_api_secret" type="password" class="if pr-10" /><button type="button" onclick="togglePwd('s-vonage_api_secret')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div></div>
+                  </div>
+                </div>
+
+                <!-- Twilio -->
+                <div id="sms-prov-twilio" class="hidden">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Twilio Account SID</label><input id="s-twilio_account_sid" type="text" class="if" /></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Auth Token</label><div class="relative"><input id="s-twilio_auth_token" type="password" class="if pr-10" /><button type="button" onclick="togglePwd('s-twilio_auth_token')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button></div></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1.5">Αριθμός Twilio (+1xxx)</label><input id="s-twilio_from_number" type="text" class="if" placeholder="+15005550006" /></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex gap-3 mt-5">
+                <button class="save-btn" onclick="saveSms()" id="btn-save-sms"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Αποθήκευση</button>
+                <button onclick="testSms()" class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                  Test SMS
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: Notifications ───────────────────────────────────────── -->
+        <div id="tab-notifications" class="tab-panel hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <p class="section-title">Ειδοποιήσεις Παραστατικών</p>
+            <div class="mb-6">
+              <div class="toggle-wrap">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Νέο παραστατικό</p>
+                  <p class="text-xs text-gray-500">Ειδοποίηση κατά τη δημιουργία νέου παραστατικού</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="n-notif_invoice_created" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-wrap">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Επιτυχής μετάδοση myDATA</p>
+                  <p class="text-xs text-gray-500">Ειδοποίηση κατά την επιτυχή αποστολή στο myDATA</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="n-notif_invoice_transmitted" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-wrap">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Αποτυχία μετάδοσης</p>
+                  <p class="text-xs text-gray-500">Ειδοποίηση όταν αποτύχει η αποστολή στο myDATA</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="n-notif_invoice_failed" /><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <p class="section-title">Αναφορές</p>
+            <div class="mb-6">
+              <div class="toggle-wrap">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Ημερήσια σύνοψη</p>
+                  <p class="text-xs text-gray-500">Καθημερινή αναφορά παραστατικών μέσω email</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="n-notif_daily_summary" /><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <button class="save-btn" onclick="saveNotifications()" id="btn-save-notifications">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Αποθήκευση
+            </button>
+          </div>
+        </div>
+
+        <!-- ── TAB: Appearance ──────────────────────────────────────────── -->
+        <div id="tab-appearance" class="tab-panel hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <p class="section-title">Χρώμα Accent</p>
+            <p class="text-sm text-gray-500 mb-4">Επιλέξτε το κύριο χρώμα της εφαρμογής. Αποθηκεύεται τοπικά στον browser.</p>
+            <div class="flex gap-3 mb-6" id="color-swatches">
+              <button class="color-swatch" style="background:#2563eb" data-color="blue" onclick="selectColor('blue','#2563eb')" title="Blue"></button>
+              <button class="color-swatch" style="background:#7c3aed" data-color="purple" onclick="selectColor('purple','#7c3aed')" title="Purple"></button>
+              <button class="color-swatch" style="background:#059669" data-color="emerald" onclick="selectColor('emerald','#059669')" title="Emerald"></button>
+              <button class="color-swatch" style="background:#ea580c" data-color="orange" onclick="selectColor('orange','#ea580c')" title="Orange"></button>
+              <button class="color-swatch" style="background:#e11d48" data-color="rose" onclick="selectColor('rose','#e11d48')" title="Rose"></button>
+              <button class="color-swatch" style="background:#475569" data-color="slate" onclick="selectColor('slate','#475569')" title="Slate"></button>
+            </div>
+            <!-- Preview -->
+            <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+              <p class="text-xs font-semibold text-gray-500 mb-3">Προεπισκόπηση</p>
+              <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                <div class="accent-preview mb-3" id="accent-preview-bar" style="background:#2563eb"></div>
+                <div class="flex gap-2 items-center">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" id="accent-preview-btn" style="background:#2563eb">A</div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-900">FishBill</p>
+                    <p class="text-xs text-gray-400">Παραστατικά</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button class="save-btn" id="accent-color-hex" style="background:#2563eb" onclick="applyAppearance()">
+                Εφαρμογή
+              </button>
+              <button onclick="resetAppearance()"
+                class="inline-flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                Επαναφορά
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB: About ───────────────────────────────────────────────── -->
+        <!-- ── TAB: IRIS ────────────────────────────────────────────────── -->
+        <div id="tab-iris" class="tab-panel hidden">
+          <div class="space-y-5">
+
+            <!-- Business IRIS settings -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl text-blue-600"><i class="fas fa-credit-card"></i></div>
+                <div>
+                  <p class="section-title mb-0">IRIS Πληρωμές Επιχείρησης</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Ρυθμίστε τον IRIS λογαριασμό για λήψη πληρωμών σε τιμολόγια</p>
+                </div>
+              </div>
+
+              <div class="toggle-wrap">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">Ενεργοποίηση IRIS</p>
+                  <p class="text-xs text-gray-500">Εμφάνιση IRIS ως μέθοδος πληρωμής στα τιμολόγια</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="ir-enabled" onchange="toggleIrisFields()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div id="iris-biz-fields" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 opacity-50 pointer-events-none">
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">IBAN Επιχείρησης *</label>
+                  <input id="ir-iban" type="text" class="if" placeholder="π.χ. GR16 0110 1250 0000 0001 2300 695" />
+                  <p class="text-xs text-gray-400 mt-1">Ο IBAN τραπεζικού λογαριασμού εγγεγραμμένου στο IRIS</p>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Επωνυμία Δικαιούχου *</label>
+                  <input id="ir-beneficiary" type="text" class="if" placeholder="π.χ. Νικολάου Γεώργιος" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τράπεζα</label>
+                  <input id="ir-bank_name" type="text" class="if" placeholder="π.χ. Εθνική Τράπεζα" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">BIC / SWIFT</label>
+                  <input id="ir-bic" type="text" class="if" placeholder="π.χ. ETHNGRAA" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Κινητό IRIS</label>
+                  <input id="ir-mobile" type="tel" class="if" placeholder="+30 69X XXX XXXX" />
+                  <p class="text-xs text-gray-400 mt-1">Εγγεγραμμένο κινητό στο IRIS (για αιτήματα πληρωμής)</p>
+                </div>
+              </div>
+
+              <!-- IRIS QR preview -->
+              <div id="iris-qr-preview" class="hidden mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <p class="text-xs font-semibold text-blue-700 mb-2">Προεπισκόπηση IRIS QR</p>
+                <div class="flex items-start gap-4">
+                  <img id="iris-qr-img" src="" alt="IRIS QR" class="w-28 h-28 rounded-lg border border-blue-200 bg-white" />
+                  <div class="text-xs text-blue-700 space-y-1">
+                    <p><span class="font-semibold">IBAN:</span> <span id="qr-iban-label">—</span></p>
+                    <p><span class="font-semibold">Δικαιούχος:</span> <span id="qr-bene-label">—</span></p>
+                    <p><span class="font-semibold">Τράπεζα:</span> <span id="qr-bank-label">—</span></p>
+                    <p class="text-blue-500 mt-2">Οι πελάτες σαρώνουν αυτό το QR στην τραπεζική εφαρμογή τους</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-5 flex gap-3">
+                <button class="save-btn" onclick="saveIris()" id="btn-save-iris">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  Αποθήκευση IRIS
+                </button>
+                <button onclick="previewIrisQr()" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl px-4 py-2 text-sm font-semibold hover:bg-blue-100 transition-colors">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5a.5.5 0 11-1 0 .5.5 0 011 0z"/></svg>
+                  Προεπισκόπηση QR
+                </button>
+              </div>
+            </div>
+
+            <!-- Platform IRIS settings (super_admin only) -->
+            <div id="iris-platform-section" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl text-amber-600"><i class="fas fa-landmark"></i></div>
+                <div>
+                  <p class="section-title mb-0">IRIS Πλατφόρμας (Super Admin)</p>
+                  <p class="text-xs text-amber-700 mt-0.5">Λογαριασμός πλατφόρμας για λήψη συνδρομών μέσω IRIS</p>
+                </div>
+              </div>
+
+              <div class="toggle-wrap border-amber-200">
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">IRIS Συνδρομών Ενεργό</p>
+                  <p class="text-xs text-gray-500">Εμφάνιση IRIS ως επιλογή πληρωμής συνδρομής</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="pip-iris_enabled" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">IBAN Πλατφόρμας *</label>
+                  <input id="pip-iris_iban" type="text" class="if" placeholder="GR16 XXXX XXXX XXXX XXXX XXXX XXX" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Δικαιούχος</label>
+                  <input id="pip-iris_beneficiary" type="text" class="if" placeholder="FishBill OE" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τράπεζα</label>
+                  <input id="pip-iris_bank_name" type="text" class="if" placeholder="Εθνική Τράπεζα" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">BIC</label>
+                  <input id="pip-iris_bic" type="text" class="if" placeholder="ETHNGRAA" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Κινητό IRIS Πλατφόρμας</label>
+                  <input id="pip-iris_mobile" type="tel" class="if" placeholder="+30 69X XXX XXXX" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Οδηγίες Πληρωμής (εμφανίζεται στους χρήστες)</label>
+                  <textarea id="pip-iris_instructions" class="if" rows="3" placeholder="Πληρώστε μέσω IRIS στον λογαριασμό μας και στείλτε αποδεικτικό..."></textarea>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <button class="save-btn" style="background:#d97706" onclick="saveIrisPlatform()" id="btn-save-iris-platform">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  Αποθήκευση Ρυθμίσεων Πλατφόρμας
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="tab-about" class="tab-panel hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+            <p class="section-title">Σχετικά με την Εφαρμογή</p>
+
+            <!-- App info -->
+            <div class="flex items-center gap-4 bg-blue-50 rounded-xl p-4">
+              <div class="text-4xl text-blue-500"><i class="fas fa-fish"></i></div>
+              <div>
+                <p class="font-bold text-gray-900">FishBill</p>
+                <p class="text-xs text-gray-500">Έκδοση <span id="about-version">—</span></p>
+                <p class="text-xs text-gray-400 mt-0.5">Διαχειριστική πλατφόρμα αλιευτικών παραστατικών myDATA</p>
+              </div>
+            </div>
+
+            <!-- API Health -->
+            <div>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Κατάσταση API Server</p>
+              <div id="api-health" class="flex items-center gap-2 text-sm">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span class="text-gray-400">Έλεγχος σύνδεσης...</span>
+              </div>
+            </div>
+
+            <!-- Current user -->
+            <div>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Τρέχων Χρήστης</p>
+              <div id="about-user" class="bg-gray-50 rounded-xl p-3 text-sm text-gray-700">—</div>
+            </div>
+
+            <!-- Debug mode -->
+            <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+              <div>
+                <p class="text-sm font-semibold text-gray-800">Debug Mode</p>
+                <p class="text-xs text-gray-500">Εμφάνιση αναλυτικών logs στο browser console</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="debug-toggle" onchange="toggleDebug(this.checked)" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Logout -->
+            <div class="pt-2 border-t border-gray-100">
+              <button onclick="logout()"
+                class="inline-flex items-center gap-2 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Αποσύνδεση
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right panel -->
+    </div><!-- /flex container -->
+
+  </main>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/page.js"></script>
+<script>
+  initPage({ requireRole: ['super_admin', 'owner'] });
+
+  let _settings = {};
+  let _selectedAccent = 'blue';
+  let _selectedAccentHex = '#2563eb';
+
+  // ── Super-admin business selector ────────────────────────────────────────────
+  let _adminBizId = null;      // business_id selected by super_admin
+  let _adminBizList = [];      // cached list of all businesses
+
+  function isSuperAdmin() {
+    const u = getCurrentUser();
+    return u && u.role === 'super_admin';
+  }
+
+  /** Returns query-params object for GET calls (includes business_id when SA has selected one). */
+  function bqp() {
+    return _adminBizId ? { business_id: _adminBizId } : {};
+  }
+
+  /** Returns query-params object for PATCH/POST calls (same). */
+  function bpp() {
+    return _adminBizId ? { business_id: _adminBizId } : undefined;
+  }
+
+  // Per-business selector removed — settings are platform-only
+
+  // ── Toast ────────────────────────────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const colors = { success:'bg-emerald-600', error:'bg-red-600', info:'bg-blue-600', warning:'bg-amber-500' };
+    const el = document.getElementById('toast');
+    el.className = `fixed top-4 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold max-w-xs text-white ${colors[type]||colors.info}`;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.add('hidden'), 3500);
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────────────
+  const TABS = ['profile','mydata','invoice','email','sms','notifications','appearance','iris','about'];
+  function switchTab(tab) {
+    TABS.forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+      document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab);
+    });
+    if (tab === 'about') loadAbout();
+    if (tab === 'iris')  loadIrisSettings();
+  }
+
+  // ── Load settings ────────────────────────────────────────────────────────────
+  async function loadSettings() {
+    try {
+      const res = await api.get('/settings', bqp());
+      _settings = res.data || {};
+
+      const b = _settings.business || {};
+      const s = _settings.settings || {};
+
+      // Profile
+      setVal('p-name', b.name);
+      setVal('p-trade_name', b.trade_name);
+      setVal('p-afm', b.afm);
+      setVal('p-doy', b.doy);
+      setVal('p-address', b.address);
+      setVal('p-city', b.city);
+      setVal('p-postal_code', b.postal_code);
+      setVal('p-phone', b.phone);
+      setVal('p-email', b.email);
+      setVal('p-activity_code', b.activity_code);
+      setVal('p-vat_regime', b.vat_regime || 'normal');
+      setVal('p-accountant_name', b.accountant_name);
+      setVal('p-accountant_email', b.accountant_email);
+      setVal('p-accountant_phone', b.accountant_phone);
+
+      // GSIS
+      setVal('g-gsis_username', b.gsis_username);
+
+      // myDATA — direct credentials
+      setVal('m-mydata_user_id', b.mydata_user_id);
+      setVal('m-provider_name', b.provider_name);
+      // myDATA — provider card selection
+      const savedProvider = b.mydata_provider || 'none';
+      selectProvider(savedProvider);
+      // e-Τιμολογιέρα fields
+      if (b.etimologiera_subscription_id) setVal('et-subscription_id', b.etimologiera_subscription_id);
+      if (b.etimologiera_api_url) setVal('et-api_url', b.etimologiera_api_url);
+
+      // Invoice
+      setVal('i-default_due_days', s.default_due_days ?? 30);
+      setVal('i-invoice_footer', s.invoice_footer);
+      setChecked('i-auto_transmit', !!s.auto_transmit);
+
+      // Email
+      setChecked('e-email_enabled', !!s.email_enabled);
+      setVal('e-email_provider',  s.email_provider  || 'smtp');
+      setVal('e-smtp_from_name',  s.smtp_from_name  || s.brevo_sender_name);
+      setVal('e-smtp_from_email', s.smtp_from_email || s.brevo_sender_email);
+      setVal('e-smtp_host',   s.smtp_host);
+      setVal('e-smtp_port',   s.smtp_port || 587);
+      setVal('e-smtp_user',   s.smtp_user);
+      setChecked('e-smtp_secure', !!s.smtp_secure);
+      setVal('e-mailgun_domain', s.mailgun_domain);
+      toggleEmailFields();
+      onEmailProviderChange();
+
+      // SMS
+      setChecked('s-sms_enabled', !!s.sms_enabled);
+      setVal('s-sms_provider', s.sms_provider_type || s.sms_provider || 'infobip');
+      setVal('s-sms_from',     s.sms_from || s.apifon_sender || s.routee_sender_id);
+      setVal('s-infobip_base_url',    s.infobip_base_url);
+      setVal('s-vonage_api_key',      s.vonage_api_key);
+      setVal('s-twilio_account_sid',  s.twilio_account_sid);
+      setVal('s-twilio_from_number',  s.twilio_from_number);
+      toggleSmsFields();
+      onSmsProviderChange();
+
+      // Notifications
+      setChecked('n-notif_invoice_created',     s.notif_invoice_created     !== false);
+      setChecked('n-notif_invoice_transmitted',  s.notif_invoice_transmitted !== false);
+      setChecked('n-notif_invoice_failed',       s.notif_invoice_failed      !== false);
+      setChecked('n-notif_daily_summary',        !!s.notif_daily_summary);
+
+      // Appearance from localStorage
+      const theme = JSON.parse(localStorage.getItem('fishbill_theme') || '{}');
+      if (theme.accent) selectColor(theme.accent, getAccentHex(theme.accent));
+    } catch (e) {
+      showToast(`Σφάλμα φόρτωσης: ${e.message}`, 'error');
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function btnLoading(id, loading) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.disabled = loading;
+    if (loading) { btn._orig = btn.innerHTML; btn.innerHTML = `<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Αποθήκευση...`; }
+    else { btn.innerHTML = btn._orig || btn.innerHTML; }
+  }
+
+  function togglePwd(id) {
+    const el = document.getElementById(id);
+    if (el) el.type = el.type === 'password' ? 'text' : 'password';
+  }
+
+  function toggleEmailFields() {
+    const enabled = getChecked('e-email_enabled');
+    const f = document.getElementById('email-fields');
+    if (f) { f.classList.toggle('opacity-50', !enabled); f.classList.toggle('pointer-events-none', !enabled); }
+  }
+
+  function toggleSmsFields() {
+    const enabled = getChecked('s-sms_enabled');
+    const f = document.getElementById('sms-fields');
+    if (f) { f.classList.toggle('opacity-50', !enabled); f.classList.toggle('pointer-events-none', !enabled); }
+  }
+
+  // ── Provider (myDATA) exclusive card selection ───────────────────────────────
+  let _selectedProvider = 'none';
+
+  function selectProvider(p) {
+    _selectedProvider = p;
+    document.querySelectorAll('.provider-card').forEach(card => {
+      const isSelected = card.dataset.provider === p;
+      card.classList.toggle('selected', isSelected);
+      const radio = card.querySelector('input[type=radio]');
+      if (radio) radio.checked = isSelected;
+    });
+    const etFields = document.getElementById('etimologiera-fields');
+    if (etFields) etFields.classList.toggle('hidden', p !== 'etimologiera');
+  }
+
+  function onProviderChange() {} // backward compat
+
+  // ── Email provider switcher ──────────────────────────────────────────────────
+  function onEmailProviderChange() {
+    const p = val('e-email_provider');
+    ['smtp','brevo','sendgrid','mailgun'].forEach(s => {
+      const el = document.getElementById('email-prov-' + s);
+      if (el) el.classList.toggle('hidden', s !== p);
+    });
+  }
+
+  // ── SMS provider switcher ────────────────────────────────────────────────────
+  function onSmsProviderChange() {
+    const p = val('s-sms_provider');
+    ['infobip','apifon','routee','bsms','yuboto','vonage','twilio'].forEach(s => {
+      const el = document.getElementById('sms-prov-' + s);
+      if (el) el.classList.toggle('hidden', s !== p);
+    });
+  }
+
+  // ── myDATA Provider save / test ──────────────────────────────────────────────
+  async function saveProvider() {
+    btnLoading('btn-save-provider', true);
+    try {
+      const p = _selectedProvider;
+      const body = { mydata_provider: p };
+      if (p === 'etimologiera') {
+        const apiKey = val('et-api_key');
+        if (!apiKey) { showToast('Το API Key e-Τιμολογιέρα είναι υποχρεωτικό.', 'error'); return; }
+        body.etimologiera_api_key        = apiKey;
+        body.etimologiera_subscription_id = val('et-subscription_id');
+        body.etimologiera_api_url        = val('et-api_url') || 'https://app.etimologiera.gr/api/v1';
+      }
+      await api.patch('/settings/mydata', body, bpp());
+      showToast('Ρυθμίσεις παρόχου αποθηκεύτηκαν!', 'success');
+    } catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    finally { btnLoading('btn-save-provider', false); }
+  }
+
+  async function testProvider() {
+    if (_selectedProvider === 'none') { showToast('Επιλέξτε πρώτα έναν τρόπο μετάδοσης.', 'error'); return; }
+    btnLoading('btn-test-provider', true);
+    try {
+      const r = await api.post('/integrations/provider/test', { provider: _selectedProvider }, bqp());
+      showToast((r && r.message) || 'Σύνδεση επιτυχής!', 'success');
+    } catch(e) { showToast('Σφάλμα σύνδεσης: ' + e.message, 'error'); }
+    finally { btnLoading('btn-test-provider', false); }
+  }
+
+  // ── Email test ───────────────────────────────────────────────────────────────
+  async function testEmail() {
+    const to = prompt('Email δοκιμής (στείλτε σε):');
+    if (!to) return;
+    try {
+      const r = await api.post('/integrations/email/test', { to }, bqp());
+      showToast((r && r.message) || `Test email εστάλη στο ${to}`, 'success');
+    } catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+  }
+
+  // ── SMS test ─────────────────────────────────────────────────────────────────
+  async function testSms() {
+    const to = prompt('Τηλέφωνο δοκιμής (π.χ. +30694xxxxxxx):');
+    if (!to) return;
+    try {
+      const r = await api.post('/integrations/sms/test', { to }, bqp());
+      showToast((r && r.message) || `Test SMS εστάλη στο ${to}`, 'success');
+    } catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+  }
+
+  // ── Avatar ───────────────────────────────────────────────────────────────────
+  let _avatarBase64 = null;
+  let _avatarMime   = null;
+
+  function loadAvatar() {
+    const user = getCurrentUser();
+    if (!user) return;
+    const initials = (user.name || user.full_name || 'Χ').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const initialsEl = document.getElementById('avatar-initials');
+    const imgEl      = document.getElementById('avatar-img');
+    const nameLabel  = document.getElementById('avatar-name-label');
+    if (initialsEl) initialsEl.textContent = initials;
+    if (nameLabel)  nameLabel.textContent  = user.name || user.full_name || user.email || '—';
+
+    // Try to load avatar from server
+    if (user.id) {
+      api.get(`/users/${user.id}`).then(res => {
+        const avatarUrl = res && res.data && res.data.avatar_url;
+        if (avatarUrl && imgEl && initialsEl) {
+          const serverBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace('/api', '');
+          const fullUrl = avatarUrl.startsWith('http') ? avatarUrl : `${serverBase}${avatarUrl}`;
+          imgEl.src = fullUrl;
+          imgEl.classList.remove('hidden');
+          initialsEl.classList.add('hidden');
+          imgEl.onerror = () => { imgEl.classList.add('hidden'); initialsEl.classList.remove('hidden'); };
+        }
+      }).catch(() => {});
+    }
+  }
+
+  function handleAvatarChange(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('Η εικόνα υπερβαίνει το όριο των 3MB.', 'error');
+      input.value = '';
+      return;
+    }
+    _avatarMime = file.type || 'image/jpeg';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      _avatarBase64 = e.target.result;
+      const imgEl = document.getElementById('avatar-img');
+      const initialsEl = document.getElementById('avatar-initials');
+      if (imgEl) { imgEl.src = e.target.result; imgEl.classList.remove('hidden'); }
+      if (initialsEl) initialsEl.classList.add('hidden');
+      const btn = document.getElementById('btn-save-avatar');
+      if (btn) btn.style.display = 'inline-flex';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function saveAvatar() {
+    if (!_avatarBase64) return;
+    btnLoading('btn-save-avatar', true);
+    try {
+      const res = await api.patch('/users/me/avatar', { avatar_base64: _avatarBase64, mime_type: _avatarMime });
+      if (res && res.data && res.data.avatar_url) {
+        const user = getCurrentUser();
+        if (user) { user.avatar_url = res.data.avatar_url; setCurrentUser(user); }
+      }
+      _avatarBase64 = null;
+      _avatarMime   = null;
+      const btn = document.getElementById('btn-save-avatar');
+      if (btn) btn.style.display = 'none';
+      showToast('Η φωτογραφία αποθηκεύτηκε!', 'success');
+    } catch(e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-avatar', false); }
+  }
+
+  // ── Save functions ───────────────────────────────────────────────────────────
+  async function saveProfile() {
+    btnLoading('btn-save-profile', true);
+    try {
+      await api.patch('/settings/profile', {
+        name: val('p-name'), trade_name: val('p-trade_name'), doy: val('p-doy'),
+        address: val('p-address'), city: val('p-city'), postal_code: val('p-postal_code'),
+        phone: val('p-phone'), email: val('p-email'), activity_code: val('p-activity_code'),
+        vat_regime: val('p-vat_regime'), accountant_name: val('p-accountant_name'),
+        accountant_email: val('p-accountant_email'), accountant_phone: val('p-accountant_phone'),
+      }, bpp());
+      showToast('Το προφίλ αποθηκεύτηκε!', 'success');
+    } catch (e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-profile', false); }
+  }
+
+  async function saveGsis() {
+    btnLoading('btn-save-gsis', true);
+    try {
+      const body = {};
+      const u = val('g-gsis_username'); if (u !== undefined) body.gsis_username = u || null;
+      const p = val('g-gsis_password'); if (p) body.gsis_password = p;
+      if (!Object.keys(body).length) { showToast('Δεν υπάρχουν αλλαγές.', 'info'); return; }
+      await api.patch('/settings/gsis', body, bpp());
+      showToast('Credentials ΓΓΠΣ αποθηκεύτηκαν!', 'success');
+      document.getElementById('g-gsis_password').value = '';
+    } catch(e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    finally { btnLoading('btn-save-gsis', false); }
+  }
+
+  async function saveMydata() {
+    btnLoading('btn-save-mydata', true);
+    try {
+      const body = {
+        mydata_user_id: val('m-mydata_user_id'),
+        provider_name:  val('m-provider_name'),
+        provider_api_url: val('m-provider_api_url'),
+        provider_username: val('m-provider_username'),
+      };
+      if (val('m-mydata_subscription_key')) body.mydata_subscription_key = val('m-mydata_subscription_key');
+      if (val('m-provider_api_key')) body.provider_api_key = val('m-provider_api_key');
+      if (val('m-provider_password')) body.provider_password = val('m-provider_password');
+      await api.patch('/settings/mydata', body, bpp());
+      showToast('Τα στοιχεία myDATA αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-mydata', false); }
+  }
+
+  async function saveInvoice() {
+    btnLoading('btn-save-invoice', true);
+    try {
+      await api.patch('/settings/invoice', {
+        default_due_days: parseInt(val('i-default_due_days')) || 30,
+        invoice_footer:   val('i-invoice_footer'),
+        auto_transmit:    getChecked('i-auto_transmit') ? 1 : 0,
+      }, bpp());
+      showToast('Ρυθμίσεις παραστατικών αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-invoice', false); }
+  }
+
+  async function saveEmail() {
+    btnLoading('btn-save-email', true);
+    try {
+      const p = val('e-email_provider') || 'smtp';
+      const body = {
+        email_enabled:   getChecked('e-email_enabled') ? 1 : 0,
+        email_provider:  p,
+        smtp_from_name:  val('e-smtp_from_name'),
+        smtp_from_email: val('e-smtp_from_email'),
+      };
+      if (p === 'smtp') {
+        body.smtp_host   = val('e-smtp_host');
+        body.smtp_port   = parseInt(val('e-smtp_port')) || 587;
+        body.smtp_user   = val('e-smtp_user');
+        body.smtp_secure = getChecked('e-smtp_secure') ? 1 : 0;
+        if (val('e-smtp_pass')) body.smtp_pass = val('e-smtp_pass');
+      } else if (p === 'brevo') {
+        if (val('e-brevo_api_key')) body.brevo_api_key = val('e-brevo_api_key');
+        body.brevo_sender_name  = val('e-smtp_from_name');
+        body.brevo_sender_email = val('e-smtp_from_email');
+      } else if (p === 'sendgrid') {
+        if (val('e-sendgrid_api_key')) body.sendgrid_api_key = val('e-sendgrid_api_key');
+      } else if (p === 'mailgun') {
+        if (val('e-mailgun_api_key')) body.mailgun_api_key = val('e-mailgun_api_key');
+        body.mailgun_domain = val('e-mailgun_domain');
+      }
+      await api.patch('/settings/email', body, bpp());
+      showToast('Ρυθμίσεις email αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-email', false); }
+  }
+
+  async function saveSms() {
+    btnLoading('btn-save-sms', true);
+    try {
+      const p = val('s-sms_provider') || 'infobip';
+      const body = {
+        sms_enabled:       getChecked('s-sms_enabled') ? 1 : 0,
+        sms_provider_type: p,
+        sms_from:          val('s-sms_from'),
+      };
+      if (p === 'infobip') {
+        body.infobip_base_url = val('s-infobip_base_url');
+        if (val('s-infobip_api_key')) body.infobip_api_key = val('s-infobip_api_key');
+      } else if (p === 'apifon') {
+        if (val('s-apifon_api_key')) body.apifon_api_key = val('s-apifon_api_key');
+        body.apifon_sender = val('s-sms_from');
+      } else if (p === 'routee') {
+        if (val('s-routee_api_key')) body.routee_api_key = val('s-routee_api_key');
+        body.routee_sender_id = val('s-sms_from');
+      } else if (p === 'bsms') {
+        if (val('s-bsms_api_key')) body.bsms_api_key = val('s-bsms_api_key');
+      } else if (p === 'yuboto') {
+        if (val('s-yuboto_api_key')) body.yuboto_api_key = val('s-yuboto_api_key');
+      } else if (p === 'vonage') {
+        body.vonage_api_key = val('s-vonage_api_key');
+        if (val('s-vonage_api_secret')) body.vonage_api_secret = val('s-vonage_api_secret');
+      } else if (p === 'twilio') {
+        body.twilio_account_sid  = val('s-twilio_account_sid');
+        body.twilio_from_number  = val('s-twilio_from_number');
+        if (val('s-twilio_auth_token')) body.twilio_auth_token = val('s-twilio_auth_token');
+      }
+      await api.patch('/settings/sms', body, bpp());
+      showToast('Ρυθμίσεις SMS αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-sms', false); }
+  }
+
+  async function saveNotifications() {
+    btnLoading('btn-save-notifications', true);
+    try {
+      await api.patch('/settings/notifications', {
+        notif_invoice_created:    getChecked('n-notif_invoice_created')    ? 1 : 0,
+        notif_invoice_transmitted: getChecked('n-notif_invoice_transmitted') ? 1 : 0,
+        notif_invoice_failed:     getChecked('n-notif_invoice_failed')     ? 1 : 0,
+        notif_daily_summary:      getChecked('n-notif_daily_summary')      ? 1 : 0,
+      }, bpp());
+      showToast('Ειδοποιήσεις αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast(`Σφάλμα: ${e.message}`, 'error'); }
+    finally { btnLoading('btn-save-notifications', false); }
+  }
+
+  // ── Appearance ───────────────────────────────────────────────────────────────
+  const accentMap = {
+    blue:    '#2563eb',
+    purple:  '#7c3aed',
+    emerald: '#059669',
+    orange:  '#ea580c',
+    rose:    '#e11d48',
+    slate:   '#475569',
+  };
+
+  function getAccentHex(name) {
+    return accentMap[name] || '#2563eb';
+  }
+
+  function selectColor(name, hex) {
+    _selectedAccent = name;
+    _selectedAccentHex = hex;
+    document.querySelectorAll('.color-swatch').forEach(el => {
+      el.classList.toggle('selected', el.dataset.color === name);
+    });
+    const bar = document.getElementById('accent-preview-bar');
+    const btn = document.getElementById('accent-preview-btn');
+    const saveBtn = document.getElementById('accent-color-hex');
+    if (bar) bar.style.background = hex;
+    if (btn) btn.style.background = hex;
+    if (saveBtn) saveBtn.style.background = hex;
+  }
+
+  function applyAppearance() {
+    localStorage.setItem('fishbill_theme', JSON.stringify({ accent: _selectedAccent, hex: _selectedAccentHex }));
+    window.dispatchEvent(new CustomEvent('fishbill:theme-change', { detail: { accent: _selectedAccent, hex: _selectedAccentHex } }));
+    showToast('Εμφάνιση εφαρμόστηκε!', 'success');
+  }
+
+  function resetAppearance() {
+    localStorage.removeItem('fishbill_theme');
+    selectColor('blue', '#2563eb');
+    showToast('Εμφάνιση επαναφέρθηκε.', 'info');
+  }
+
+  // ── About tab ────────────────────────────────────────────────────────────────
+  async function loadAbout() {
+    document.getElementById('about-version').textContent = CONFIG.VERSION || '1.0.0';
+
+    // API health
+    try {
+      const h = await fetch(CONFIG.API_URL.replace('/api', '') + '/health');
+      const d = await h.json();
+      const isOk = d.status === 'ok';
+      document.getElementById('api-health').innerHTML = `
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isOk ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+          <span class="w-1.5 h-1.5 rounded-full ${isOk ? 'bg-emerald-500' : 'bg-red-500'}"></span>
+          ${isOk ? 'Online' : 'Offline'}
+        </span>
+        <span class="text-xs text-gray-400 ml-2">${CONFIG.API_URL}</span>`;
+    } catch (e) {
+      document.getElementById('api-health').innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Offline</span><span class="text-xs text-gray-400 ml-2">Δεν απαντά</span>`;
+    }
+
+    // Current user
+    const u = getCurrentUser();
+    const roleLabelMap = { super_admin:'Super Admin', owner:'Ιδιοκτήτης', accountant:'Λογιστής', captain:'Κυβερνήτης', employee:'Υπάλληλος' };
+    if (u) {
+      document.getElementById('about-user').innerHTML = `
+        <div class="flex gap-3">
+          <div class="w-9 h-9 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+            ${(u.name || u.full_name || 'U').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}
+          </div>
+          <div>
+            <p class="font-semibold text-gray-900">${u.name || u.full_name || '—'}</p>
+            <p class="text-xs text-gray-500">${u.email || ''} · ${roleLabelMap[u.role] || u.role || ''}</p>
+          </div>
+        </div>`;
+    }
+
+    // Debug toggle
+    setChecked('debug-toggle', !!(typeof CONFIG !== 'undefined' && CONFIG.DEBUG));
+  }
+
+  function toggleDebug(enabled) {
+    if (typeof CONFIG !== 'undefined') CONFIG.DEBUG = enabled;
+    showToast(enabled ? 'Debug mode ενεργοποιήθηκε.' : 'Debug mode απενεργοποιήθηκε.', 'info');
+  }
+
+  // ── IRIS ────────────────────────────────────────────────────────────────────
+
+  function toggleIrisFields() {
+    const enabled = getChecked('ir-enabled');
+    const f = document.getElementById('iris-biz-fields');
+    if (f) { f.classList.toggle('opacity-50', !enabled); f.classList.toggle('pointer-events-none', !enabled); }
+  }
+
+  async function loadIrisSettings() {
+    try {
+      // Business IRIS
+      const params = bqp();
+      if (!isSuperAdmin() || _adminBizId) {
+        const r = await api.get('/iris/settings', params);
+        const d = r.data || {};
+        setChecked('ir-enabled', !!parseInt(d.iris_enabled || '0'));
+        setVal('ir-iban', d.iris_iban || '');
+        setVal('ir-beneficiary', d.iris_beneficiary || '');
+        setVal('ir-bank_name', d.iris_bank_name || '');
+        setVal('ir-bic', d.iris_bic || '');
+        setVal('ir-mobile', d.iris_mobile || '');
+        toggleIrisFields();
+      }
+      // Platform IRIS (super_admin only)
+      if (isSuperAdmin()) {
+        document.getElementById('iris-platform-section').classList.remove('hidden');
+        const rp = await api.get('/iris/platform');
+        const dp = rp.data || {};
+        setChecked('pip-iris_enabled', dp.iris_enabled === '1');
+        setVal('pip-iris_iban', dp.iris_iban || '');
+        setVal('pip-iris_beneficiary', dp.iris_beneficiary || '');
+        setVal('pip-iris_bank_name', dp.iris_bank_name || '');
+        setVal('pip-iris_bic', dp.iris_bic || '');
+        setVal('pip-iris_mobile', dp.iris_mobile || '');
+        setVal('pip-iris_instructions', dp.iris_instructions || '');
+      }
+    } catch (e) { showToast('Σφάλμα φόρτωσης IRIS: ' + e.message, 'error'); }
+  }
+
+  async function saveIris() {
+    btnLoading('btn-save-iris', true);
+    try {
+      await api.patch('/iris/settings', {
+        iris_enabled:     getChecked('ir-enabled') ? 1 : 0,
+        iris_iban:        val('ir-iban'),
+        iris_beneficiary: val('ir-beneficiary'),
+        iris_bank_name:   val('ir-bank_name'),
+        iris_bic:         val('ir-bic'),
+        iris_mobile:      val('ir-mobile'),
+      }, bpp());
+      showToast('Ρυθμίσεις IRIS αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    finally { btnLoading('btn-save-iris', false); }
+  }
+
+  async function saveIrisPlatform() {
+    btnLoading('btn-save-iris-platform', true);
+    try {
+      await api.put('/iris/platform', {
+        iris_enabled:      getChecked('pip-iris_enabled') ? '1' : '0',
+        iris_iban:         val('pip-iris_iban'),
+        iris_beneficiary:  val('pip-iris_beneficiary'),
+        iris_bank_name:    val('pip-iris_bank_name'),
+        iris_bic:          val('pip-iris_bic'),
+        iris_mobile:       val('pip-iris_mobile'),
+        iris_instructions: val('pip-iris_instructions'),
+      });
+      showToast('Ρυθμίσεις πλατφόρμας IRIS αποθηκεύτηκαν!', 'success');
+    } catch (e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+    finally { btnLoading('btn-save-iris-platform', false); }
+  }
+
+  function previewIrisQr() {
+    const iban = val('ir-iban').replace(/\s/g,'');
+    const bene = val('ir-beneficiary');
+    const bank = val('ir-bank_name');
+    const bic  = val('ir-bic') || 'ETHNGRAA';
+    if (!iban || !bene) { showToast('Συμπληρώστε IBAN και Δικαιούχο.', 'warning'); return; }
+    // EPC QR (GiroCode) format
+    const epc = [`BCD`,`002`,`1`,`SCT`,bic,bene,iban,`EUR`,``,``,`FishBill Πληρωμή`].join('\n');
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(epc)}`;
+    document.getElementById('iris-qr-img').src = qrUrl;
+    document.getElementById('qr-iban-label').textContent = iban;
+    document.getElementById('qr-bene-label').textContent = bene;
+    document.getElementById('qr-bank-label').textContent = bank || '—';
+    document.getElementById('iris-qr-preview').classList.remove('hidden');
+  }
+
+  // ── ΑΑΔΕ myDATA test mode (super_admin only) ─────────────────────────────
+  async function loadMydataTestMode() {
+    if (!isSuperAdmin()) return;
+    document.getElementById('mydata-env-card').style.display = '';
+    try {
+      const res = await api.get('/platform/settings');
+      const s   = res.data || {};
+      const isTest = s.mydata_test_mode === '1' || s.mydata_test_mode === 'true';
+      document.getElementById('p-mydata_test_mode').checked = isTest;
+      updateMydataEnvBadge(isTest);
+    } catch (_) {}
+  }
+
+  function updateMydataEnvBadge(isTest) {
+    const badge   = document.getElementById('mydata-env-badge');
+    const warning = document.getElementById('mydata-env-warning');
+    if (isTest) {
+      badge.innerHTML = `<span class="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full"><i class="fas fa-flask"></i> TEST SANDBOX — δεν παράγει πραγματικό MARK</span>`;
+      warning.classList.remove('hidden');
+    } else {
+      badge.innerHTML = `<span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full"><i class="fas fa-circle-check"></i> PRODUCTION — πραγματικές μεταδόσεις ΑΑΔΕ</span>`;
+      warning.classList.add('hidden');
+    }
+  }
+
+  async function saveMydataTestMode() {
+    const isTest = document.getElementById('p-mydata_test_mode').checked;
+    updateMydataEnvBadge(isTest);
+    try {
+      await api.post('/platform/settings', { mydata_test_mode: isTest ? '1' : '0' });
+      showToast(isTest ? 'Test mode ενεργό — sandbox ΑΑΔΕ' : 'Production mode ενεργό — πραγματική ΑΑΔΕ', isTest ? 'warning' : 'success');
+    } catch (e) { showToast('Σφάλμα: ' + e.message, 'error'); }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  // initAdminBar removed — settings are platform-only
+  loadAvatar();
+  loadSettings();
+  loadMydataTestMode();
+
+  // Expose functions called from inline HTML attributes
+  window.switchTab         = switchTab;
+  window.selectProvider    = selectProvider;
+  window.selectColor       = selectColor;
+  window.applyAppearance   = applyAppearance;
+  window.resetAppearance   = resetAppearance;
+  window.togglePwd         = togglePwd;
+  window.toggleEmailFields = toggleEmailFields;
+  window.toggleSmsFields   = toggleSmsFields;
+  window.toggleIrisFields  = toggleIrisFields;
+  window.onEmailProviderChange = onEmailProviderChange;
+  window.onSmsProviderChange   = onSmsProviderChange;
+  window.handleAvatarChange = handleAvatarChange;
+  window.saveAvatar        = saveAvatar;
+  window.saveProfile       = saveProfile;
+  window.saveGsis          = saveGsis;
+  window.saveMydata        = saveMydata;
+  window.saveMydataTestMode = saveMydataTestMode;
+  window.saveProvider      = saveProvider;
+  window.testProvider      = testProvider;
+  window.saveInvoice       = saveInvoice;
+  window.saveEmail         = saveEmail;
+  window.testEmail         = testEmail;
+  window.saveSms           = saveSms;
+  window.testSms           = testSms;
+  window.saveNotifications = saveNotifications;
+  window.saveIris          = saveIris;
+  window.saveIrisPlatform  = saveIrisPlatform;
+  window.previewIrisQr     = previewIrisQr;
+  window.toggleDebug       = toggleDebug;
+</script>
+</body>
+</html>

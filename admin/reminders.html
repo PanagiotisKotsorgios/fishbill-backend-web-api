@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Υπενθυμίσεις SMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .tab-btn { padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; border: none; }
+    .tab-btn.active { background: #2563eb; color: #fff; }
+    .tab-btn:not(.active) { background: #f1f5f9; color: #64748b; }
+    .tab-btn:not(.active):hover { background: #e2e8f0; color: #1e293b; }
+    .row-hover:hover { background: #f8fafc; }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .input { border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 12px; font-size: 13px; background: #f8fafc; outline: none; width: 100%; transition: all .15s; }
+    .input:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: #2563eb; color: #fff; } .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #059669; color: #fff; } .btn-success:hover { background: #047857; }
+    .btn-danger  { background: #dc2626; color: #fff; } .btn-danger:hover  { background: #b91c1c; }
+    .btn-ghost   { background: #f1f5f9; color: #475569; } .btn-ghost:hover   { background: #e2e8f0; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: #fff; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,.2); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .panel { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .urgency-critical td:first-child { border-left: 3px solid #dc2626; }
+    .urgency-warning  td:first-child { border-left: 3px solid #f59e0b; }
+    .urgency-ok       td:first-child { border-left: 3px solid #10b981; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6 max-w-[1400px] mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6 anim flex items-start justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Υπενθυμίσεις SMS</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Επιχειρήσεις που λήγουν σύντομα · Καταγραφή χειροκίνητων SMS</p>
+      </div>
+      <div class="flex gap-2 flex-wrap items-center">
+        <select id="days-filter" class="input" style="width:auto" onchange="loadUpcoming()">
+          <option value="7">Επόμενες 7 μέρες</option>
+          <option value="14" selected>Επόμενες 14 μέρες</option>
+          <option value="30">Επόμενες 30 μέρες</option>
+        </select>
+        <button class="btn btn-ghost" onclick="refresh()">
+          <i class="fas fa-rotate-right"></i> Ανανέωση
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.04s">
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0"><i class="fas fa-triangle-exclamation"></i></div>
+        <div><p class="text-xs text-gray-400">Λήγουν (≤3 μέρες)</p><p id="stat-critical" class="text-xl font-extrabold text-red-600">—</p></div>
+      </div>
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 flex-shrink-0"><i class="fas fa-clock"></i></div>
+        <div><p class="text-xs text-gray-400">Λήγουν (≤14 μέρες)</p><p id="stat-warning" class="text-xl font-extrabold text-amber-600">—</p></div>
+      </div>
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600 flex-shrink-0"><i class="fas fa-comment-sms"></i></div>
+        <div><p class="text-xs text-gray-400">SMS (7 ημέρες)</p><p id="stat-sms-week" class="text-xl font-extrabold text-green-600">—</p></div>
+      </div>
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0"><i class="fas fa-envelopes-bulk"></i></div>
+        <div><p class="text-xs text-gray-400">Σύνολο SMS</p><p id="stat-sms-total" class="text-xl font-extrabold text-blue-600">—</p></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4 anim" style="animation-delay:.06s">
+      <button class="tab-btn active" id="tab-upcoming-btn" onclick="switchTab('upcoming')">
+        <i class="fas fa-bell-ring mr-1.5"></i>Λήξεις
+      </button>
+      <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">
+        <i class="fas fa-comment-sms mr-1.5"></i>Ιστορικό SMS
+      </button>
+    </div>
+
+    <!-- Tab: Upcoming Expirations -->
+    <div id="tab-upcoming" class="anim" style="animation-delay:.08s">
+      <div class="panel overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                <th class="text-left px-5 py-3 font-semibold">Επιχείρηση</th>
+                <th class="text-left px-5 py-3 font-semibold">Τύπος</th>
+                <th class="text-left px-5 py-3 font-semibold">Λήξη</th>
+                <th class="text-left px-5 py-3 font-semibold">Τηλέφωνο</th>
+                <th class="text-left px-5 py-3 font-semibold">Τελευταίο SMS</th>
+                <th class="text-left px-5 py-3 font-semibold">SMS</th>
+                <th class="text-right px-5 py-3 font-semibold">Ενέργεια</th>
+              </tr>
+            </thead>
+            <tbody id="upcoming-body">
+              <tr><td colspan="7" class="text-center py-10 text-gray-400">Φόρτωση…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="upcoming-empty" class="hidden text-center py-16 text-gray-400">
+          <i class="fas fa-circle-check text-3xl text-green-300 mb-3 block"></i>
+          Δεν υπάρχουν επιχειρήσεις που λήγουν στο επιλεγμένο διάστημα.
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: SMS History -->
+    <div id="tab-history" class="hidden anim" style="animation-delay:.08s">
+      <div class="panel overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex gap-3 flex-wrap items-center">
+          <input type="text" id="history-search" class="input" style="max-width:280px" placeholder="Αναζήτηση επιχείρησης…" oninput="filterHistory()">
+          <select id="history-reason-filter" class="input" style="width:auto" onchange="filterHistory()">
+            <option value="">Όλοι οι τύποι</option>
+            <option value="trial_expiring">Λήξη Trial</option>
+            <option value="subscription_expiring">Λήξη Συνδρομής</option>
+            <option value="payment_reminder">Υπενθύμιση Πληρωμής</option>
+            <option value="other">Άλλο</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                <th class="text-left px-5 py-3 font-semibold">Επιχείρηση</th>
+                <th class="text-left px-5 py-3 font-semibold">Τηλέφωνο</th>
+                <th class="text-left px-5 py-3 font-semibold">Τύπος</th>
+                <th class="text-left px-5 py-3 font-semibold">Σημειώσεις</th>
+                <th class="text-left px-5 py-3 font-semibold">Ημ/νία</th>
+                <th class="text-left px-5 py-3 font-semibold">Από</th>
+                <th class="text-right px-5 py-3 font-semibold">Ενέργεια</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr><td colspan="7" class="text-center py-10 text-gray-400">Φόρτωση…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="history-pagination" class="p-4 flex justify-center gap-2"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SMS Log Modal -->
+<div id="sms-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold text-gray-900">Καταγραφή SMS</h2>
+        <p id="modal-biz-name" class="text-sm text-gray-500 mt-0.5"></p>
+      </div>
+      <button onclick="closeSmsModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <form id="sms-form" class="p-6 space-y-4" onsubmit="submitSms(event)">
+      <input type="hidden" id="modal-biz-id">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τηλέφωνο</label>
+        <input type="tel" id="modal-phone" class="input" placeholder="+30 69X XXX XXXX" required>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τύπος υπενθύμισης</label>
+        <select id="modal-reason" class="input">
+          <option value="trial_expiring">Λήξη Trial</option>
+          <option value="subscription_expiring">Λήξη Συνδρομής</option>
+          <option value="payment_reminder">Υπενθύμιση Πληρωμής</option>
+          <option value="other">Άλλο</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Ημερομηνία/ώρα αποστολής</label>
+        <input type="datetime-local" id="modal-sent-at" class="input">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Σημειώσεις (προαιρετικό)</label>
+        <textarea id="modal-notes" class="input" rows="3" placeholder="π.χ. Απάντησε θετικά, θα ανανεώσει…"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeSmsModal()" class="btn btn-ghost">Ακύρωση</button>
+        <button type="submit" id="modal-submit-btn" class="btn btn-success">
+          <i class="fas fa-comment-sms"></i> Καταγραφή SMS
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- SMS History Detail Modal -->
+<div id="detail-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900">Ιστορικό SMS</h2>
+      <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div id="detail-modal-body" class="p-6 space-y-3 max-h-[60vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+  <div id="toast-inner" class="px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold flex items-center gap-2"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/page.js"></script>
+<script src="js/sidebar.js"></script>
+
+<script>
+  initPage({ requireRole: 'super_admin' });
+
+  let allHistory = [];
+  let historyPage = 1;
+  const HISTORY_LIMIT = 30;
+
+  const REASON_LABELS = {
+    trial_expiring:        { label: 'Λήξη Trial',           cls: 'bg-purple-100 text-purple-700' },
+    subscription_expiring: { label: 'Λήξη Συνδρομής',       cls: 'bg-blue-100 text-blue-700' },
+    payment_reminder:      { label: 'Υπενθ. Πληρωμής',      cls: 'bg-amber-100 text-amber-700' },
+    other:                 { label: 'Άλλο',                  cls: 'bg-gray-100 text-gray-600' },
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    requireAuth();
+    buildSidebar();
+    refresh();
+    // Modal overlay click to close
+    document.getElementById('sms-modal').addEventListener('click', function(e) { if (e.target === this) closeSmsModal(); });
+    document.getElementById('detail-modal').addEventListener('click', function(e) { if (e.target === this) closeDetailModal(); });
+  });
+
+  function refresh() {
+    loadUpcoming();
+    loadHistory(1);
+    loadStats();
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('tab-upcoming').classList.toggle('hidden', tab !== 'upcoming');
+    document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
+    document.getElementById('tab-upcoming-btn').classList.toggle('active', tab === 'upcoming');
+    document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const [upRes, smsRes] = await Promise.all([
+        api.get('/platform/reminders/upcoming', { days: 30 }),
+        api.get('/platform/reminders/sms', { limit: 1000, page: 1 }),
+      ]);
+      const up  = upRes.data  || [];
+      const sms = smsRes.data || [];
+      const weekAgo = Date.now() - 7 * 86400000;
+      document.getElementById('stat-critical').textContent  = up.filter(b => b.days_left <= 3).length;
+      document.getElementById('stat-warning').textContent   = up.filter(b => b.days_left <= 14).length;
+      document.getElementById('stat-sms-week').textContent  = sms.filter(s => new Date(s.sent_at).getTime() >= weekAgo).length;
+      document.getElementById('stat-sms-total').textContent = smsRes.total ?? sms.length;
+    } catch (e) { /* stats are non-critical */ }
+  }
+
+  // ── Upcoming expirations ──────────────────────────────────────────────────────
+  async function loadUpcoming() {
+    const days  = document.getElementById('days-filter').value;
+    const tbody = document.getElementById('upcoming-body');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-400">Φόρτωση…</td></tr>`;
+    document.getElementById('upcoming-empty').classList.add('hidden');
+    try {
+      const res  = await api.get('/platform/reminders/upcoming', { days });
+      const rows = res.data || [];
+      if (!rows.length) {
+        tbody.innerHTML = '';
+        document.getElementById('upcoming-empty').classList.remove('hidden');
+        return;
+      }
+      tbody.innerHTML = rows.map(b => {
+        const daysLeft   = b.days_left;
+        const urgencyCls = daysLeft <= 1 ? 'urgency-critical' : daysLeft <= 3 ? 'urgency-warning' : 'urgency-ok';
+        const daysBadge  = daysLeft < 0
+          ? `<span class="badge bg-red-100 text-red-700">Έληξε ${Math.abs(daysLeft)}μ. πριν</span>`
+          : daysLeft === 0
+            ? `<span class="badge bg-red-100 text-red-700">Σήμερα</span>`
+            : `<span class="badge ${daysLeft <= 3 ? 'bg-red-100 text-red-700' : daysLeft <= 7 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}">${daysLeft} μέρες</span>`;
+        const typeLabel  = b.expiry_type === 'trial'
+          ? `<span class="badge bg-purple-100 text-purple-700">Trial</span>`
+          : `<span class="badge bg-blue-100 text-blue-700">Συνδρομή</span>`;
+        const expiryDate = b.expiry_type === 'trial' ? b.trial_ends_at : b.subscription_ends_at;
+        const lastSms    = b.last_sms_at ? `<span class="text-gray-600">${fmtDateTime(b.last_sms_at)}</span>` : `<span class="text-gray-300">—</span>`;
+        const smsBadge   = b.sms_count > 0
+          ? `<span class="badge bg-green-100 text-green-700 cursor-pointer hover:bg-green-200" onclick="viewBizSms('${b.id}','${esc(b.name)}')">${b.sms_count} SMS</span>`
+          : `<span class="badge bg-gray-100 text-gray-400">0</span>`;
+        const phone      = b.contact_phone
+          ? `<a href="tel:${esc(b.contact_phone)}" class="text-blue-600 font-medium hover:underline">${esc(b.contact_phone)}</a>`
+          : `<span class="text-gray-300">Δεν υπάρχει</span>`;
+        return `<tr class="row-hover border-b border-gray-50 ${urgencyCls}">
+          <td class="px-5 py-3">
+            <div class="font-semibold text-gray-800">${esc(b.name)}</div>
+            <div class="text-xs text-gray-400">${b.afm || '—'}</div>
+          </td>
+          <td class="px-5 py-3">${typeLabel}</td>
+          <td class="px-5 py-3">
+            <div class="text-gray-700">${fmtDate(expiryDate)}</div>
+            <div class="mt-0.5">${daysBadge}</div>
+          </td>
+          <td class="px-5 py-3">${phone}</td>
+          <td class="px-5 py-3">${lastSms}</td>
+          <td class="px-5 py-3">${smsBadge}</td>
+          <td class="px-5 py-3 text-right">
+            <button class="btn btn-success btn-sm" onclick="openSmsModal('${b.id}','${esc(b.name)}','${esc(b.contact_phone||'')}','${b.expiry_type}')">
+              <i class="fas fa-comment-sms"></i> Καταγραφή SMS
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-red-400">Σφάλμα: ${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  // ── SMS History ───────────────────────────────────────────────────────────────
+  async function loadHistory(page = 1) {
+    historyPage = page;
+    const tbody = document.getElementById('history-body');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-400">Φόρτωση…</td></tr>`;
+    try {
+      const res  = await api.get('/platform/reminders/sms', { page, limit: HISTORY_LIMIT });
+      allHistory = res.data  || [];
+      renderHistory(allHistory);
+      renderHistoryPager(res.total || 0, page);
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-red-400">Σφάλμα: ${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  function filterHistory() {
+    const q      = document.getElementById('history-search').value.toLowerCase();
+    const reason = document.getElementById('history-reason-filter').value;
+    renderHistory(allHistory.filter(s =>
+      (!q      || (s.business_name||'').toLowerCase().includes(q) || (s.phone_number||'').includes(q)) &&
+      (!reason || s.reason === reason)
+    ));
+  }
+
+  function renderHistory(rows) {
+    const tbody = document.getElementById('history-body');
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-gray-400"><i class="fas fa-comment-slash text-2xl mb-2 block text-gray-200"></i>Δεν βρέθηκαν καταγραφές.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(s => {
+      const r = REASON_LABELS[s.reason] || REASON_LABELS.other;
+      return `<tr class="row-hover border-b border-gray-50">
+        <td class="px-5 py-3">
+          <div class="font-semibold text-gray-800">${esc(s.business_name||'—')}</div>
+          <div class="text-xs text-gray-400">${s.business_afm||''}</div>
+        </td>
+        <td class="px-5 py-3 text-gray-700 font-mono text-xs">${esc(s.phone_number)}</td>
+        <td class="px-5 py-3"><span class="badge ${r.cls}">${r.label}</span></td>
+        <td class="px-5 py-3 text-gray-500 text-xs max-w-[180px] truncate" title="${esc(s.notes||'')}">${esc(s.notes||'—')}</td>
+        <td class="px-5 py-3 text-gray-600 text-xs whitespace-nowrap">${fmtDateTime(s.sent_at)}</td>
+        <td class="px-5 py-3 text-gray-500 text-xs">${esc(s.sent_by_name||'—')}</td>
+        <td class="px-5 py-3 text-right">
+          <button class="btn btn-ghost btn-sm text-red-500 hover:bg-red-50" onclick="deleteSms('${s.id}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderHistoryPager(total, page) {
+    const pages = Math.ceil(total / HISTORY_LIMIT);
+    const el    = document.getElementById('history-pagination');
+    if (pages <= 1) { el.innerHTML = ''; return; }
+    let html = '';
+    for (let p = 1; p <= pages; p++) {
+      html += `<button onclick="loadHistory(${p})" class="btn btn-sm ${p === page ? 'btn-primary' : 'btn-ghost'}">${p}</button>`;
+    }
+    el.innerHTML = html;
+  }
+
+  // ── View SMS history for one business ────────────────────────────────────────
+  async function viewBizSms(bizId, bizName) {
+    const modal = document.getElementById('detail-modal');
+    const body  = document.getElementById('detail-modal-body');
+    modal.classList.remove('hidden');
+    body.innerHTML = `<p class="text-center text-gray-400 py-6">Φόρτωση…</p>`;
+    try {
+      const res  = await api.get(`/platform/reminders/sms/${bizId}`);
+      const rows = res.data || [];
+      if (!rows.length) {
+        body.innerHTML = `<p class="text-center text-gray-400 py-6">Δεν υπάρχουν SMS για <strong>${esc(bizName)}</strong>.</p>`;
+        return;
+      }
+      body.innerHTML = `<h3 class="font-bold text-gray-800 mb-3">${esc(bizName)}</h3>` +
+        rows.map(s => {
+          const r = REASON_LABELS[s.reason] || REASON_LABELS.other;
+          return `<div class="border border-gray-100 rounded-xl p-4 space-y-1">
+            <div class="flex justify-between items-start">
+              <span class="badge ${r.cls}"><i class="fas fa-comment-sms mr-1"></i>${r.label}</span>
+              <span class="text-xs text-gray-400">${fmtDateTime(s.sent_at)}</span>
+            </div>
+            <div class="text-sm text-gray-700 font-mono">${esc(s.phone_number)}</div>
+            ${s.notes ? `<div class="text-xs text-gray-500 mt-1">${esc(s.notes)}</div>` : ''}
+            <div class="text-xs text-gray-400">Από: ${esc(s.sent_by_name||'—')}</div>
+          </div>`;
+        }).join('');
+    } catch (e) {
+      body.innerHTML = `<p class="text-center text-red-400 py-6">Σφάλμα: ${esc(e.message)}</p>`;
+    }
+  }
+
+  function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); }
+
+  // ── SMS Modal ─────────────────────────────────────────────────────────────────
+  function openSmsModal(bizId, bizName, phone, expiryType) {
+    document.getElementById('modal-biz-id').value   = bizId;
+    document.getElementById('modal-biz-name').textContent = bizName;
+    document.getElementById('modal-phone').value    = phone || '';
+    document.getElementById('modal-reason').value   = expiryType === 'trial' ? 'trial_expiring' : 'subscription_expiring';
+    document.getElementById('modal-notes').value    = '';
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('modal-sent-at').value  = now.toISOString().slice(0, 16);
+    document.getElementById('sms-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('modal-phone').focus(), 50);
+  }
+
+  function closeSmsModal() { document.getElementById('sms-modal').classList.add('hidden'); }
+
+  async function submitSms(e) {
+    e.preventDefault();
+    const btn = document.getElementById('modal-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Αποθήκευση…';
+    try {
+      const bizId = document.getElementById('modal-biz-id').value;
+      await api.post(`/platform/reminders/sms/${bizId}`, {
+        phone_number: document.getElementById('modal-phone').value.trim(),
+        reason:       document.getElementById('modal-reason').value,
+        notes:        document.getElementById('modal-notes').value.trim() || null,
+        sent_at:      document.getElementById('modal-sent-at').value.replace('T', ' ') + ':00',
+      });
+      closeSmsModal();
+      showToast('SMS καταγράφηκε επιτυχώς!');
+      refresh();
+    } catch (err) {
+      showToast(err.message || 'Σφάλμα αποθήκευσης', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-comment-sms"></i> Καταγραφή SMS';
+    }
+  }
+
+  // ── Delete SMS ────────────────────────────────────────────────────────────────
+  async function deleteSms(smsId) {
+    const ok = await confirmDialog('Διαγραφή καταγραφής SMS', 'Θέλετε σίγουρα να διαγράψετε αυτή την καταγραφή;', true);
+    if (!ok) return;
+    try {
+      await api.delete(`/platform/reminders/sms/entry/${smsId}`);
+      showToast('Διαγράφηκε.');
+      loadHistory(historyPage);
+      loadStats();
+    } catch (e) {
+      showToast('Σφάλμα διαγραφής.', 'error');
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function showToast(msg, type = 'success') {
+    const el    = document.getElementById('toast');
+    const inner = document.getElementById('toast-inner');
+    inner.className = `px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+    inner.innerHTML = `<i class="fas fa-${type === 'success' ? 'circle-check' : 'circle-xmark'}"></i> ${esc(msg)}`;
+    el.classList.remove('hidden');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.add('hidden'), 3500);
+  }
+
+  window.switchTab       = switchTab;
+  window.loadUpcoming    = loadUpcoming;
+  window.openSmsModal    = openSmsModal;
+  window.closeSmsModal   = closeSmsModal;
+  window.submitSms       = submitSms;
+  window.deleteSms       = deleteSms;
+  window.viewBizSms      = viewBizSms;
+  window.closeDetailModal = closeDetailModal;
+  window.filterHistory   = filterHistory;
+  window.refresh         = refresh;
+</script>
+</body>
+</html>

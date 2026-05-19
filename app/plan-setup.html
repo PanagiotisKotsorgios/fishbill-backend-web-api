@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FishBill — Ενεργοποίηση Λογαριασμού</title>
+  <link rel="icon" href="/fishbill/app/img/logo.png" type="image/png">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;background:linear-gradient(160deg,#0d47a1 0%,#1565c0 55%,#1976d2 100%);font-family:'Segoe UI',Arial,sans-serif;color:#fff}
+    .wrap{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+
+    /* ── Header ── */
+    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px}
+    .logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800;letter-spacing:.5px}
+    .logo svg{flex-shrink:0}
+    .logout-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 18px;border-radius:999px;cursor:pointer;font-size:14px;font-weight:600;transition:background .2s}
+    .logout-btn:hover{background:rgba(255,255,255,.25)}
+
+    /* ── Loading ── */
+    #view-loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:80px 0}
+    .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Step badge ── */
+    .step-label{text-align:center;margin-bottom:24px}
+    .step-label h1{font-size:28px;font-weight:800;margin-bottom:6px}
+    .step-label p{font-size:16px;opacity:.85;line-height:1.5}
+
+    /* ── Cycle toggle ── */
+    .cycle-tabs{display:flex;background:rgba(255,255,255,.12);border-radius:12px;padding:4px;gap:4px;margin-bottom:28px}
+    .cycle-tab{flex:1;padding:10px;text-align:center;border-radius:9px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s;border:none;background:transparent;color:rgba(255,255,255,.7)}
+    .cycle-tab.active{background:#fff;color:#0d47a1}
+
+    /* ── Plan cards ── */
+    .plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:28px}
+    .plan-card{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);border-radius:20px;padding:24px 20px;cursor:pointer;transition:all .25s;position:relative}
+    .plan-card:hover{background:rgba(255,255,255,.18);transform:translateY(-2px)}
+    .plan-card.selected{background:rgba(255,255,255,.22);border-color:#fff;transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.25)}
+    .plan-card.popular::before{content:'ΔΗΜΟΦΙΛΕΣ';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#f9a825;color:#000;font-size:11px;font-weight:800;padding:3px 14px;border-radius:999px;letter-spacing:.5px}
+    .plan-name{font-size:20px;font-weight:800;margin-bottom:10px}
+    .plan-price{font-size:36px;font-weight:800;margin-bottom:4px}
+    .plan-price span{font-size:16px;font-weight:500;opacity:.8}
+    .plan-save{font-size:12px;background:rgba(255,255,255,.15);border-radius:999px;padding:2px 10px;display:inline-block;margin-bottom:16px}
+    .plan-features{list-style:none;display:flex;flex-direction:column;gap:8px}
+    .plan-features li{display:flex;align-items:center;gap:8px;font-size:14px;opacity:.9}
+    .plan-features li::before{content:'✓';font-weight:800;color:#a5d6a7}
+    .plan-selected-check{position:absolute;top:16px;right:16px;width:28px;height:28px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0d47a1;font-weight:800;font-size:16px}
+
+    /* ── Submit btn ── */
+    .btn-submit{width:100%;padding:18px;background:#fff;color:#0d47a1;border:none;border-radius:16px;font-size:18px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+    .btn-submit:hover{background:#e3f2fd;transform:translateY(-1px)}
+    .btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+    /* ── Pending / payment view ── */
+    .pending-banner{background:rgba(249,168,37,.15);border:1px solid rgba(249,168,37,.5);border-radius:16px;padding:20px 24px;margin-bottom:28px;display:flex;gap:14px;align-items:flex-start}
+    .pending-icon{font-size:28px;flex-shrink:0}
+    .pending-title{font-size:18px;font-weight:700;margin-bottom:4px}
+    .pending-desc{font-size:14px;opacity:.85;line-height:1.5}
+
+    .payment-card{background:rgba(255,255,255,.1);border-radius:20px;padding:24px;margin-bottom:20px}
+    .payment-card h3{font-size:16px;font-weight:700;margin-bottom:16px;opacity:.8;text-transform:uppercase;letter-spacing:.5px}
+    .payment-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+    .payment-row:last-child{border-bottom:none}
+    .payment-label{font-size:14px;opacity:.7}
+    .payment-value{font-size:15px;font-weight:700;text-align:right;max-width:60%}
+    .copy-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:8px;transition:background .2s}
+    .copy-btn:hover{background:rgba(255,255,255,.28)}
+
+    .change-plan-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:12px 24px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:600;width:100%;margin-top:8px;transition:background .2s}
+    .change-plan-btn:hover{background:rgba(255,255,255,.2)}
+
+    .err-msg{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:10px;padding:12px 16px;margin-top:12px;font-size:14px;text-align:center}
+
+    @media(max-width:480px){
+      .step-label h1{font-size:22px}
+      .plan-price{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="48" height="32">
+        <path fill="#90CAF9" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <path fill="#BBDEFB" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <path fill="#E3F2FD" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <path stroke="#BBDEFB" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+        <path stroke="#BBDEFB" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+        <path fill="#90CAF9" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+        <path fill="#90CAF9" d="M80,88 C88,108 102,108 110,86 Z"/>
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <circle cx="138" cy="60" r="5" fill="#0D47A1"/>
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+        <path stroke="#90CAF9" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+      </svg>
+      FishBill
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Αποσύνδεση</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="view-loading">
+    <div class="spinner"></div>
+    <p style="opacity:.8">Φόρτωση...</p>
+  </div>
+
+  <!-- Plan selection -->
+  <div id="view-select" style="display:none">
+    <div class="step-label">
+      <h1>Επιλέξτε Πλάνο</h1>
+      <p>Επιλέξτε το πλάνο που ταιριάζει στις ανάγκες σας.<br>Η ενεργοποίηση γίνεται εντός 24 ωρών μετά την επαλήθευση πληρωμής.</p>
+    </div>
+
+    <div class="cycle-tabs">
+      <button class="cycle-tab" data-cycle="monthly" onclick="setCycle('monthly')">Μηνιαίο</button>
+      <button class="cycle-tab" data-cycle="semi_annual" onclick="setCycle('semi_annual')">6 Μήνες</button>
+      <button class="cycle-tab active" data-cycle="annual" onclick="setCycle('annual')">Ετήσιο</button>
+    </div>
+
+    <div class="plans-grid" id="plans-grid"></div>
+
+    <div id="err-select" class="err-msg" style="display:none"></div>
+
+    <button class="btn-submit" id="btn-request" onclick="submitPlan()">
+      Αίτημα Εγγραφής — Λήψη Οδηγιών Πληρωμής
+    </button>
+
+    <p style="text-align:center;margin-top:16px;font-size:13px;opacity:.6">
+      Η πληρωμή γίνεται μέσω τραπεζικού εμβάσματος. Δεν απαιτείται κάρτα.
+    </p>
+  </div>
+
+  <!-- Pending payment -->
+  <div id="view-pending" style="display:none">
+    <div class="step-label">
+      <h1>Οδηγίες Πληρωμής</h1>
+      <p>Πραγματοποιήστε τραπεζικό έμβασμα με τα παρακάτω στοιχεία.<br>Ο λογαριασμός ενεργοποιείται εντός 24 ωρών από την επαλήθευση.</p>
+    </div>
+
+    <div class="pending-banner">
+      <div class="pending-icon">⏳</div>
+      <div>
+        <div class="pending-title">Αναμονή Επαλήθευσης Πληρωμής</div>
+        <div class="pending-desc">Μόλις λάβουμε και επαληθεύσουμε την πληρωμή σας, ο λογαριασμός σας ενεργοποιείται αυτόματα και προστίθεται +1 μήνας δωρεάν.</div>
+      </div>
+    </div>
+
+    <div class="payment-card">
+      <h3>Στοιχεία Τράπεζας</h3>
+      <div class="payment-row">
+        <span class="payment-label">Τράπεζα</span>
+        <span class="payment-value" id="pay-bank">—</span>
+      </div>
+      <div class="payment-row">
+        <span class="payment-label">Δικαιούχος</span>
+        <span class="payment-value" id="pay-beneficiary">—</span>
+      </div>
+      <div class="payment-row">
+        <span class="payment-label">IBAN</span>
+        <span style="display:flex;align-items:center;gap:4px">
+          <span class="payment-value" id="pay-iban">—</span>
+          <button class="copy-btn" onclick="copyText('pay-iban')">Αντιγραφή</button>
+        </span>
+      </div>
+      <div class="payment-row" id="pay-iris-row" style="display:none">
+        <span class="payment-label">Αριθμός IRIS</span>
+        <span style="display:flex;align-items:center;gap:4px">
+          <span class="payment-value" id="pay-iris">—</span>
+          <button class="copy-btn" onclick="copyText('pay-iris')">Αντιγραφή</button>
+        </span>
+      </div>
+      <div class="payment-row">
+        <span class="payment-label">Ποσό</span>
+        <span class="payment-value" id="pay-amount" style="color:#a5d6a7;font-size:20px">—</span>
+      </div>
+      <div class="payment-row">
+        <span class="payment-label">Αιτιολογία</span>
+        <span style="display:flex;align-items:center;gap:4px">
+          <span class="payment-value" id="pay-ref">—</span>
+          <button class="copy-btn" onclick="copyText('pay-ref')">Αντιγραφή</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="payment-card">
+      <h3>Επιλεγμένο Πλάνο</h3>
+      <div class="payment-row">
+        <span class="payment-label">Πλάνο</span>
+        <span class="payment-value" id="pay-plan">—</span>
+      </div>
+      <div class="payment-row">
+        <span class="payment-label">Κύκλος</span>
+        <span class="payment-value" id="pay-cycle">—</span>
+      </div>
+      <div class="payment-row">
+        <span class="payment-label">Διάρκεια</span>
+        <span class="payment-value" id="pay-duration">—</span>
+      </div>
+    </div>
+
+    <button class="btn-submit" style="margin-bottom:10px" onclick="checkActivation()">
+      Έλεγχος Ενεργοποίησης
+    </button>
+    <button class="change-plan-btn" onclick="showSelectView()">Αλλαγή Πλάνου</button>
+  </div>
+</div>
+
+<script>
+const API_URL  = 'http://localhost:4000/api';
+const API_HOST = 'http://localhost:4000';
+
+const PLAN_PRICING = {
+  basic:      { monthly: 8,   semi_annual: 35,  annual: 60  },
+  pro:        { monthly: 12,  semi_annual: 65,  annual: 120 },
+  enterprise: { monthly: 30,  semi_annual: 130, annual: 240 },
+};
+const PLAN_SAVINGS = {
+  basic:      { semi_annual: 13, annual: 36  },
+  pro:        { semi_annual: 12, annual: 58  },
+  enterprise: { semi_annual: 50, annual: 120 },
+};
+const CYCLE_LABEL  = { monthly: 'Μηνιαίο', semi_annual: '6 Μήνες', annual: 'Ετήσιο' };
+const CYCLE_MONTHS = { monthly: 1, semi_annual: 6, annual: 12 };
+const PLAN_NAMES = { basic: 'Βασικό', pro: 'Προχωρημένο', enterprise: 'Απεριόριστο' };
+const PLAN_INV   = { basic: '20 τιμολόγια / μήνα', pro: '30 τιμολόγια / μήνα', enterprise: 'Απεριόριστα τιμολόγια' };
+const PLAN_DA    = { basic: '20 δελτία αποστολής / μήνα', pro: '30 δελτία αποστολής / μήνα', enterprise: 'Απεριόριστα δελτία αποστολής' };
+
+let selectedPlan  = 'pro';
+let selectedCycle = 'annual';
+let bankSettings  = {};
+let currentStatus = null;
+
+function getToken() { return localStorage.getItem('fb_token'); }
+function getUser()  { try { return JSON.parse(localStorage.getItem('fb_user')); } catch { return null; } }
+
+async function apiFetch(method, endpoint, data) {
+  const tok = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (tok) headers['Authorization'] = `Bearer ${tok}`;
+  const opts = { method, headers };
+  if (data) opts.body = JSON.stringify(data);
+  const res = await fetch(API_URL + endpoint, opts);
+  if (res.status === 401) {
+    localStorage.removeItem('fb_token');
+    localStorage.removeItem('fb_user');
+    window.location.replace('/fishbill/app/');
+    return null;
+  }
+  return res.json().catch(() => null);
+}
+
+function doLogout() {
+  localStorage.removeItem('fb_token');
+  localStorage.removeItem('fb_refresh');
+  localStorage.removeItem('fb_user');
+  window.location.replace('/fishbill/app/');
+}
+
+function setCycle(cycle) {
+  selectedCycle = cycle;
+  document.querySelectorAll('.cycle-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.cycle === cycle);
+  });
+  renderPlanCards();
+}
+
+function renderPlanCards() {
+  const grid = document.getElementById('plans-grid');
+  const plans = ['basic', 'pro', 'enterprise'];
+  grid.innerHTML = plans.map(id => {
+    const price   = PLAN_PRICING[id][selectedCycle];
+    const saving  = PLAN_SAVINGS[id][selectedCycle] || 0;
+    const monthly = PLAN_PRICING[id].monthly;
+    const isSelected = id === selectedPlan;
+    const isPopular  = id === 'pro';
+    const saveHtml = (saving > 0 && selectedCycle !== 'monthly')
+      ? `<div class="plan-save">Εξοικονόμηση €${saving}</div>` : '<div style="height:22px"></div>';
+    const perMonth = selectedCycle !== 'monthly' ? `(€${(price / CYCLE_MONTHS[selectedCycle]).toFixed(2)}/μήνα)` : '';
+    return `
+      <div class="plan-card${isSelected ? ' selected' : ''}${isPopular ? ' popular' : ''}" onclick="selectPlan('${id}')">
+        ${isSelected ? '<div class="plan-selected-check">✓</div>' : ''}
+        <div class="plan-name">${PLAN_NAMES[id]}</div>
+        <div class="plan-price">€${price} <span>${selectedCycle !== 'monthly' ? `/ ${CYCLE_MONTHS[selectedCycle]} μήνες` : '/ μήνα'}</span></div>
+        <div style="font-size:13px;opacity:.6;margin-bottom:12px">${perMonth}</div>
+        ${saveHtml}
+        <ul class="plan-features">
+          <li><span style="font-size:11px;margin-right:4px">🧾</span>${PLAN_INV[id]}</li>
+          <li><span style="font-size:11px;margin-right:4px">🚚</span>${PLAN_DA[id]}</li>
+        </ul>
+      </div>`;
+  }).join('');
+}
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  renderPlanCards();
+}
+
+async function submitPlan() {
+  const btn = document.getElementById('btn-request');
+  const err = document.getElementById('err-select');
+  btn.disabled = true;
+  btn.textContent = 'Υποβολή...';
+  err.style.display = 'none';
+  try {
+    const r = await apiFetch('POST', '/subscription/request', { plan: selectedPlan, billing_cycle: selectedCycle });
+    if (r && r.data) {
+      // Reload status then show pending
+      await loadAndRoute();
+    } else {
+      err.textContent = (r && r.error) || 'Σφάλμα υποβολής. Δοκιμάστε ξανά.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Αίτημα Εγγραφής — Λήψη Οδηγιών Πληρωμής';
+    }
+  } catch (e) {
+    err.textContent = 'Σφάλμα δικτύου. Ελέγξτε τη σύνδεσή σας.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Αίτημα Εγγραφής — Λήψη Οδηγιών Πληρωμής';
+  }
+}
+
+function showSelectView() {
+  document.getElementById('view-select').style.display = '';
+  document.getElementById('view-pending').style.display = 'none';
+  document.getElementById('err-select').style.display = 'none';
+  const btn = document.getElementById('btn-request');
+  btn.disabled = false;
+  btn.textContent = 'Αίτημα Εγγραφής — Λήψη Οδηγιών Πληρωμής';
+  renderPlanCards();
+}
+
+function showPendingView(status) {
+  document.getElementById('view-select').style.display = 'none';
+  document.getElementById('view-pending').style.display = '';
+
+  const plan  = status.plan || selectedPlan;
+  const cycle = status.billing_cycle || selectedCycle;
+  const price = PLAN_PRICING[plan]?.[cycle] ?? '—';
+  const months = CYCLE_MONTHS[cycle] ?? 1;
+
+  document.getElementById('pay-plan').textContent    = `${PLAN_NAMES[plan] || plan} · ${PLAN_INV[plan] || ''} · ${PLAN_DA[plan] || ''}`;
+  document.getElementById('pay-cycle').textContent   = CYCLE_LABEL[cycle] || cycle;
+  document.getElementById('pay-duration').textContent = `${months} μήνες + 1 δωρεάν`;
+  document.getElementById('pay-amount').textContent  = `€${price}`;
+
+  // Bank details
+  document.getElementById('pay-bank').textContent        = bankSettings.bank_name || '—';
+  document.getElementById('pay-beneficiary').textContent = bankSettings.bank_account_name || bankSettings.bank_beneficiary || '—';
+  document.getElementById('pay-iban').textContent        = bankSettings.bank_iban || '—';
+  const irisNum = bankSettings.bank_iris || bankSettings.iris_number || '';
+  if (irisNum) {
+    document.getElementById('pay-iris').textContent = irisNum;
+    document.getElementById('pay-iris-row').style.display = '';
+  } else {
+    document.getElementById('pay-iris-row').style.display = 'none';
+  }
+
+  // Reference: plan + user info
+  const user = getUser();
+  const ref  = `FISHBILL-${(user?.business_name || user?.name || 'USER').toUpperCase().replace(/\s+/g, '-').slice(0, 20)}-${plan.toUpperCase()}`;
+  document.getElementById('pay-ref').textContent = ref;
+}
+
+function copyText(elemId) {
+  const text = document.getElementById(elemId).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Αντιγράφηκε!';
+    setTimeout(() => { btn.textContent = 'Αντιγραφή'; }, 2000);
+  });
+}
+
+async function loadAndRoute() {
+  // Redirect to dashboard if already active
+  const tok = getToken();
+  if (!tok) { window.location.replace('/fishbill/app/'); return; }
+
+  const [statusR, bankR] = await Promise.allSettled([
+    apiFetch('GET', '/subscription/status'),
+    fetch(API_HOST + '/api/platform/public-settings').then(r => r.json()).catch(() => null),
+  ]);
+
+  const statusData = statusR.status === 'fulfilled' ? statusR.value?.data : null;
+  const bankData   = bankR.status === 'fulfilled' ? bankR.value : null;
+
+  if (bankData) bankSettings = bankData;
+
+  document.getElementById('view-loading').style.display = 'none';
+
+  if (!statusData) {
+    // Can't load status — just show plan selection
+    showSelectView();
+    return;
+  }
+
+  currentStatus = statusData;
+
+  if (statusData.subscription_active || statusData.trial_active) {
+    window.location.replace('/fishbill/app/dashboard.html');
+    return;
+  }
+
+  if (statusData.plan && statusData.plan !== 'trial') {
+    // Plan was requested but not yet activated
+    showPendingView(statusData);
+  } else {
+    showSelectView();
+  }
+}
+
+async function checkActivation() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Έλεγχος...';
+  try {
+    const r = await apiFetch('GET', '/subscription/status');
+    if (r?.data?.subscription_active) {
+      window.location.replace('/fishbill/app/dashboard.html');
+    } else {
+      showInfoPopup(
+        'Ο Λογαριασμός Δεν Έχει Ενεργοποιηθεί Ακόμη',
+        'Ο λογαριασμός σας θα ενεργοποιηθεί από τον διαχειριστή του συστήματος μόλις επαληθευτεί η πληρωμή σας. Θα λάβετε ειδοποίηση όταν ο λογαριασμός γίνει ενεργός.'
+      );
+      btn.disabled = false;
+      btn.textContent = 'Έλεγχος Ενεργοποίησης';
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Έλεγχος Ενεργοποίησης';
+  }
+}
+
+function showInfoPopup(title, message) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+      <div style="font-size:40px;margin-bottom:12px">⏳</div>
+      <div style="font-size:18px;font-weight:800;color:#0d47a1;margin-bottom:10px">${title}</div>
+      <div style="font-size:15px;color:#444;line-height:1.6;margin-bottom:20px">${message}</div>
+      <button onclick="this.closest('div[style*=fixed]').remove()"
+        style="background:#0d47a1;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">
+        Εντάξει
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+renderPlanCards();
+loadAndRoute();
+</script>
+</body>
+</html>

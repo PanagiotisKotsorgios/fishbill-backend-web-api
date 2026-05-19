@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Οφειλές & Κλήσεις</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .tab-btn { padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; border: none; }
+    .tab-btn.active { background: #2563eb; color: #fff; }
+    .tab-btn:not(.active) { background: #f1f5f9; color: #64748b; }
+    .tab-btn:not(.active):hover { background: #e2e8f0; color: #1e293b; }
+    .row-hover:hover { background: #f8fafc; }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .input { border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 12px; font-size: 13px; background: #f8fafc; outline: none; width: 100%; transition: all .15s; }
+    .input:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: #2563eb; color: #fff; } .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #059669; color: #fff; } .btn-success:hover { background: #047857; }
+    .btn-danger  { background: #dc2626; color: #fff; } .btn-danger:hover  { background: #b91c1c; }
+    .btn-ghost   { background: #f1f5f9; color: #475569; } .btn-ghost:hover   { background: #e2e8f0; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: #fff; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,.2); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+    .debt-indicator { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .panel { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6 max-w-[1400px] mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6 anim flex items-start justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Οφειλές & Κλήσεις</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Παρακολούθηση μερικών πληρωμών · Ιστορικό επικοινωνίας</p>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-success" onclick="openCallModal(null)">
+          <i class="fas fa-phone-plus"></i> Καταχώρηση Κλήσης
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats-row" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 anim" style="animation-delay:.04s">
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0"><i class="fas fa-circle-exclamation"></i></div>
+        <div><p class="text-xs text-gray-400">Συνολικές Οφειλές</p><p id="stat-total-debt" class="text-xl font-extrabold text-red-600">—</p></div>
+      </div>
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 flex-shrink-0"><i class="fas fa-building-circle-exclamation"></i></div>
+        <div><p class="text-xs text-gray-400">Επιχ. με Οφειλές</p><p id="stat-biz-debt" class="text-xl font-extrabold text-amber-600">—</p></div>
+      </div>
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0"><i class="fas fa-phone-volume"></i></div>
+        <div><p class="text-xs text-gray-400">Κλήσεις (7 ημέρες)</p><p id="stat-calls-week" class="text-xl font-extrabold text-blue-600">—</p></div>
+      </div>
+      <div class="panel p-4 flex items-center gap-3">
+        <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 flex-shrink-0"><i class="fas fa-calendar-clock"></i></div>
+        <div><p class="text-xs text-gray-400">Επόμενες Επαφές</p><p id="stat-followups" class="text-xl font-extrabold text-purple-600">—</p></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4 anim" style="animation-delay:.06s">
+      <button class="tab-btn active" id="tab-debt-btn" onclick="switchTab('debt')">
+        <i class="fas fa-circle-dollar-to-slot mr-1.5"></i>Οφειλές
+      </button>
+      <button class="tab-btn" id="tab-calls-btn" onclick="switchTab('calls')">
+        <i class="fas fa-phone mr-1.5"></i>Ιστορικό Κλήσεων
+      </button>
+    </div>
+
+    <!-- ── TAB: DEBT ── -->
+    <div id="tab-debt" class="anim" style="animation-delay:.08s">
+      <div class="panel overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input type="checkbox" id="only-debt" onchange="loadDebt(1)" class="rounded">
+              Μόνο με οφειλές
+            </label>
+          </div>
+          <input type="text" id="debt-search" placeholder="Αναζήτηση επιχείρησης…" oninput="onDebtSearch()"
+            class="input" style="max-width:220px" />
+        </div>
+        <div id="debt-body">
+          <div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+        </div>
+        <div id="debt-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: CALLS ── -->
+    <div id="tab-calls" class="hidden anim" style="animation-delay:.08s">
+      <div class="panel overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+          <select id="call-filter-outcome" onchange="loadCalls(1)" class="input" style="max-width:180px">
+            <option value="">Όλα τα αποτελέσματα</option>
+            <option value="answered">Απαντήθηκε</option>
+            <option value="no_answer">Δεν απάντησε</option>
+            <option value="voicemail">Τηλεφωνητής</option>
+            <option value="busy">Κατειλημμένο</option>
+            <option value="callback_scheduled">Προγρ. Επιστροφή</option>
+          </select>
+          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input type="checkbox" id="call-filter-followup" onchange="loadCalls(1)" class="rounded">
+            Εκκρεμείς επαφές
+          </label>
+          <div class="flex-1"></div>
+          <button class="btn btn-success btn-sm" onclick="openCallModal(null)">
+            <i class="fas fa-plus"></i> Νέα Κλήση
+          </button>
+        </div>
+        <div id="calls-body">
+          <div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+        </div>
+        <div id="calls-pagination"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ MODAL: Business Detail (payment history + call log) ══ -->
+<div id="modal-biz" class="hidden modal-overlay" onclick="if(event.target===this)closeModal('modal-biz')">
+  <div class="modal-box p-0" style="max-width:660px">
+    <div id="modal-biz-inner"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Record Payment ══ -->
+<div id="modal-payment" class="hidden modal-overlay" onclick="if(event.target===this)closeModal('modal-payment')">
+  <div class="modal-box p-7">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-circle-dollar-to-slot text-green-600 mr-2"></i>Καταχώρηση Πληρωμής</h3>
+      <button onclick="closeModal('modal-payment')" class="w-8 h-8 bg-gray-100 rounded-xl font-bold text-gray-500 hover:bg-gray-200">✕</button>
+    </div>
+    <p id="pay-biz-name" class="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-2 rounded-xl mb-4"></p>
+    <input type="hidden" id="pay-biz-id" />
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Ποσό που Πλήρωσε (€) *</label>
+          <input type="number" id="pay-amount" step="0.01" min="0" placeholder="π.χ. 5.00" class="input" oninput="updatePaymentPreview()" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Αναμενόμενο Ποσό (€)</label>
+          <input type="number" id="pay-expected" step="0.01" min="0" placeholder="π.χ. 8.00" class="input" oninput="updatePaymentPreview()" />
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="pay-preview" class="hidden rounded-xl p-3 text-sm font-medium"></div>
+
+      <!-- Partial payment allowance -->
+      <div id="pay-partial-row" class="hidden items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+        <input type="checkbox" id="pay-allow-partial" class="rounded" onchange="updatePaymentPreview()" />
+        <label for="pay-allow-partial" class="text-sm font-semibold text-amber-800 cursor-pointer">
+          Αποδοχή μερικής πληρωμής — ο πελάτης θα χρεωθεί με τη διαφορά ως οφειλή
+        </label>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Περιγραφή</label>
+        <input type="text" id="pay-description" placeholder="π.χ. Μηνιαία συνδρομή Μαΐου" class="input" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Τρόπος Πληρωμής</label>
+          <select id="pay-type" class="input">
+            <option value="bank">Τράπεζα</option>
+            <option value="iris">IRIS</option>
+            <option value="cash">Μετρητά</option>
+            <option value="manual">Χειροκίνητο</option>
+            <option value="other">Άλλο</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Περίοδος Χρέωσης</label>
+          <input type="text" id="pay-period" placeholder="π.χ. 2026-05" class="input" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Σημειώσεις</label>
+        <textarea id="pay-notes" rows="2" placeholder="Προαιρετικά…" class="input" style="resize:none"></textarea>
+      </div>
+    </div>
+
+    <div id="pay-error" class="hidden mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl"></div>
+
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeModal('modal-payment')" class="btn btn-ghost flex-1">Άκυρο</button>
+      <button onclick="doRecordPayment()" class="btn btn-success flex-1" id="btn-do-pay">
+        <i class="fas fa-circle-check"></i> Καταχώρηση
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Log Call ══ -->
+<div id="modal-call" class="hidden modal-overlay" onclick="if(event.target===this)closeModal('modal-call')">
+  <div class="modal-box p-7">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-phone text-blue-600 mr-2"></i>Καταχώρηση Κλήσης</h3>
+      <button onclick="closeModal('modal-call')" class="w-8 h-8 bg-gray-100 rounded-xl font-bold text-gray-500 hover:bg-gray-200">✕</button>
+    </div>
+    <input type="hidden" id="call-biz-id" />
+    <input type="hidden" id="call-entry-id" />
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Επιχείρηση *</label>
+        <select id="call-biz-select" class="input">
+          <option value="">— Επιλέξτε επιχείρηση —</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Τηλέφωνο *</label>
+          <input type="tel" id="call-phone" placeholder="π.χ. 6901234567" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Ημ/νία & Ώρα</label>
+          <input type="datetime-local" id="call-at" class="input" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Αποτέλεσμα</label>
+          <select id="call-outcome" class="input">
+            <option value="answered">Απαντήθηκε</option>
+            <option value="no_answer">Δεν απάντησε</option>
+            <option value="voicemail">Τηλεφωνητής</option>
+            <option value="busy">Κατειλημμένο</option>
+            <option value="wrong_number">Λάθος αριθμός</option>
+            <option value="callback_scheduled">Προγρ. επιστροφή</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Λόγος Κλήσης</label>
+          <select id="call-reason" class="input">
+            <option value="payment_reminder">Υπενθύμιση πληρωμής</option>
+            <option value="payment_received">Επιβεβ. πληρωμής</option>
+            <option value="onboarding">Παραμετροποίηση</option>
+            <option value="support">Υποστήριξη</option>
+            <option value="other">Άλλο</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Διάρκεια (λεπτά)</label>
+          <input type="number" id="call-duration" min="0" max="999" placeholder="π.χ. 5" class="input" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Επόμενη Επαφή</label>
+          <input type="datetime-local" id="call-followup" class="input" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Σημειώσεις</label>
+        <textarea id="call-notes" rows="3" placeholder="Τι ειπώθηκε, τι υποσχέθηκε ο πελάτης…" class="input" style="resize:none"></textarea>
+      </div>
+    </div>
+
+    <div id="call-error" class="hidden mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl"></div>
+
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeModal('modal-call')" class="btn btn-ghost flex-1">Άκυρο</button>
+      <button onclick="doSaveCall()" class="btn btn-primary flex-1" id="btn-do-call">
+        <i class="fas fa-phone-arrow-up-right"></i> Αποθήκευση
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl"></div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/page.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+initPage({ requireRole: 'super_admin' });
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let debtPage = 1, callsPage = 1;
+let debtSearchTimer = null;
+let allBizList = [];  // for call biz dropdown
+
+const OUTCOME_LABEL = {
+  answered:           { label: 'Απαντήθηκε',       cls: 'bg-emerald-100 text-emerald-700' },
+  no_answer:          { label: 'Δεν απάντησε',      cls: 'bg-gray-100 text-gray-500' },
+  voicemail:          { label: 'Τηλεφωνητής',       cls: 'bg-blue-100 text-blue-600' },
+  busy:               { label: 'Κατειλημμένο',      cls: 'bg-amber-100 text-amber-700' },
+  wrong_number:       { label: 'Λάθος αριθμός',     cls: 'bg-red-100 text-red-600' },
+  callback_scheduled: { label: 'Προγρ. επιστροφή',  cls: 'bg-purple-100 text-purple-700' },
+};
+const REASON_LABEL = {
+  payment_reminder: 'Υπενθύμιση πληρωμής',
+  payment_received: 'Επιβεβ. πληρωμής',
+  onboarding: 'Παραμετροποίηση',
+  support: 'Υποστήριξη',
+  other: 'Άλλο',
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadStats();
+  loadDebt(1);
+  loadBizList();
+  // default call date/time to now
+  const now = new Date();
+  now.setSeconds(0, 0);
+  document.getElementById('call-at').value = now.toISOString().slice(0, 16);
+});
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['debt', 'calls'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`tab-${t}-btn`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'calls' && callsPage === 1) loadCalls(1);
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const [debtRes, callsRes, followRes] = await Promise.all([
+      api.get('/platform/outstanding', { only_debt: '1', limit: 100 }),
+      api.get('/platform/calls', { limit: 1 }),
+      api.get('/platform/calls', { follow_up: '1', limit: 100 }),
+    ]);
+    const rows = debtRes.data || [];
+    const totalDebt = rows.reduce((s, r) => s + (parseFloat(r.outstanding_balance) || 0), 0);
+    document.getElementById('stat-total-debt').textContent = '€' + totalDebt.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('stat-biz-debt').textContent   = debtRes.total || 0;
+    document.getElementById('stat-calls-week').textContent = callsRes.total || 0;
+    document.getElementById('stat-followups').textContent  = (followRes.data || []).length;
+  } catch (_) {}
+}
+
+// ── Debt tab ──────────────────────────────────────────────────────────────────
+function onDebtSearch() {
+  clearTimeout(debtSearchTimer);
+  debtSearchTimer = setTimeout(() => loadDebt(1), 350);
+}
+
+async function loadDebt(page = 1) {
+  debtPage = page;
+  const onlyDebt = document.getElementById('only-debt').checked ? '1' : '0';
+  document.getElementById('debt-body').innerHTML =
+    '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+  try {
+    const res = await api.get('/platform/outstanding', { page, limit: 30, only_debt: onlyDebt });
+    renderDebtTable(res.data || []);
+    renderPager('debt-pagination', res.total, page, 30, loadDebt);
+  } catch (e) {
+    document.getElementById('debt-body').innerHTML = `<div class="text-center py-10 text-red-500 text-sm">${e.message}</div>`;
+  }
+}
+
+function renderDebtTable(rows) {
+  if (!rows.length) {
+    document.getElementById('debt-body').innerHTML =
+      '<div class="text-center py-12 text-gray-400 text-sm"><i class="fas fa-circle-check text-4xl mb-3 block text-emerald-300"></i>Δεν υπάρχουν εκκρεμείς οφειλές</div>';
+    return;
+  }
+  document.getElementById('debt-body').innerHTML = `
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="text-xs text-gray-400 uppercase border-b border-gray-100">
+          <th class="text-left px-5 py-3 font-semibold">Επιχείρηση</th>
+          <th class="text-left px-5 py-3 font-semibold">Επικοινωνία</th>
+          <th class="text-left px-5 py-3 font-semibold">Πλάνο / Τιμή</th>
+          <th class="text-right px-5 py-3 font-semibold text-red-500">Οφειλή</th>
+          <th class="text-left px-5 py-3 font-semibold hidden md:table-cell">Κλήσεις</th>
+          <th class="text-right px-5 py-3 font-semibold">Ενέργειες</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const debt = parseFloat(r.outstanding_balance) || 0;
+            const debtCls = debt > 20 ? 'text-red-600 bg-red-50' : debt > 0 ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50';
+            const debtLabel = debt > 0 ? `€${debt.toFixed(2)}` : '✓ Εξοφλημένο';
+            const phone = r.contact_phone || r.phone || '';
+            const lastCall = r.last_call_at ? `<span class="text-xs text-gray-400">${fmtDateTime(r.last_call_at)}</span>` : '<span class="text-xs text-gray-300">—</span>';
+            const followUp = r.next_follow_up ? `<div class="text-xs text-purple-600 font-semibold mt-0.5"><i class="fas fa-calendar-clock"></i> ${fmtDate(r.next_follow_up)}</div>` : '';
+            return `
+              <tr class="row-hover border-b border-gray-50">
+                <td class="px-5 py-3">
+                  <div class="font-semibold text-gray-900 truncate max-w-[160px]">${esc(r.name)}</div>
+                  <div class="text-xs text-gray-400">${r.afm}${r.city ? ' · ' + r.city : ''}</div>
+                  <div class="text-xs text-gray-400">${r.owner_email || ''}</div>
+                </td>
+                <td class="px-5 py-3">
+                  ${phone ? `<a href="tel:${esc(phone)}" class="text-blue-600 font-semibold text-xs hover:underline"><i class="fas fa-phone mr-1"></i>${esc(phone)}</a>` : '<span class="text-xs text-gray-300">—</span>'}
+                  <button onclick="openSetPhone('${r.id}','${esc(phone)}')" class="ml-1 text-gray-300 hover:text-gray-500" title="Αλλαγή τηλεφώνου"><i class="fas fa-pencil text-xs"></i></button>
+                </td>
+                <td class="px-5 py-3">
+                  <span class="badge ${planCls(r.plan)}">${r.plan}</span>
+                  <div class="text-xs text-gray-400 mt-0.5">
+                    €${(r.plan_price_override != null ? r.plan_price_override : r.expected_cycle_price).toFixed(2)} / ${cycleLbl(r.billing_cycle)}
+                    <button onclick="openSetPrice('${r.id}',${r.plan_price_override ?? 'null'})" class="ml-1 text-gray-300 hover:text-blue-500" title="Αλλαγή τιμής"><i class="fas fa-pencil"></i></button>
+                  </div>
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <span class="debt-indicator ${debtCls}">${debtLabel}</span>
+                </td>
+                <td class="px-5 py-3 hidden md:table-cell">
+                  <div class="text-xs font-semibold text-gray-600">${r.call_count || 0} κλήσεις</div>
+                  ${lastCall}
+                  ${followUp}
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <div class="flex items-center gap-1 justify-end">
+                    <button onclick="openBizDetail('${r.id}')" class="btn btn-ghost py-1.5 px-2.5 text-xs" title="Λεπτομέρειες">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button onclick="openPaymentModal('${r.id}','${esc(r.name)}',${r.expected_cycle_price || 0},${debt})"
+                      class="btn btn-success py-1.5 px-2.5 text-xs" title="Καταχώρηση πληρωμής">
+                      <i class="fas fa-euro-sign"></i>
+                    </button>
+                    <button onclick="openCallModal('${r.id}','${esc(r.name)}','${esc(phone)}')"
+                      class="btn btn-primary py-1.5 px-2.5 text-xs" title="Καταχώρηση κλήσης">
+                      <i class="fas fa-phone"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── Calls tab ─────────────────────────────────────────────────────────────────
+async function loadCalls(page = 1) {
+  callsPage = page;
+  const outcome  = document.getElementById('call-filter-outcome').value;
+  const followUp = document.getElementById('call-filter-followup').checked ? '1' : '0';
+  document.getElementById('calls-body').innerHTML =
+    '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+  try {
+    const res = await api.get('/platform/calls', { page, limit: 25, outcome: outcome || undefined, follow_up: followUp === '1' ? '1' : undefined });
+    renderCallsTable(res.data || []);
+    renderPager('calls-pagination', res.total, page, 25, loadCalls);
+  } catch (e) {
+    document.getElementById('calls-body').innerHTML = `<div class="text-center py-10 text-red-500 text-sm">${e.message}</div>`;
+  }
+}
+
+function renderCallsTable(rows) {
+  if (!rows.length) {
+    document.getElementById('calls-body').innerHTML =
+      '<div class="text-center py-12 text-gray-400 text-sm"><i class="fas fa-phone-slash text-4xl mb-3 block text-gray-200"></i>Δεν βρέθηκαν κλήσεις</div>';
+    return;
+  }
+  document.getElementById('calls-body').innerHTML = `
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="text-xs text-gray-400 uppercase border-b border-gray-100">
+          <th class="text-left px-5 py-3 font-semibold">Επιχείρηση</th>
+          <th class="text-left px-5 py-3 font-semibold">Τηλέφωνο</th>
+          <th class="text-left px-5 py-3 font-semibold">Ημ/νία</th>
+          <th class="text-left px-5 py-3 font-semibold">Αποτέλεσμα</th>
+          <th class="text-left px-5 py-3 font-semibold hidden md:table-cell">Λόγος / Σημ.</th>
+          <th class="text-left px-5 py-3 font-semibold hidden lg:table-cell">Επόμενη Επαφή</th>
+          <th class="text-right px-5 py-3 font-semibold">Ενέργειες</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const oc  = OUTCOME_LABEL[r.outcome] || { label: r.outcome, cls: 'bg-gray-100 text-gray-500' };
+            const debt = parseFloat(r.outstanding_balance) || 0;
+            return `
+              <tr class="row-hover border-b border-gray-50">
+                <td class="px-5 py-3">
+                  <div class="font-semibold text-gray-900 text-sm">${esc(r.business_name)}</div>
+                  <div class="text-xs text-gray-400">${r.business_afm || ''}</div>
+                  ${debt > 0 ? `<span class="debt-indicator bg-red-50 text-red-600 mt-0.5">€${debt.toFixed(2)} οφ.</span>` : ''}
+                </td>
+                <td class="px-5 py-3 text-xs font-mono text-gray-700">${esc(r.phone_number)}</td>
+                <td class="px-5 py-3 text-xs text-gray-500">
+                  ${fmtDateTime(r.called_at)}
+                  ${r.duration_minutes ? `<div class="text-gray-400">${r.duration_minutes}′</div>` : ''}
+                  <div class="text-gray-300">${esc(r.called_by_name || '')}</div>
+                </td>
+                <td class="px-5 py-3"><span class="badge ${oc.cls}">${oc.label}</span></td>
+                <td class="px-5 py-3 hidden md:table-cell text-xs text-gray-500">
+                  <div class="font-medium text-gray-700">${REASON_LABEL[r.reason] || r.reason}</div>
+                  ${r.notes ? `<div class="text-gray-400 mt-0.5 max-w-[200px] truncate" title="${esc(r.notes)}">${esc(r.notes)}</div>` : ''}
+                </td>
+                <td class="px-5 py-3 hidden lg:table-cell text-xs">
+                  ${r.follow_up_at ? `<span class="badge bg-purple-100 text-purple-700"><i class="fas fa-calendar-clock mr-1"></i>${fmtDate(r.follow_up_at)}</span>` : '<span class="text-gray-300">—</span>'}
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <button onclick="deleteCall('${r.id}')" class="btn btn-danger py-1.5 px-2.5 text-xs" title="Διαγραφή">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── Business Detail Modal ─────────────────────────────────────────────────────
+async function openBizDetail(bizId) {
+  document.getElementById('modal-biz-inner').innerHTML =
+    '<div class="flex justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+  document.getElementById('modal-biz').classList.remove('hidden');
+  try {
+    const [payRes, callRes, bizArr] = await Promise.all([
+      api.get(`/businesses/${bizId}/payments`),
+      api.get(`/platform/calls/${bizId}`),
+      api.get('/platform/outstanding', { limit: 200 }),
+    ]);
+    const biz = (bizArr.data || []).find(b => b.id === bizId) || {};
+    renderBizDetail(biz, payRes.data || [], callRes.data || []);
+  } catch (e) {
+    document.getElementById('modal-biz-inner').innerHTML =
+      `<div class="p-8 text-center text-red-500">${e.message}</div>`;
+  }
+}
+
+function renderBizDetail(biz, payments, calls) {
+  const debt = parseFloat(biz.outstanding_balance) || 0;
+  document.getElementById('modal-biz-inner').innerHTML = `
+    <div class="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
+      <div>
+        <h3 class="text-lg font-bold text-gray-900">${esc(biz.name || '—')}</h3>
+        <div class="text-xs text-gray-400 mt-0.5">${biz.afm || ''} · ${biz.owner_email || ''}</div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${debt > 0 ? `<span class="debt-indicator bg-red-100 text-red-700 text-sm">Οφειλή: €${debt.toFixed(2)}</span>` : '<span class="badge bg-emerald-100 text-emerald-700">Εξοφλημένο</span>'}
+        <button onclick="closeModal('modal-biz')" class="w-8 h-8 bg-gray-100 rounded-xl font-bold text-gray-500 hover:bg-gray-200">✕</button>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-6" style="max-height:65vh;overflow-y:auto">
+
+      <!-- Payment History -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-bold text-gray-800"><i class="fas fa-receipt text-green-500 mr-1.5"></i>Ιστορικό Πληρωμών (${payments.length})</h4>
+          <button onclick="openPaymentModal('${biz.id}','${esc(biz.name || '')}',${biz.expected_cycle_price || 0},${debt})"
+            class="btn btn-success text-xs py-1.5 px-3"><i class="fas fa-plus"></i> Πληρωμή</button>
+        </div>
+        ${payments.length ? `
+          <div class="space-y-2">
+            ${payments.map(p => {
+              const isPart = p.status === 'partial';
+              return `
+                <div class="flex items-start justify-between bg-gray-50 rounded-xl px-3 py-2.5 text-xs">
+                  <div>
+                    <div class="font-semibold text-gray-800">${esc(p.description)}</div>
+                    <div class="text-gray-400 mt-0.5">${fmtDate(p.created_at)} · ${esc(p.payment_type)}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-bold ${isPart ? 'text-amber-600' : 'text-emerald-600'}">€${parseFloat(p.amount).toFixed(2)}</div>
+                    ${p.expected_amount ? `<div class="text-gray-400">/ €${parseFloat(p.expected_amount).toFixed(2)}</div>` : ''}
+                    <span class="badge ${isPart ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">${isPart ? 'Μερική' : 'Πλήρης'}</span>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>` : '<p class="text-xs text-gray-400 text-center py-3">Δεν υπάρχουν καταχωρήσεις</p>'}
+      </div>
+
+      <!-- Call History -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-bold text-gray-800"><i class="fas fa-phone text-blue-500 mr-1.5"></i>Ιστορικό Κλήσεων (${calls.length})</h4>
+          <button onclick="closeModal('modal-biz');openCallModal('${biz.id}','${esc(biz.name || '')}','${esc(biz.contact_phone || biz.phone || '')}')"
+            class="btn btn-primary text-xs py-1.5 px-3"><i class="fas fa-plus"></i> Κλήση</button>
+        </div>
+        ${calls.length ? `
+          <div class="space-y-2">
+            ${calls.map(c => {
+              const oc = OUTCOME_LABEL[c.outcome] || { label: c.outcome, cls: 'bg-gray-100 text-gray-500' };
+              return `
+                <div class="bg-gray-50 rounded-xl px-3 py-2.5 text-xs">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-semibold text-gray-700">${fmtDateTime(c.called_at)} · ${esc(c.phone_number)}</span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="badge ${oc.cls}">${oc.label}</span>
+                      <button onclick="deleteCall('${c.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash text-xs"></i></button>
+                    </div>
+                  </div>
+                  <div class="text-gray-500">${REASON_LABEL[c.reason] || c.reason}${c.duration_minutes ? ` · ${c.duration_minutes}′` : ''}${c.called_by_name ? ` · ${esc(c.called_by_name)}` : ''}</div>
+                  ${c.notes ? `<div class="text-gray-400 mt-1">${esc(c.notes)}</div>` : ''}
+                  ${c.follow_up_at ? `<div class="text-purple-600 font-semibold mt-1"><i class="fas fa-calendar-clock mr-1"></i>Follow-up: ${fmtDate(c.follow_up_at)}</div>` : ''}
+                </div>`;
+            }).join('')}
+          </div>` : '<p class="text-xs text-gray-400 text-center py-3">Δεν υπάρχουν κλήσεις</p>'}
+      </div>
+    </div>`;
+}
+
+// ── Payment Modal ─────────────────────────────────────────────────────────────
+function openPaymentModal(bizId, bizName, expectedPrice, currentDebt) {
+  document.getElementById('pay-biz-id').value = bizId;
+  document.getElementById('pay-biz-name').textContent = bizName;
+  document.getElementById('pay-amount').value = '';
+  document.getElementById('pay-expected').value = expectedPrice || '';
+  document.getElementById('pay-description').value = '';
+  document.getElementById('pay-notes').value = '';
+  document.getElementById('pay-allow-partial').checked = false;
+  document.getElementById('pay-error').classList.add('hidden');
+  // Set period to current month
+  const now = new Date();
+  document.getElementById('pay-period').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  updatePaymentPreview();
+  closeModal('modal-biz');
+  document.getElementById('modal-payment').classList.remove('hidden');
+  setTimeout(() => document.getElementById('pay-amount').focus(), 100);
+}
+
+function updatePaymentPreview() {
+  const paid = parseFloat(document.getElementById('pay-amount').value) || 0;
+  const exp  = parseFloat(document.getElementById('pay-expected').value) || 0;
+  const preview = document.getElementById('pay-preview');
+  const partialRow = document.getElementById('pay-partial-row');
+
+  if (!paid) { preview.classList.add('hidden'); partialRow.classList.add('hidden'); return; }
+
+  if (exp > 0 && paid < exp) {
+    const shortfall = (exp - paid).toFixed(2);
+    preview.className = 'rounded-xl p-3 text-sm font-medium bg-amber-50 border border-amber-200 text-amber-800';
+    preview.innerHTML = `<i class="fas fa-triangle-exclamation mr-1.5"></i>Μερική πληρωμή — οφειλή: <strong>€${shortfall}</strong> θα προστεθεί στον λογαριασμό του πελάτη`;
+    preview.classList.remove('hidden');
+    partialRow.classList.remove('hidden');
+    partialRow.style.display = 'flex';
+  } else if (exp > 0 && paid >= exp) {
+    preview.className = 'rounded-xl p-3 text-sm font-medium bg-emerald-50 border border-emerald-200 text-emerald-800';
+    preview.innerHTML = `<i class="fas fa-circle-check mr-1.5"></i>Πλήρης πληρωμή`;
+    preview.classList.remove('hidden');
+    partialRow.classList.add('hidden');
+  } else {
+    preview.classList.add('hidden');
+    partialRow.classList.add('hidden');
+  }
+}
+
+async function doRecordPayment() {
+  const bizId   = document.getElementById('pay-biz-id').value;
+  const amount  = document.getElementById('pay-amount').value;
+  const expAmt  = document.getElementById('pay-expected').value;
+  const allow   = document.getElementById('pay-allow-partial').checked;
+  const errEl   = document.getElementById('pay-error');
+  errEl.classList.add('hidden');
+
+  if (!amount || parseFloat(amount) <= 0) { showErr(errEl, 'Εισάγετε έγκυρο ποσό.'); return; }
+
+  const btn = document.getElementById('btn-do-pay');
+  btn.disabled = true; btn.textContent = 'Αποθήκευση...';
+  try {
+    await api.post(`/platform/subscriptions/${bizId}/record-payment`, {
+      amount: parseFloat(amount),
+      expected_amount: expAmt ? parseFloat(expAmt) : undefined,
+      description: document.getElementById('pay-description').value || undefined,
+      payment_type: document.getElementById('pay-type').value,
+      billing_period: document.getElementById('pay-period').value || undefined,
+      notes: document.getElementById('pay-notes').value || undefined,
+      allow_partial: allow,
+    });
+    closeModal('modal-payment');
+    showToast('Πληρωμή καταχωρήθηκε!', 'success');
+    loadStats(); loadDebt(debtPage);
+  } catch (e) {
+    showErr(errEl, e.message);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-circle-check"></i> Καταχώρηση';
+  }
+}
+
+// ── Call Modal ────────────────────────────────────────────────────────────────
+async function loadBizList() {
+  try {
+    const res = await api.get('/platform/outstanding', { limit: 200 });
+    allBizList = res.data || [];
+    const sel = document.getElementById('call-biz-select');
+    sel.innerHTML = '<option value="">— Επιλέξτε επιχείρηση —</option>' +
+      allBizList.map(b => `<option value="${b.id}">${esc(b.name)} (${b.afm || ''})</option>`).join('');
+  } catch (_) {}
+}
+
+function openCallModal(bizId, bizName, phone) {
+  document.getElementById('call-biz-id').value = bizId || '';
+  document.getElementById('call-entry-id').value = '';
+  if (bizId) document.getElementById('call-biz-select').value = bizId;
+  document.getElementById('call-phone').value = phone || '';
+  document.getElementById('call-notes').value = '';
+  document.getElementById('call-followup').value = '';
+  document.getElementById('call-outcome').value = 'answered';
+  document.getElementById('call-reason').value = 'payment_reminder';
+  document.getElementById('call-duration').value = '';
+  document.getElementById('call-error').classList.add('hidden');
+  const now = new Date(); now.setSeconds(0, 0);
+  document.getElementById('call-at').value = now.toISOString().slice(0, 16);
+  document.getElementById('modal-call').classList.remove('hidden');
+  setTimeout(() => document.getElementById('call-phone').focus(), 100);
+}
+
+// When biz selected in dropdown, pre-fill phone
+document.getElementById('call-biz-select').addEventListener('change', function() {
+  const biz = allBizList.find(b => b.id === this.value);
+  if (biz && (biz.contact_phone || biz.phone)) {
+    document.getElementById('call-phone').value = biz.contact_phone || biz.phone;
+  }
+});
+
+async function doSaveCall() {
+  const bizId = document.getElementById('call-biz-select').value || document.getElementById('call-biz-id').value;
+  const phone = document.getElementById('call-phone').value.trim();
+  const errEl = document.getElementById('call-error');
+  errEl.classList.add('hidden');
+
+  if (!bizId) { showErr(errEl, 'Επιλέξτε επιχείρηση.'); return; }
+  if (!phone)  { showErr(errEl, 'Εισάγετε αριθμό τηλεφώνου.'); return; }
+
+  const btn = document.getElementById('btn-do-call');
+  btn.disabled = true; btn.textContent = 'Αποθήκευση...';
+  try {
+    await api.post(`/platform/calls/${bizId}`, {
+      phone_number:     phone,
+      called_at:        document.getElementById('call-at').value.replace('T', ' ') || undefined,
+      duration_minutes: document.getElementById('call-duration').value || undefined,
+      outcome:          document.getElementById('call-outcome').value,
+      reason:           document.getElementById('call-reason').value,
+      notes:            document.getElementById('call-notes').value || undefined,
+      follow_up_at:     document.getElementById('call-followup').value.replace('T', ' ') || undefined,
+    });
+    closeModal('modal-call');
+    showToast('Κλήση καταχωρήθηκε!', 'success');
+    loadStats(); loadDebt(debtPage);
+    if (!document.getElementById('tab-calls').classList.contains('hidden')) loadCalls(callsPage);
+  } catch (e) {
+    showErr(errEl, e.message);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-phone-arrow-up-right"></i> Αποθήκευση';
+  }
+}
+
+async function deleteCall(callId) {
+  if (!await confirmDialog('Διαγραφή Κλήσης', 'Θέλετε σίγουρα να διαγράψετε αυτή την καταχώρηση;', true)) return;
+  try {
+    await api.delete(`/platform/calls/entry/${callId}`);
+    showToast('Διαγράφηκε.', 'success');
+    loadStats(); loadDebt(debtPage);
+    if (!document.getElementById('tab-calls').classList.contains('hidden')) loadCalls(callsPage);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ── Set custom price per business ─────────────────────────────────────────────
+async function openSetPrice(bizId, currentOverride) {
+  const val = prompt(
+    'Ορισμός προσαρμοσμένης τιμής για αυτή την επιχείρηση.\nΑφήστε κενό για χρήση τιμής πλάνου.',
+    currentOverride != null ? currentOverride : ''
+  );
+  if (val === null) return;
+  try {
+    await api.patch(`/platform/subscriptions/${bizId}/set-price`, { price: val === '' ? null : parseFloat(val) });
+    showToast('Τιμή ενημερώθηκε.', 'success');
+    loadDebt(debtPage);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ── Set contact phone ─────────────────────────────────────────────────────────
+async function openSetPhone(bizId, currentPhone) {
+  const val = prompt('Τηλέφωνο επικοινωνίας για πληρωμές:', currentPhone || '');
+  if (val === null) return;
+  try {
+    await api.patch(`/platform/subscriptions/${bizId}/contact-phone`, { phone: val.trim() || null });
+    showToast('Τηλέφωνο ενημερώθηκε.', 'success');
+    loadDebt(debtPage); loadBizList();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+function showErr(el, msg) {
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl ${type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function planCls(plan) {
+  return { trial: 'bg-gray-100 text-gray-600', basic: 'bg-blue-100 text-blue-700', pro: 'bg-purple-100 text-purple-700', enterprise: 'bg-amber-100 text-amber-700' }[plan] || 'bg-gray-100 text-gray-600';
+}
+
+function cycleLbl(c) {
+  return { monthly: 'μήνα', semi_annual: '6μηνο', annual: 'έτος' }[c] || 'μήνα';
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+}
+
+function fmtDateTime(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+}
+
+function renderPager(containerId, total, page, limit, onPage) {
+  const el = document.getElementById(containerId);
+  const totalPages = Math.ceil(total / limit);
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  const btn = (l, p, active, disabled) => {
+    const cls = active ? 'bg-blue-600 text-white' : disabled ? 'text-gray-300 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200';
+    return `<button ${disabled ? 'disabled' : `onclick="(${onPage})(${p})"`} class="px-3 py-2 rounded-xl text-sm font-medium ${cls} transition-colors">${l}</button>`;
+  };
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page-2 && i <= page+2)) pages.push(i);
+    else if (pages[pages.length-1] !== '…') pages.push('…');
+  }
+  el.innerHTML = `<div class="flex items-center justify-center gap-1.5 p-4 border-t border-gray-100 flex-wrap">
+    ${btn('‹', page-1, false, page<=1)}
+    ${pages.map(p => p === '…' ? '<span class="px-2 text-gray-300">…</span>' : btn(p, p, p===page, false)).join('')}
+    ${btn('›', page+1, false, page>=totalPages)}
+    <span class="text-xs text-gray-400 ml-2">${total} εγγραφές</span>
+  </div>`;
+}
+</script>
+</body>
+</html>

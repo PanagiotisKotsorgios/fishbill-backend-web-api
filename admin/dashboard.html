@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    .stat-card { transition: transform .15s, box-shadow .15s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .35s ease-out both; }
+    .anim-1 { animation-delay: .05s; }
+    .anim-2 { animation-delay: .1s; }
+    .anim-3 { animation-delay: .15s; }
+    
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div id="sidebar-container"></div>
+
+  <!-- Main content -->
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Page header -->
+      <div class="mb-6 anim anim-1">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p class="text-sm text-gray-500 mt-0.5" id="welcome-msg">Καλώς ήρθατε στο FishBill</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="role-badge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"></span>
+            <span class="text-xs text-gray-400" id="current-date"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div id="stats-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-7 anim anim-1">
+        <!-- Skeleton placeholders -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div class="h-8 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+
+      <!-- Chart + Top Customers -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6 anim anim-2">
+
+        <!-- Invoice chart -->
+        <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-800">Παραστατικά (τελευταίες 30 ημέρες)</h2>
+            <span class="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">Αριθμός & Αξία</span>
+          </div>
+          <div class="relative h-64">
+            <canvas id="invoiceChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Top customers -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-base font-semibold text-gray-800 mb-4">
+            <i class="fas fa-trophy text-amber-500 mr-2"></i>Κορυφαίοι Πελάτες
+          </h2>
+          <div id="top-customers">
+            <div class="animate-pulse space-y-3">
+              <div class="h-10 bg-gray-100 rounded-lg"></div>
+              <div class="h-10 bg-gray-100 rounded-lg"></div>
+              <div class="h-10 bg-gray-100 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent invoices -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 anim anim-3">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 class="text-base font-semibold text-gray-800">Πρόσφατα Παραστατικά</h2>
+          <a href="invoices.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+            Όλα &rarr;
+          </a>
+        </div>
+        <div id="recent-invoices">
+          <div class="p-6 animate-pulse space-y-3">
+            <div class="h-10 bg-gray-100 rounded"></div>
+            <div class="h-10 bg-gray-100 rounded"></div>
+            <div class="h-10 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Super admin only: System health -->
+      <div id="system-section" class="hidden mt-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Σύστημα</h3>
+        <div id="system-health" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    requireAuth();
+    buildSidebar();
+
+    // ── Page header ──
+    const role = getUserRole();
+    const currentUser = getCurrentUser();
+    const userName = getUserName();
+
+    document.getElementById('welcome-msg').textContent =
+      `Καλώς ήρθατε, ${userName}!`;
+    document.getElementById('current-date').textContent =
+      new Date().toLocaleDateString('el-GR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    const roleBadgeEl = document.getElementById('role-badge');
+    if (roleBadgeEl) {
+      const roleColors = {
+        super_admin: 'bg-purple-100 text-purple-700',
+        owner: 'bg-blue-100 text-blue-700',
+        accountant: 'bg-green-100 text-green-700',
+        captain: 'bg-orange-100 text-orange-700',
+        employee: 'bg-gray-100 text-gray-600',
+      };
+      roleBadgeEl.className = `inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${roleColors[role] || 'bg-gray-100 text-gray-600'}`;
+      roleBadgeEl.textContent = ui.roleLabel(role);
+    }
+
+    if (role === 'super_admin') {
+      document.getElementById('system-section').classList.remove('hidden');
+    }
+
+    let invoiceChart = null;
+
+    // ── Stat card builder ──
+    function statCard(icon, label, value, colorClass, subtext, trend) {
+      const trendHtml = trend
+        ? `<span class="inline-flex items-center text-xs font-medium ${trend > 0 ? 'text-green-600' : 'text-red-500'}">
+             ${trend > 0 ? '↑' : '↓'} ${Math.abs(trend)}%
+           </span>`
+        : '';
+      return `
+        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">${label}</p>
+              <p class="text-2xl font-extrabold text-gray-900 mt-1.5 leading-none">${value}</p>
+              ${subtext ? `<p class="text-xs text-gray-400 mt-1.5">${subtext}</p>` : ''}
+              ${trendHtml}
+            </div>
+            <div class="w-11 h-11 rounded-xl ${colorClass} flex items-center justify-center text-xl flex-shrink-0 ml-3">
+              ${icon}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Load stats from /api/dashboard/stats ──
+    async function loadStats() {
+      try {
+        const res = await api.get('/dashboard/stats');
+        const stats = res.stats || res.data || res || {};
+
+        let cards = '';
+
+        if (role === 'super_admin') {
+          cards += statCard(
+            '<i class="fas fa-building text-purple-600"></i>', 'Ενεργές Επιχειρήσεις',
+            stats.activeBusinesses ?? '-',
+            'bg-purple-100',
+            null
+          );
+        }
+
+        cards += statCard(
+          '<i class="fas fa-file-invoice text-blue-600"></i>', 'Σύνολο Παραστατικών',
+          stats.totalInvoices ?? '-',
+          'bg-blue-100',
+          null
+        );
+        cards += statCard(
+          '<i class="fas fa-calendar-day text-emerald-600"></i>', 'Σημερινά Παραστατικά',
+          stats.todayInvoices ?? '-',
+          'bg-emerald-100',
+          'Εκδόθηκαν σήμερα'
+        );
+        cards += statCard(
+          '<i class="fas fa-triangle-exclamation text-red-500"></i>', 'Αποτυχημένες Μεταδόσεις',
+          stats.failedTransmissions ?? '-',
+          stats.failedTransmissions > 0 ? 'bg-red-100' : 'bg-gray-100',
+          stats.failedTransmissions > 0 ? 'Απαιτείται ενέργεια' : 'Όλα εντάξει'
+        );
+        cards += statCard(
+          '<i class="fas fa-euro-sign text-amber-600"></i>', 'Έσοδα Μήνα',
+          stats.monthlyRevenue !== undefined ? ui.formatMoney(stats.monthlyRevenue) : '-',
+          'bg-amber-100',
+          'Τρέχων μήνας'
+        );
+
+        document.getElementById('stats-grid').innerHTML = cards;
+      } catch (err) {
+        document.getElementById('stats-grid').innerHTML = `
+          <div class="col-span-full bg-red-50 border border-red-100 rounded-xl p-5 text-center">
+            <p class="text-sm text-red-600 font-medium"><i class="fas fa-triangle-exclamation mr-1"></i>Σφάλμα φόρτωσης στατιστικών</p>
+            <p class="text-xs text-red-400 mt-1">${err.message}</p>
+          </div>`;
+      }
+    }
+
+    // ── Load chart from /api/dashboard/chart ──
+    async function loadChart() {
+      try {
+        const res = await api.get('/dashboard/chart', { days: 30 });
+        const chartData = (res.data || res || []);
+
+        if (!chartData.length) {
+          document.getElementById('invoiceChart').parentElement.innerHTML =
+            `<div class="flex items-center justify-center h-64 text-gray-400 text-sm">
+               <div class="text-center">
+                 <div class="text-4xl mb-2 text-gray-300"><i class="fas fa-chart-bar"></i></div>
+                 <p>Δεν υπάρχουν δεδομένα ακόμα</p>
+               </div>
+             </div>`;
+          return;
+        }
+
+        const labels  = chartData.map(d => {
+          const dt = new Date(d.date);
+          return `${dt.getDate()}/${dt.getMonth() + 1}`;
+        });
+        const counts  = chartData.map(d => d.count || 0);
+        const amounts = chartData.map(d => parseFloat(d.amount) || 0);
+
+        const ctx = document.getElementById('invoiceChart').getContext('2d');
+        invoiceChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Αριθμός',
+                data: counts,
+                backgroundColor: 'rgba(37,99,235,0.7)',
+                borderColor: 'rgba(37,99,235,1)',
+                borderWidth: 1,
+                borderRadius: 5,
+                yAxisID: 'y',
+              },
+              {
+                label: 'Αξία (€)',
+                data: amounts,
+                backgroundColor: 'rgba(16,185,129,0.15)',
+                borderColor: 'rgba(16,185,129,1)',
+                borderWidth: 2,
+                type: 'line',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3,
+                yAxisID: 'y1',
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: { usePointStyle: true, padding: 16, font: { size: 11, family: 'Inter' } }
+              }
+            },
+            scales: {
+              y:  {
+                type: 'linear', position: 'left', beginAtZero: true,
+                ticks: { precision: 0, font: { size: 11 } },
+                grid: { color: 'rgba(0,0,0,0.04)' }
+              },
+              y1: {
+                type: 'linear', position: 'right', beginAtZero: true,
+                ticks: { callback: v => `€${v.toLocaleString('el-GR')}`, font: { size: 11 } },
+                grid: { drawOnChartArea: false }
+              },
+              x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+            }
+          }
+        });
+      } catch (err) {
+        document.getElementById('invoiceChart').parentElement.innerHTML =
+          `<p class="text-gray-400 text-sm text-center py-10">Δεν υπάρχουν δεδομένα γραφήματος</p>`;
+      }
+    }
+
+    // ── Load top customers from /api/dashboard/top-customers ──
+    async function loadTopCustomers() {
+      try {
+        const res = await api.get('/dashboard/top-customers');
+        const customers = res.customers || res.data || res || [];
+
+        if (!customers.length) {
+          document.getElementById('top-customers').innerHTML =
+            `<div class="text-center py-8 text-gray-400">
+               <div class="text-3xl mb-2 text-gray-300"><i class="fas fa-users"></i></div>
+               <p class="text-sm">Δεν υπάρχουν πελάτες ακόμα</p>
+             </div>`;
+          return;
+        }
+
+        const html = customers.map((c, i) => `
+          <div class="flex items-center gap-3 py-2.5 ${i < customers.length - 1 ? 'border-b border-gray-50' : ''}">
+            <span class="w-6 h-6 rounded-full ${i < 3 ? 'bg-blue-600' : 'bg-gray-200'} ${i < 3 ? 'text-white' : 'text-gray-500'} text-xs font-bold flex items-center justify-center flex-shrink-0">
+              ${i + 1}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 truncate">${c.name || '-'}</p>
+              <p class="text-xs text-gray-400">${c.invoiceCount || 0} παραστατικά</p>
+            </div>
+            <span class="text-sm font-bold text-gray-700 flex-shrink-0">${ui.formatMoney(c.totalAmount || 0)}</span>
+          </div>
+        `).join('');
+
+        document.getElementById('top-customers').innerHTML = html;
+      } catch (err) {
+        document.getElementById('top-customers').innerHTML =
+          `<p class="text-red-400 text-sm text-center py-8">Σφάλμα φόρτωσης</p>`;
+      }
+    }
+
+    // ── Load recent invoices from /api/invoices ──
+    async function loadRecentInvoices() {
+      try {
+        const res = await api.get('/invoices', { limit: 10, sort: 'issue_date', order: 'desc' });
+        const invoices = res.data || res.invoices || (Array.isArray(res) ? res : []);
+
+        if (!invoices.length) {
+          document.getElementById('recent-invoices').innerHTML =
+            `<div class="text-center py-12 text-gray-400">
+               <div class="text-4xl mb-2 text-gray-300"><i class="fas fa-file-invoice"></i></div>
+               <p class="text-sm">Δεν υπάρχουν παραστατικά ακόμα</p>
+               <a href="invoices.html" class="mt-3 inline-block text-sm text-blue-600 hover:underline font-medium">Δημιουργήστε το πρώτο &rarr;</a>
+             </div>`;
+          return;
+        }
+
+        const rows = invoices.map(inv => [
+          `<a href="invoices.html" class="font-semibold text-blue-600 hover:underline">${inv.full_number || inv.number || '-'}</a>`,
+          inv.customer_name || inv.customer?.name || '-',
+          ui.formatDate(inv.issue_date || inv.created_at),
+          ui.formatMoney(inv.total_value || inv.totalAmount || 0),
+          ui.statusBadge(inv.status),
+          inv.mydata_mark || inv.mark || '<span class="text-gray-300">—</span>',
+        ]);
+
+        document.getElementById('recent-invoices').innerHTML =
+          ui.buildTable(['Αριθμός', 'Πελάτης', 'Ημερομηνία', 'Σύνολο', 'Κατάσταση', 'MARK'], rows);
+      } catch (err) {
+        document.getElementById('recent-invoices').innerHTML =
+          `<p class="text-red-400 text-sm text-center py-10">Σφάλμα: ${err.message}</p>`;
+      }
+    }
+
+    // ── System health (super_admin only) ──
+    async function loadSystemHealth() {
+      if (role !== 'super_admin') return;
+      try {
+        const res = await fetch(CONFIG.API_URL.replace('/api', '') + '/health');
+        const data = await res.json();
+        document.getElementById('system-health').innerHTML = `
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full ${data.status === 'ok' ? 'bg-green-400' : 'bg-red-400'}"></div>
+            <div>
+              <p class="text-sm font-semibold text-gray-700">API Server</p>
+              <p class="text-xs text-gray-400">${data.status === 'ok' ? 'Λειτουργεί κανονικά' : 'Πρόβλημα'}</p>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+            <div>
+              <p class="text-sm font-semibold text-gray-700">Περιβάλλον</p>
+              <p class="text-xs text-gray-400">${data.environment || 'development'}</p>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-blue-400"></div>
+            <div>
+              <p class="text-sm font-semibold text-gray-700">Εκδοχή API</p>
+              <p class="text-xs text-gray-400">${data.service || 'fishbill-api'} v${CONFIG.VERSION}</p>
+            </div>
+          </div>
+        `;
+      } catch(e) {
+        document.getElementById('system-health').innerHTML =
+          `<p class="text-red-400 text-xs">Δεν ήταν δυνατή η φόρτωση κατάστασης server</p>`;
+      }
+    }
+
+    // ── Load all ──
+    Promise.all([
+      loadStats(),
+      loadChart(),
+      loadTopCustomers(),
+      loadRecentInvoices(),
+      loadSystemHealth(),
+      checkProviderUpgrade(),
+    ]);
+
+    async function checkProviderUpgrade() {
+      if (sessionStorage.getItem('provider_upgrade_shown')) return;
+      try {
+        const res = await api.get('/platform/stats');
+        const { active_businesses, pending_mark } = res.data;
+
+        // Badge pending invoices in sidebar
+        if (pending_mark > 0) {
+          document.querySelectorAll('a[href="mydata-inbox.html"]').forEach(el => {
+            if (!el.querySelector('.inbox-badge')) {
+              const b = document.createElement('span');
+              b.className = 'inbox-badge ml-auto text-xs font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded-full';
+              b.textContent = pending_mark;
+              el.appendChild(b);
+            }
+          });
+        }
+
+        if (active_businesses >= 100) {
+          sessionStorage.setItem('provider_upgrade_shown', '1');
+          showUpgradeModal(active_businesses);
+        }
+      } catch(_) {}
+    }
+
+    function showUpgradeModal(count) {
+      const modal = document.createElement('div');
+      modal.id = 'upgrade-modal';
+      modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+      modal.innerHTML = `
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-bounce-in">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mb-4">
+              <i class="fas fa-rocket text-indigo-600 text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-gray-900 mb-2">Ώρα για αυτοματισμό!</h2>
+            <p class="text-gray-500 text-base leading-relaxed mb-2">
+              Έχετε <strong class="text-indigo-700">${count} ενεργούς χρήστες</strong>.
+              Η χειροκίνητη επεξεργασία μέσω Epsilon Smart γίνεται χρονοβόρα.
+            </p>
+            <p class="text-gray-500 text-base leading-relaxed mb-6">
+              Θέλετε να αναβαθμίσετε σε αυτόματη διαβίβαση μέσω <strong>e-timologiera</strong> ή άλλου παρόχου;
+            </p>
+            <div class="flex gap-3 w-full">
+              <button onclick="document.getElementById('upgrade-modal').remove()"
+                class="flex-1 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors text-sm">
+                Όχι ακόμα
+              </button>
+              <a href="platform.html" onclick="document.getElementById('upgrade-modal').remove()"
+                class="flex-1 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm text-center">
+                <i class="fas fa-gear mr-2"></i>Αλλαγή Παρόχου
+              </a>
+            </div>
+            <p class="text-xs text-gray-400 mt-3">Αυτό εμφανίζεται μία φορά ανά σύνδεση.</p>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    }
+  </script>
+</body>
+</html>

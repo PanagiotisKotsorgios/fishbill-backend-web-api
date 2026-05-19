@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "docx": "^9.6.1",
+    "nodemailer": "^8.0.5"
+  },
+  "devDependencies": {
+    "exceljs": "^4.4.0"
+  }
+}

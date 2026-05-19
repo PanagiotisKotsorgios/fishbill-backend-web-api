@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Ο Λογαριασμός μου</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .28s ease-out both; }
+    .priv-item { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#F0F7FF;border:1px solid #DBEAFE; }
+    .priv-item i { width:16px;text-align:center;color:#2563EB; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div id="sidebar-container"></div>
+
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Header -->
+      <div class="mb-6 anim">
+        <h1 class="text-2xl font-bold text-gray-900">Ο Λογαριασμός μου</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Δείτε τα στοιχεία σας και τα δικαιώματα πρόσβασης</p>
+      </div>
+
+      <!-- Profile card -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5 anim flex items-center gap-5 flex-wrap">
+        <div id="emp-avatar" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-xl font-black flex-shrink-0">—</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-xl font-bold text-gray-900" id="emp-name">—</h2>
+          <p class="text-sm text-gray-500" id="emp-email">—</p>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full mt-1.5">
+            <i class="fas fa-id-badge"></i>Εργαζόμενος Συστήματος
+          </span>
+        </div>
+        <div class="text-right text-sm text-gray-400">
+          <p>Τελευταία είσοδος</p>
+          <p class="font-semibold text-gray-700" id="emp-last-login">—</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 anim">
+
+        <!-- My Privileges -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h3 class="text-sm font-bold text-gray-800 mb-4">
+            <i class="fas fa-shield-halved text-blue-500 mr-2"></i>Τα Δικαιώματά μου
+          </h3>
+          <div id="my-privileges">
+            <div class="text-center py-8 text-gray-400">
+              <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i>
+              <p class="text-sm">Φόρτωση…</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- What I can access -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h3 class="text-sm font-bold text-gray-800 mb-4">
+            <i class="fas fa-door-open text-green-500 mr-2"></i>Πρόσβαση σε Σελίδες
+          </h3>
+          <div id="accessible-pages">
+            <div class="text-center py-8 text-gray-400 text-sm">Φόρτωση…</div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-50">
+            <p class="text-xs text-gray-400">
+              <i class="fas fa-circle-info mr-1"></i>
+              Εάν χρειάζεστε επιπλέον πρόσβαση, επικοινωνήστε με τον Super Admin.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Contact support -->
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 mt-5 anim text-white flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h3 class="text-base font-bold mb-1">Χρειάζεστε βοήθεια;</h3>
+          <p class="text-sm text-blue-100">Επικοινωνήστε με τον διαχειριστή του συστήματος για αλλαγές στα δικαιώματά σας.</p>
+        </div>
+        <a href="mailto:admin@fishbill.gr" class="flex-shrink-0 flex items-center gap-2 bg-white text-blue-700 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-blue-50 transition-colors">
+          <i class="fas fa-envelope"></i>Επικοινωνία
+        </a>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    requireAuth();
+    buildSidebar();
+
+    const user = getCurrentUser();
+
+    const PRIV_LABEL = {
+      view_invoices:'Προβολή παραστατικών', edit_invoices:'Επεξεργασία παραστατικών',
+      delete_invoices:'Διαγραφή παραστατικών', view_customers:'Προβολή πελατών',
+      edit_customers:'Επεξεργασία πελατών', delete_customers:'Διαγραφή πελατών',
+      view_products:'Προβολή ειδών', edit_products:'Επεξεργασία ειδών',
+      view_users:'Προβολή χρηστών', edit_users:'Επεξεργασία χρηστών',
+      view_logs:'Αρχείο ελέγχου', view_exports:'Προβολή εξαγωγών',
+      create_exports:'Δημιουργία εξαγωγών', view_reports:'Αναφορές',
+      view_backups:'Προβολή αντιγράφων', create_backups:'Δημιουργία αντιγράφων',
+      view_businesses:'Προβολή επιχειρήσεων', edit_businesses:'Επεξεργασία επιχειρήσεων',
+      manage_settings:'Ρυθμίσεις συστήματος',
+    };
+
+    const PRIV_ICON = {
+      view_invoices:'fa-eye', edit_invoices:'fa-pen', delete_invoices:'fa-trash',
+      view_customers:'fa-eye', edit_customers:'fa-pen', delete_customers:'fa-trash',
+      view_products:'fa-eye', edit_products:'fa-pen', view_users:'fa-eye',
+      edit_users:'fa-pen', view_logs:'fa-list-check', view_exports:'fa-eye',
+      create_exports:'fa-download', view_reports:'fa-chart-bar',
+      view_backups:'fa-eye', create_backups:'fa-database',
+      view_businesses:'fa-eye', edit_businesses:'fa-pen', manage_settings:'fa-sliders',
+    };
+
+    const PAGE_MAP = {
+      view_invoices: { label:'Παραστατικά', href:'invoices.html', icon:'fa-file-invoice' },
+      view_customers: { label:'Πελάτες', href:'customers.html', icon:'fa-users' },
+      view_products: { label:'Είδη', href:'products.html', icon:'fa-box-open' },
+      view_reports: { label:'Αναφορές', href:'reports.html', icon:'fa-chart-bar' },
+      view_logs: { label:'Αρχείο Ελέγχου', href:'logs.html', icon:'fa-clipboard-list' },
+      view_exports: { label:'Εξαγωγές', href:'exports.html', icon:'fa-file-arrow-down' },
+      view_backups: { label:'Αντίγραφα', href:'backups.html', icon:'fa-database' },
+      view_businesses: { label:'Επιχειρήσεις', href:'businesses.html', icon:'fa-building' },
+      view_users: { label:'Χρήστες', href:'users.html', icon:'fa-user-gear' },
+      manage_settings: { label:'Ρυθμίσεις', href:'settings.html', icon:'fa-sliders' },
+    };
+
+    // Fill profile
+    if (user) {
+      const initials = (user.name || '?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      document.getElementById('emp-avatar').textContent = initials;
+      document.getElementById('emp-name').textContent = user.name || '—';
+      document.getElementById('emp-email').textContent = user.email || '—';
+    }
+
+    async function loadMyPrivileges() {
+      try {
+        const role = getUserRole();
+        // Employees fetch via my-privileges, others (super_admin testing) see all
+        let privileges = [];
+        if (role === 'employee') {
+          const res = await api.get('/employees/my-privileges');
+          privileges = res.privileges || [];
+        } else {
+          privileges = Object.keys(PRIV_LABEL);
+        }
+
+        // Render privilege chips
+        const privEl = document.getElementById('my-privileges');
+        if (!privileges.length) {
+          privEl.innerHTML = `<div class="text-center py-6 text-amber-600 bg-amber-50 rounded-xl border border-amber-100">
+            <i class="fas fa-triangle-exclamation text-xl mb-2 block"></i>
+            <p class="text-sm font-semibold">Δεν έχετε δικαιώματα ακόμα</p>
+            <p class="text-xs mt-1 text-amber-500">Επικοινωνήστε με τον Super Admin</p>
+          </div>`;
+        } else {
+          privEl.innerHTML = `<div class="space-y-2">
+            ${privileges.map(p => `
+              <div class="priv-item">
+                <i class="fas ${PRIV_ICON[p] || 'fa-check'} text-xs"></i>
+                <span class="text-sm font-medium text-gray-800">${ui.esc(PRIV_LABEL[p] || p)}</span>
+              </div>`).join('')}
+          </div>`;
+        }
+
+        // Render accessible pages
+        const pagesEl = document.getElementById('accessible-pages');
+        const pages = [...new Set(
+          privileges
+            .filter(p => PAGE_MAP[p])
+            .map(p => PAGE_MAP[p])
+        )];
+
+        // Always add dashboard
+        const allPages = [{ label:'Dashboard', href:'dashboard.html', icon:'fa-gauge-high' }, ...pages];
+
+        pagesEl.innerHTML = `<div class="space-y-2">
+          ${allPages.map(pg => `
+            <a href="${ui.esc(pg.href)}" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+              <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas ${pg.icon} text-green-600 text-sm"></i>
+              </div>
+              <span class="text-sm font-medium text-gray-800 group-hover:text-blue-600 transition-colors">${ui.esc(pg.label)}</span>
+              <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto group-hover:text-blue-400 transition-colors"></i>
+            </a>`).join('')}
+        </div>`;
+
+      } catch(e) {
+        document.getElementById('my-privileges').innerHTML =
+          `<p class="text-red-400 text-sm text-center py-4">${ui.esc(e.message)}</p>`;
+      }
+    }
+
+    loadMyPrivileges();
+  </script>
+</body>
+</html>

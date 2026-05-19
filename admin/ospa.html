@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Υποβολές ΟΣΠΑ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .anim-1 { animation-delay:.05s; } .anim-2 { animation-delay:.1s; } .anim-3 { animation-delay:.15s; }
+    .modal-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px; }
+    .modal-card { background:#fff;border-radius:16px;padding:28px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,.18); }
+    .drawer-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;display:none; }
+    .drawer-backdrop.open { display:block; }
+    .drawer { position:fixed;top:0;right:0;height:100%;width:400px;max-width:95vw;background:#fff;z-index:70;overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,.15);transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1); }
+    .drawer.open { transform:translateX(0); }
+    .biz-link { cursor:pointer;color:#4f46e5;font-weight:600; }
+    .biz-link:hover { text-decoration:underline; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div id="sidebar-container"></div>
+
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Header -->
+      <div class="mb-6 anim anim-1">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <i class="fa-solid fa-file-circle-check text-indigo-600"></i>
+              Υποβολές ΟΣΠΑ
+            </h1>
+            <p class="text-sm text-gray-500 mt-0.5">Παρακολούθηση υποβολών στον Οργανισμό Συλλογικής Προστασίας</p>
+          </div>
+          <button onclick="openCreateModal()"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
+            <i class="fa-solid fa-plus"></i> Νέα Υποβολή
+          </button>
+        </div>
+      </div>
+
+      <!-- Business selector (super_admin only) -->
+      <div id="biz-filter-row" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 anim anim-1">
+        <div class="flex flex-wrap gap-3 items-end">
+          <div class="flex-1 min-w-[220px]">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">
+              <i class="fa-solid fa-building mr-1 text-indigo-600"></i>Επιχείρηση
+            </label>
+            <select id="filter-biz"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 bg-white"
+              onchange="currentPage=1; loadOspa()">
+              <option value="">— Όλες οι επιχειρήσεις —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status filter pills -->
+      <div class="flex flex-wrap gap-2 mb-5 anim anim-1">
+        <button onclick="setStatusFilter(null)" id="pill-all"
+          class="status-pill px-3 py-1.5 text-xs font-semibold rounded-full bg-indigo-600 text-white transition-colors">
+          Όλες
+        </button>
+        <button onclick="setStatusFilter('pending')" id="pill-pending"
+          class="status-pill px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+          Εκκρεμείς
+        </button>
+        <button onclick="setStatusFilter('submitted')" id="pill-submitted"
+          class="status-pill px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+          Υποβληθείσες
+        </button>
+        <button onclick="setStatusFilter('needs_correction')" id="pill-correction"
+          class="status-pill px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+          Χρειάζεται Διόρθωση
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 anim anim-2">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 class="text-sm font-semibold text-gray-700" id="result-count">Υποβολές</h2>
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <input id="filter-q" type="text" placeholder="Αναζήτηση περιόδου…"
+              class="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-indigo-400"
+              oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th id="th-biz" class="hidden text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Επιχείρηση</th>
+                <th class="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Περίοδος</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Κατάσταση</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ημ. Υποβολής</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Σημειώσεις</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="ospa-body">
+              <tr><td colspan="6" class="text-center py-10 text-gray-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 block"></i>Φόρτωση…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="pagination" class="flex items-center justify-between px-6 py-4 border-t border-gray-100 hidden">
+          <button id="btn-prev" onclick="changePage(-1)"
+            class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 transition-colors">
+            ← Προηγούμενη
+          </button>
+          <span id="page-info" class="text-sm text-gray-500"></span>
+          <button id="btn-next" onclick="changePage(1)"
+            class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 transition-colors">
+            Επόμενη →
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create / Edit Modal -->
+  <div id="create-modal" class="modal-backdrop hidden" onclick="closeCreateModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-6">
+        <h2 id="modal-title" class="text-lg font-bold text-gray-900">Νέα Υποβολή ΟΣΠΑ</h2>
+        <button onclick="document.getElementById('create-modal').classList.add('hidden')"
+          class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form id="create-form" onsubmit="submitOspa(event)">
+        <input type="hidden" id="edit-id" value="">
+        <!-- Business selector (super_admin only) -->
+        <div id="form-biz-wrap" class="hidden mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Επιχείρηση <span class="text-red-500">*</span></label>
+          <select id="f-biz"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 bg-white">
+            <option value="">— Επιλέξτε επιχείρηση —</option>
+          </select>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Περίοδος Υποβολής <span class="text-red-500">*</span></label>
+            <input id="f-period" type="month" required
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400">
+            <p class="text-xs text-gray-400 mt-1">Μήνας αναφοράς (π.χ. 2026-04)</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Κατάσταση</label>
+            <select id="f-status"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 bg-white">
+              <option value="pending">⏳ Εκκρεμής</option>
+              <option value="submitted">✅ Υποβληθείσα</option>
+              <option value="needs_correction">⚠️ Χρειάζεται Διόρθωση</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Ημ. Υποβολής</label>
+              <input id="f-submission-date" type="date"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Deadline</label>
+              <input id="f-deadline" type="date"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Σημειώσεις</label>
+            <textarea id="f-notes" rows="3" placeholder="Τυχόν παρατηρήσεις…"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 resize-none"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Αρχείο Φόρμας ΟΣΠΑ (PDF)</label>
+            <div id="ospa-doc-current" class="hidden mb-2 flex items-center gap-2 p-2 bg-indigo-50 rounded-lg">
+              <i class="fa-solid fa-file-pdf text-indigo-500"></i>
+              <a id="ospa-doc-link" href="#" target="_blank"
+                class="text-xs text-indigo-600 hover:underline font-medium truncate flex-1">Υπάρχον αρχείο</a>
+              <button type="button" onclick="clearOspaDoc()" class="text-xs text-red-500 hover:text-red-700">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div id="ospa-doc-new" class="hidden mb-2 flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+              <i class="fa-solid fa-file-pdf text-green-500"></i>
+              <span id="ospa-doc-new-name" class="text-xs text-green-700 font-medium truncate flex-1"></span>
+              <button type="button" onclick="clearOspaDoc()" class="text-xs text-red-500 hover:text-red-700">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <label class="inline-flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
+              <i class="fa-solid fa-file-arrow-up text-gray-400"></i>
+              <span class="text-sm text-gray-500">Επιλογή PDF</span>
+              <input type="file" id="f-doc" accept=".pdf,application/pdf" class="hidden" onchange="previewOspaDoc(this)">
+            </label>
+          </div>
+        </div>
+        <div id="form-error" class="hidden mt-3 p-3 bg-red-50 text-red-700 text-sm rounded-lg"></div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('create-modal').classList.add('hidden')"
+            class="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Άκυρο</button>
+          <button type="submit" id="submit-btn"
+            class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700">
+            <i class="fa-solid fa-check mr-1"></i>Αποθήκευση
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="delete-modal" class="modal-backdrop hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <i class="fa-solid fa-trash text-red-500 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-900 text-lg">Διαγραφή υποβολής;</h3>
+        <p class="text-sm text-gray-500 mt-1" id="delete-msg">Αυτή η ενέργεια δεν αναιρείται.</p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="document.getElementById('delete-modal').classList.add('hidden')"
+          class="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Άκυρο</button>
+        <button id="confirm-delete-btn"
+          class="flex-1 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600">Διαγραφή</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Business Profile Drawer -->
+  <div id="biz-drawer-backdrop" class="drawer-backdrop" onclick="closeBizProfile()"></div>
+  <div id="biz-drawer" class="drawer">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+      <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+        <i class="fa-solid fa-building text-indigo-500"></i>
+        <span id="drawer-title">Προφίλ Επιχείρησης</span>
+      </h3>
+      <button onclick="closeBizProfile()"
+        class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="drawer-body" class="p-5">
+      <p class="text-gray-400 text-sm text-center py-10"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Φόρτωση…</p>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script>
+    requireAuth(['super_admin', 'owner', 'accountant']);
+    buildSidebar();
+
+    let currentPage = 1;
+    const PAGE_SIZE = 20;
+    let totalPages  = 1;
+    let activeStatus = null;
+    let debounceTimer = null;
+    const IS_ADMIN = (getCurrentUser()?.role || getUser()?.role) === 'super_admin';
+    let businesses  = [];
+
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    if (IS_ADMIN) {
+      document.getElementById('biz-filter-row').classList.remove('hidden');
+      document.getElementById('th-biz').classList.remove('hidden');
+      document.getElementById('form-biz-wrap').classList.remove('hidden');
+      loadBusinesses();
+    }
+
+    async function loadBusinesses() {
+      try {
+        const res = await api.get('/businesses', { limit: 500, active: 1 });
+        businesses = (res.data || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'el'));
+        const opts = businesses.map(b =>
+          `<option value="${b.id}">${esc(b.name)}${b.afm ? ' (ΑΦΜ ' + b.afm + ')' : ''}</option>`
+        ).join('');
+        document.getElementById('filter-biz').innerHTML =
+          '<option value="">— Όλες οι επιχειρήσεις —</option>' + opts;
+        document.getElementById('f-biz').innerHTML =
+          '<option value="">— Επιλέξτε επιχείρηση —</option>' + opts;
+      } catch (e) { console.warn('Could not load businesses', e.message); }
+    }
+
+    function debounceLoad() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { currentPage = 1; loadOspa(); }, 350);
+    }
+
+    function setStatusFilter(status) {
+      activeStatus = status;
+      document.querySelectorAll('.status-pill').forEach(el => {
+        el.className = 'status-pill px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors';
+      });
+      const active = document.getElementById(
+        status === null ? 'pill-all'
+        : status === 'pending' ? 'pill-pending'
+        : status === 'submitted' ? 'pill-submitted'
+        : 'pill-correction'
+      );
+      if (active) active.className = 'status-pill px-3 py-1.5 text-xs font-semibold rounded-full bg-indigo-600 text-white transition-colors';
+      currentPage = 1;
+      loadOspa();
+    }
+
+    function changePage(dir) {
+      const np = currentPage + dir;
+      if (np < 1 || np > totalPages) return;
+      currentPage = np;
+      loadOspa();
+    }
+
+    const STATUS_LABELS = {
+      pending         : { label: 'Εκκρεμής',             bg: 'bg-yellow-50', text: 'text-yellow-700', icon: '⏳' },
+      submitted       : { label: 'Υποβληθείσα',          bg: 'bg-green-50',  text: 'text-green-700',  icon: '✅' },
+      needs_correction: { label: 'Χρειάζεται Διόρθωση', bg: 'bg-red-50',    text: 'text-red-700',    icon: '⚠️' },
+    };
+
+    async function loadOspa() {
+      const body = document.getElementById('ospa-body');
+      body.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-xl mb-2 block"></i>Φόρτωση…</td></tr>`;
+
+      const q = document.getElementById('filter-q').value.trim();
+      const params = { page: currentPage, limit: PAGE_SIZE };
+      if (activeStatus) params.status = activeStatus;
+      if (q) params.q = q;
+      if (IS_ADMIN) {
+        const biz = document.getElementById('filter-biz').value;
+        if (biz) params.business_id = biz;
+        document.getElementById('th-biz').classList.toggle('hidden', !!biz);
+      }
+
+      try {
+        const res  = await api.get('/ospa', params);
+        const data = res.data || [];
+        const meta = res.meta || {};
+
+        document.getElementById('result-count').textContent = `${meta.total ?? data.length} Υποβολές`;
+        totalPages = meta.pages || 1;
+        const pag = document.getElementById('pagination');
+        if (meta.pages > 1) {
+          pag.classList.remove('hidden');
+          document.getElementById('page-info').textContent = `Σελίδα ${meta.page} / ${meta.pages}`;
+          document.getElementById('btn-prev').disabled = (meta.page <= 1);
+          document.getElementById('btn-next').disabled = (meta.page >= meta.pages);
+        } else { pag.classList.add('hidden'); }
+
+        const showBizCol = IS_ADMIN && !document.getElementById('filter-biz').value;
+        const colspan = IS_ADMIN ? 7 : 6;
+        if (!data.length) {
+          body.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-14 text-gray-400">
+            <i class="fa-solid fa-file-circle-xmark text-4xl mb-3 block opacity-30"></i>
+            <p class="font-medium">Δεν βρέθηκαν υποβολές</p>
+          </td></tr>`;
+          return;
+        }
+
+        body.innerHTML = data.map(s => {
+          const st = STATUS_LABELS[s.status] || { label: s.status, bg:'bg-gray-50', text:'text-gray-700', icon:'' };
+          const fmtDate = d => d ? new Date(d).toLocaleDateString('el-GR', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+          const isOverdue = s.deadline && s.status !== 'submitted' && new Date(s.deadline) < new Date();
+          const bizCell = showBizCol
+            ? `<td class="px-4 py-3">
+                <button onclick="openBizProfile('${s.business_id}', '${esc(s.business_name || '')}')"
+                  class="biz-link text-xs text-left leading-snug">
+                  ${esc(s.business_name || '—')}
+                </button>
+               </td>`
+            : '';
+          return `<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+            ${bizCell}
+            <td class="px-6 py-3 font-semibold text-gray-800">${esc(s.submission_period)}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2 py-1 ${st.bg} ${st.text} text-xs font-semibold rounded-lg">
+                ${st.icon} ${st.label}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-gray-600 text-sm">${fmtDate(s.submission_date)}</td>
+            <td class="px-4 py-3 text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600'}">
+              ${fmtDate(s.deadline)} ${isOverdue ? '⚠️' : ''}
+            </td>
+            <td class="px-4 py-3 text-gray-500 text-sm max-w-xs truncate">${esc(s.notes || '—')}</td>
+            <td class="px-4 py-3 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button onclick="openEditModal(${JSON.stringify(s).replace(/"/g,'&quot;')})"
+                  class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex items-center justify-center transition-colors" title="Επεξεργασία">
+                  <i class="fa-solid fa-pen-to-square text-xs"></i>
+                </button>
+                <button onclick="openDeleteModal('${s.id}', '${s.submission_period}')"
+                  class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 flex items-center justify-center transition-colors" title="Διαγραφή">
+                  <i class="fa-solid fa-trash text-xs"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">
+          <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>${e.message}</td></tr>`;
+      }
+    }
+
+    // ── Create / Edit ──────────────────────────────────────────────────────────
+    let _ospaDocBase64 = null;
+    let _ospaClearDoc  = false;
+
+    function previewOspaDoc(input) {
+      if (!input.files?.length) return;
+      const file   = input.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        _ospaDocBase64 = e.target.result;
+        document.getElementById('ospa-doc-current').classList.add('hidden');
+        document.getElementById('ospa-doc-new-name').textContent = file.name;
+        document.getElementById('ospa-doc-new').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearOspaDoc() {
+      _ospaDocBase64 = null;
+      _ospaClearDoc  = true;
+      document.getElementById('ospa-doc-current').classList.add('hidden');
+      document.getElementById('ospa-doc-new').classList.add('hidden');
+      document.getElementById('f-doc').value = '';
+    }
+
+    function resetOspaDocUI() {
+      _ospaDocBase64 = null;
+      _ospaClearDoc  = false;
+      document.getElementById('ospa-doc-current').classList.add('hidden');
+      document.getElementById('ospa-doc-new').classList.add('hidden');
+      document.getElementById('f-doc').value = '';
+    }
+
+    function openCreateModal() {
+      document.getElementById('modal-title').textContent = 'Νέα Υποβολή ΟΣΠΑ';
+      document.getElementById('edit-id').value = '';
+      const now = new Date();
+      document.getElementById('f-period').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      document.getElementById('f-status').value = 'pending';
+      ['f-submission-date','f-deadline','f-notes'].forEach(id => { document.getElementById(id).value = ''; });
+      resetOspaDocUI();
+      if (IS_ADMIN) {
+        const currentBiz = document.getElementById('filter-biz').value;
+        document.getElementById('f-biz').value = currentBiz || '';
+      }
+      document.getElementById('form-error').classList.add('hidden');
+      document.getElementById('create-modal').classList.remove('hidden');
+    }
+
+    function openEditModal(sub) {
+      document.getElementById('modal-title').textContent = `Επεξεργασία ΟΣΠΑ ${sub.submission_period}`;
+      document.getElementById('edit-id').value             = sub.id;
+      document.getElementById('f-period').value            = sub.submission_period || '';
+      document.getElementById('f-status').value            = sub.status || 'pending';
+      document.getElementById('f-submission-date').value   = sub.submission_date ? sub.submission_date.slice(0,10) : '';
+      document.getElementById('f-deadline').value          = sub.deadline ? sub.deadline.slice(0,10) : '';
+      document.getElementById('f-notes').value             = sub.notes || '';
+      resetOspaDocUI();
+      if (sub.form_path) {
+        const API_BASE = CONFIG.API_URL.replace('/api', '');
+        document.getElementById('ospa-doc-link').href        = API_BASE + sub.form_path;
+        document.getElementById('ospa-doc-link').textContent = sub.form_path.split('/').pop();
+        document.getElementById('ospa-doc-current').classList.remove('hidden');
+      }
+      document.getElementById('form-error').classList.add('hidden');
+      document.getElementById('create-modal').classList.remove('hidden');
+    }
+
+    function closeCreateModal(e) {
+      if (e.target === document.getElementById('create-modal')) {
+        document.getElementById('create-modal').classList.add('hidden');
+      }
+    }
+
+    async function submitOspa(e) {
+      e.preventDefault();
+      const btn   = document.getElementById('submit-btn');
+      const errEl = document.getElementById('form-error');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Αποθήκευση…';
+      errEl.classList.add('hidden');
+
+      const editId = document.getElementById('edit-id').value;
+      const body = {
+        submission_period : document.getElementById('f-period').value,
+        status            : document.getElementById('f-status').value,
+        submission_date   : document.getElementById('f-submission-date').value || null,
+        deadline          : document.getElementById('f-deadline').value || null,
+        notes             : document.getElementById('f-notes').value.trim() || null,
+      };
+      if (_ospaDocBase64)    body.form_data_base64 = _ospaDocBase64;
+      else if (_ospaClearDoc) body.form_path = null;
+
+      if (IS_ADMIN) {
+        const bizSel = document.getElementById('f-biz').value;
+        if (!bizSel && !editId) {
+          errEl.textContent = 'Επιλέξτε επιχείρηση.';
+          errEl.classList.remove('hidden');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Αποθήκευση';
+          return;
+        }
+        if (bizSel) body.business_id = bizSel;
+      }
+
+      try {
+        if (editId) { await api.patch(`/ospa/${editId}`, body); }
+        else        { await api.post('/ospa', body); }
+        document.getElementById('create-modal').classList.add('hidden');
+        resetOspaDocUI();
+        loadOspa();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Αποθήκευση';
+      }
+    }
+
+    function openDeleteModal(id, period) {
+      document.getElementById('delete-msg').textContent = `ΟΣΠΑ ${period} — αυτή η ενέργεια δεν αναιρείται.`;
+      const btn = document.getElementById('confirm-delete-btn');
+      btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = 'Διαγραφή…';
+        try {
+          await api.delete(`/ospa/${id}`);
+          document.getElementById('delete-modal').classList.add('hidden');
+          loadOspa();
+        } catch (err) { alert(err.message); }
+        finally { btn.disabled = false; btn.textContent = 'Διαγραφή'; }
+      };
+      document.getElementById('delete-modal').classList.remove('hidden');
+    }
+
+    // ── Business Profile Drawer ────────────────────────────────────────────────
+    let drawerBizId = null;
+
+    function closeBizProfile() {
+      document.getElementById('biz-drawer').classList.remove('open');
+      document.getElementById('biz-drawer-backdrop').classList.remove('open');
+      drawerBizId = null;
+    }
+
+    async function openBizProfile(bizId, bizName) {
+      drawerBizId = bizId;
+      document.getElementById('drawer-title').textContent = bizName || 'Προφίλ Επιχείρησης';
+      document.getElementById('drawer-body').innerHTML =
+        `<p class="text-gray-400 text-sm text-center py-10"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Φόρτωση…</p>`;
+      document.getElementById('biz-drawer').classList.add('open');
+      document.getElementById('biz-drawer-backdrop').classList.add('open');
+
+      const month = new Date().toISOString().slice(0, 7);
+      try {
+        const res   = await api.get('/ospa/monthly-summary', { month });
+        const found = (res.data || []).find(r => r.business_id === bizId);
+        renderBizProfile(found, month, bizName, bizId);
+      } catch (e) {
+        document.getElementById('drawer-body').innerHTML =
+          `<p class="text-red-500 text-sm text-center py-10">
+            <i class="fa-solid fa-triangle-exclamation mr-2"></i>${e.message}</p>`;
+      }
+    }
+
+    function renderBizProfile(r, month, bizName, bizId) {
+      if (!r) {
+        document.getElementById('drawer-body').innerHTML =
+          `<p class="text-gray-400 text-sm text-center py-10">Δεν βρέθηκαν δεδομένα για αυτή την επιχείρηση.</p>`;
+        return;
+      }
+
+      const statusInfo = {
+        submitted       : { label: 'Υποβλήθηκε', cls: 'bg-green-100 text-green-700',  icon: 'fa-circle-check' },
+        pending         : { label: 'Εκκρεμεί',    cls: 'bg-yellow-100 text-yellow-700', icon: 'fa-clock' },
+        needs_correction: { label: 'Διόρθωση',    cls: 'bg-orange-100 text-orange-700', icon: 'fa-triangle-exclamation' },
+      };
+      const st = r.ospa_status ? (statusInfo[r.ospa_status] || { label: r.ospa_status, cls: 'bg-gray-100 text-gray-600', icon: 'fa-circle' }) : null;
+
+      const ospaActionBtn = r.ospa_id
+        ? `<button onclick="closeBizProfile(); document.getElementById('filter-biz').value='${r.business_id}'; loadOspa();"
+             class="w-full mt-3 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+             <i class="fa-solid fa-list mr-2"></i>Προβολή Υποβολών Επιχείρησης
+           </button>`
+        : `<button onclick="closeBizProfile(); document.getElementById('filter-biz').value='${r.business_id}'; loadOspa(); setTimeout(()=>{ document.getElementById('filter-biz').value='${r.business_id}'; openCreateModal(); }, 300);"
+             class="w-full mt-3 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+             <i class="fa-solid fa-plus mr-2"></i>Δημιουργία Υποβολής OSPA
+           </button>`;
+
+      document.getElementById('drawer-body').innerHTML = `
+        <!-- Business info -->
+        <div class="mb-5">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Επιχείρηση</p>
+          <p class="font-bold text-gray-900 text-lg leading-tight">${esc(r.business_name)}</p>
+          ${r.afm ? `<p class="text-xs text-gray-400 mt-0.5">ΑΦΜ: ${r.afm}</p>` : ''}
+          <div class="mt-2 flex flex-wrap gap-2">
+            ${r.subscription_active
+              ? `<span class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg">
+                   <i class="fa-solid fa-check-circle text-xs"></i> Συνδρομή Ενεργή
+                 </span>`
+              : `<span class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-lg">
+                   <i class="fa-solid fa-xmark-circle text-xs"></i> Συνδρομή Ανενεργή
+                 </span>`}
+            ${r.plan ? `<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg capitalize">${esc(r.plan)}</span>` : ''}
+          </div>
+        </div>
+
+        <hr class="border-gray-100 mb-5">
+
+        <!-- OSPA Feature -->
+        <div class="mb-5">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Πακέτο OSPA</p>
+          ${r.feature_ospa
+            ? `<div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                 <div class="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                   <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                 </div>
+                 <div>
+                   <p class="font-semibold text-emerald-800 text-sm">OSPA Ενεργό</p>
+                   <p class="text-xs text-emerald-600 mt-0.5">Η επιχείρηση έχει πληρώσει για το πακέτο OSPA</p>
+                 </div>
+               </div>`
+            : `<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                 <div class="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                   <i class="fa-solid fa-xmark text-gray-400"></i>
+                 </div>
+                 <div>
+                   <p class="font-semibold text-gray-600 text-sm">OSPA Ανενεργό</p>
+                   <p class="text-xs text-gray-400 mt-0.5">Δεν έχει ενεργοποιηθεί το πακέτο OSPA</p>
+                 </div>
+               </div>`}
+        </div>
+
+        <!-- This month summary -->
+        <div class="mb-5">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Μήνας ${month}</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 bg-teal-50 rounded-xl border border-teal-100 text-center">
+              <p class="text-2xl font-bold text-teal-700">${r.images_count}</p>
+              <p class="text-xs text-teal-600 mt-0.5 font-semibold">Εικόνες Δελτίων</p>
+            </div>
+            <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-center">
+              <p class="text-2xl font-bold text-blue-700">${r.total_slips}</p>
+              <p class="text-xs text-blue-600 mt-0.5 font-semibold">Σύνολο Δελτίων</p>
+            </div>
+          </div>
+          <a href="weighing-slips.html?biz=${encodeURIComponent(r.business_id)}"
+             class="mt-3 flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors">
+            <i class="fa-solid fa-scale-balanced"></i>
+            <span>Δελτία Ζύγισης Επιχείρησης</span>
+            <i class="fa-solid fa-arrow-right ml-auto text-xs opacity-70"></i>
+          </a>
+        </div>
+
+        <!-- OSPA Submission Status -->
+        <div class="mb-5">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Υποβολή OSPA ${month}</p>
+          ${st
+            ? `<div class="flex items-center gap-3 p-3 rounded-xl border ${st.cls.includes('green') ? 'bg-green-50 border-green-100' : st.cls.includes('yellow') ? 'bg-yellow-50 border-yellow-100' : 'bg-orange-50 border-orange-100'}">
+                 <i class="fa-solid ${st.icon} ${st.cls.split(' ')[1]} text-lg"></i>
+                 <div>
+                   <p class="font-semibold text-sm ${st.cls.split(' ')[1]}">${st.label}</p>
+                   ${r.submission_date ? `<p class="text-xs text-gray-400 mt-0.5">Υποβλήθηκε: ${new Date(r.submission_date).toLocaleDateString('el-GR')}</p>` : ''}
+                 </div>
+               </div>`
+            : `<div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-400 text-sm text-center">
+                 <i class="fa-regular fa-circle-dot mr-2"></i>Δεν υπάρχει εγγραφή για αυτό τον μήνα
+               </div>`}
+          ${ospaActionBtn}
+        </div>
+      `;
+    }
+
+    loadOspa();
+  </script>
+</body>
+</html>

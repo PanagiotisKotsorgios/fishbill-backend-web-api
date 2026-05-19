@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>FishBill – Συνδρομή</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family:'Inter',system-ui,sans-serif; background:linear-gradient(180deg,#0D47A1 0%,#1565C0 40%,#1976D2 70%,#42A5F5 100%); min-height:100vh; padding-bottom:40px; }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .anim{animation:fadeUp .32s ease-out both;}
+    .anim-1{animation-delay:.05s} .anim-2{animation-delay:.10s} .anim-3{animation-delay:.15s} .anim-4{animation-delay:.20s}
+    .page{max-width:560px;margin:0 auto;padding:0 16px 24px;}
+
+    /* HEADER */
+    .header{display:flex;align-items:center;gap:12px;padding:40px 0 18px;}
+    .header-title{font-size:26px;font-weight:900;color:#fff;letter-spacing:1px;flex:1;}
+    .icon-btn{background:rgba(255,255,255,.18);border:none;border-radius:12px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s;}
+    .icon-btn:hover{background:rgba(255,255,255,.28);}
+    .icon-btn svg{width:22px;height:22px;fill:#fff;}
+
+    /* SNACK */
+    .snack{border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:15px;font-weight:600;transition:opacity .3s;}
+    .snack.ok{background:#E8F5E9;color:#1B5E20;}
+    .snack.err{background:#FFEBEE;color:#B71C1C;}
+
+    /* BILLING TOGGLE */
+    .billing-toggle-wrap{display:flex;justify-content:center;margin:4px 0 18px;}
+    .billing-toggle{display:inline-flex;background:rgba(255,255,255,.18);border-radius:50px;padding:4px;gap:2px;position:relative;}
+    .billing-toggle button{border:none;background:transparent;color:rgba(255,255,255,.75);font-size:13px;font-weight:700;padding:8px 16px;border-radius:46px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+    .billing-toggle button.active{background:#fff;color:#0D47A1;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+    .billing-toggle button.active.cycle-annual .save-badge{background:#16A34A;color:#fff;}
+    .save-badge{background:#16A34A;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:99px;letter-spacing:.03em;}
+    .cycle-annual .save-badge{display:inline;}
+    .cycle-monthly .save-badge, .cycle-semi .save-badge{display:none;}
+    .billing-toggle button:not(.active) .save-badge{background:rgba(255,255,255,.3);color:#fff;}
+
+    /* RECOMMENDED ANNUAL LABEL */
+    .annual-promo{text-align:center;margin-bottom:10px;font-size:13px;color:rgba(255,255,255,.9);font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .annual-promo svg{width:14px;height:14px;fill:rgba(255,255,255,.8);}
+
+    /* STATUS */
+    .status-banner{background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.35);border-radius:20px;padding:18px 20px;display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+    .status-plan{font-size:22px;font-weight:800;color:#fff;}
+    .status-sub{font-size:14px;color:rgba(255,255,255,.8);margin-top:2px;}
+    .section-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 10px;padding:0 2px;}
+
+    /* TRIAL LOCK */
+    .trial-lock{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.4);border-radius:18px;padding:18px 20px;margin-bottom:18px;display:flex;align-items:flex-start;gap:14px;}
+    .trial-lock svg{width:26px;height:26px;fill:#fff;flex-shrink:0;margin-top:1px;}
+    .trial-lock-title{font-size:16px;font-weight:800;color:#fff;margin-bottom:4px;}
+    .trial-lock-sub{font-size:13px;color:rgba(255,255,255,.85);line-height:1.55;}
+
+    /* TRIAL BANNER */
+    .trial-banner{border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+    .trial-banner svg{width:22px;height:22px;flex-shrink:0;}
+    .trial-banner.ok{background:#E8F5E9;color:#1B5E20;}
+    .trial-banner.ok svg{fill:#1B5E20;}
+    .trial-banner.warn{background:#FFF3E0;color:#E65100;}
+    .trial-banner.warn svg{fill:#E65100;}
+    .trial-banner.urgent{background:#FFEBEE;color:#B71C1C;}
+    .trial-banner.urgent svg{fill:#B71C1C;}
+
+    /* PLAN CARD */
+    .plan-card{background:#fff;border-radius:20px;padding:22px 20px;margin-bottom:14px;box-shadow:0 8px 28px rgba(0,0,0,.14);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s;}
+    .plan-card.popular{border:3px solid #7C3AED;}
+    .plan-card.annual-highlight{border:3px solid #16A34A;}
+    .popular-badge{position:absolute;top:14px;right:14px;background:#7C3AED;color:#fff;font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px;letter-spacing:.04em;display:flex;align-items:center;gap:4px;}
+    .popular-badge svg{width:10px;height:10px;fill:#fff;}
+    .plan-name{font-size:22px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+    .plan-name svg{width:22px;height:22px;}
+
+    .price-block{display:flex;align-items:baseline;gap:4px;margin-bottom:2px;}
+    .price-main{font-size:42px;font-weight:900;color:#111;line-height:1;}
+    .price-sub{font-size:14px;color:#888;font-weight:500;}
+    .price-total{font-size:13px;color:#888;margin-bottom:4px;}
+    .price-was{font-size:13px;color:#aaa;text-decoration:line-through;margin-bottom:8px;}
+    .save-chip{display:inline-flex;align-items:center;gap:4px;background:#DCFCE7;color:#16A34A;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;margin-bottom:12px;}
+    .save-chip svg{width:12px;height:12px;fill:#16A34A;}
+
+    .plan-limit{font-size:14px;color:#888;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+    .plan-limit svg{width:14px;height:14px;fill:#bbb;}
+    .plan-divider{height:1px;background:#f0f0f0;margin-bottom:14px;}
+    .feature-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .feature-check{width:18px;height:18px;flex-shrink:0;}
+    .feature-text{font-size:14px;color:#333;font-weight:500;}
+    .plan-btn{width:100%;height:54px;border:none;border-radius:14px;font-size:17px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .12s;letter-spacing:.5px;}
+    .plan-btn:hover{opacity:.9;transform:translateY(-1px);}
+    .plan-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .plan-btn svg{width:18px;height:18px;}
+
+    /* FOOTER NOTE */
+    .footer-note{font-size:13px;color:rgba(255,255,255,.65);text-align:center;padding:8px 0 16px;line-height:1.5;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .footer-note svg{width:14px;height:14px;fill:rgba(255,255,255,.5);flex-shrink:0;}
+
+    .cancel-sub-btn{background:none;border:1px solid rgba(255,255,255,.4);color:rgba(255,255,255,.8);padding:10px 18px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px;display:flex;align-items:center;gap:8px;font-family:inherit;transition:background .15s;}
+    .cancel-sub-btn:hover{background:rgba(255,255,255,.1);}
+    .cancel-sub-btn svg{width:16px;height:16px;fill:rgba(255,255,255,.7);}
+
+    /* SHEET */
+    .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:200;}
+    .sheet{background:#fff;width:100%;max-height:90vh;border-radius:24px 24px 0 0;padding:12px 20px 36px;overflow-y:auto;}
+    .sheet-handle{width:40px;height:4px;background:#e0e0e0;border-radius:99px;margin:0 auto 16px;}
+    .sheet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .sheet-title{font-size:20px;font-weight:800;color:#0D47A1;display:flex;align-items:center;gap:8px;}
+    .sheet-title svg{width:20px;height:20px;fill:#0D47A1;}
+    .close-btn{width:36px;height:36px;background:#f3f4f6;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .close-btn svg{width:18px;height:18px;fill:#555;}
+    .pay-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f9fafb;border-radius:12px;margin-bottom:8px;}
+    .pay-label{font-size:13px;color:#888;font-weight:500;display:flex;align-items:center;gap:5px;}
+    .pay-label svg{width:14px;height:14px;fill:#aaa;}
+    .pay-value{font-size:14px;font-weight:700;color:#111;}
+    .pay-copy{background:#e0e0e0;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .pay-copy svg{width:16px;height:16px;fill:#555;}
+    .pay-total-box{background:#EFF6FF;border:2px solid #BFDBFE;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+    .pay-total-label{font-size:14px;font-weight:700;color:#1E40AF;}
+    .pay-total-amount{font-size:24px;font-weight:900;color:#1E40AF;}
+
+    /* MODAL */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:300;padding:24px;}
+    .modal{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:400px;box-shadow:0 16px 48px rgba(0,0,0,.3);}
+    .modal-title{font-size:20px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+    .modal-title svg{width:22px;height:22px;}
+    .modal-actions{display:flex;gap:10px;margin-top:6px;}
+    .btn-modal-cancel{flex:1;height:48px;background:#f3f4f6;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;color:#555;font-family:inherit;}
+    .btn-modal-confirm{flex:1;height:48px;background:#0D47A1;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;transition:opacity .15s;}
+    .btn-modal-confirm:hover{opacity:.9;}
+    .btn-modal-confirm.danger{background:#C62828;}
+    .err-card{background:#FFEBEE;border-radius:16px;padding:16px;color:#B71C1C;font-size:14px;font-weight:500;}
+
+    @media (min-width:900px){
+      .page{max-width:1100px;padding:0 32px 32px;}
+      .header{padding:36px 0 22px;}
+      .header-title{font-size:32px;}
+      .icon-btn{width:52px;height:52px;}
+      .icon-btn svg{width:24px;height:24px;}
+      .plan-btn{height:60px;font-size:19px;border-radius:16px;}
+      .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+      .plans-grid .plan-card{margin-bottom:0;}
+      .sheet{max-width:540px;margin:auto auto 0;border-radius:24px 24px 0 0;}
+    }
+    @media (max-width:899px){.plans-grid{display:contents;}}
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <button class="icon-btn" onclick="history.back()" title="Πίσω">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <div class="header-title">Συνδρομή</div>
+    <div id="nav-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#42A5F5);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer;" onclick="location.href='profile.html'">?</div>
+  </div>
+
+  <div id="snack-area"></div>
+
+  <!-- Status area -->
+  <div id="status-area" class="anim anim-1">
+    <div style="display:flex;justify-content:center;padding:20px 0">
+      <div style="width:28px;height:28px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div>
+    </div>
+  </div>
+
+  <!-- Add-ons & billing breakdown (populated by renderAddons) -->
+  <div id="addons-area" class="anim anim-1"></div>
+
+  <!-- First-payment promo banner (shown when no active subscription) -->
+  <div id="promo-banner" class="anim anim-2" style="display:none;background:linear-gradient(135deg,#16A34A,#15803D);border-radius:18px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px">
+    <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:#fff;flex-shrink:0"><path d="M20 12c0-1.1-.9-2-2-2V7c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v5c0 1.1.9 2 2 2v5h10v-5h2v5h2v-5c1.1 0 2-.9 2-2zm-6 5H4v-5h10v5zm0-7H4V7h10v3z"/></svg>
+    <div>
+      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:3px">🎁 1 Μήνας ΔΩΡΕΑΝ με την 1η πληρωμή σας!</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.88);line-height:1.5">Πληρώστε οποιοδήποτε πλάνο και λάβετε +1 επιπλέον μήνα δωρεάν — ισχύει μόνο στην πρώτη ενεργοποίηση.</div>
+    </div>
+  </div>
+
+  <!-- Billing cycle toggle -->
+  <div class="annual-promo anim anim-2">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+    Επιλέξτε πλάνο χρέωσης — το ετήσιο είναι η καλύτερη αξία!
+  </div>
+
+  <div class="billing-toggle-wrap anim anim-2">
+    <div class="billing-toggle">
+      <button id="toggle-monthly" class="cycle-monthly" onclick="setCycle('monthly')">
+        Μηνιαίο
+      </button>
+      <button id="toggle-semi" class="cycle-semi" onclick="setCycle('semi_annual')">
+        6 Μήνες
+        <span class="save-badge">-13%</span>
+      </button>
+      <button id="toggle-annual" class="cycle-annual active" onclick="setCycle('annual')">
+        Ετήσιο
+        <span class="save-badge">-37%</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="section-label anim anim-2" id="plans-label">ΕΤΗΣΙΑ ΠΛΑΝΑ — ΚΑΛΥΤΕΡΗ ΑΞΙΑ</div>
+
+  <!-- Plan-change CTA for active subscribers -->
+  <div id="plan-change-cta" style="display:none;margin-bottom:16px"></div>
+
+  <div class="plans-grid">
+
+    <!-- Basic -->
+    <div class="plan-card annual-highlight anim anim-2" id="card-basic">
+      <div class="plan-name" style="color:#1976D2">
+        <svg viewBox="0 0 180 120" width="26" height="17">
+          <path fill="#0D47A1" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+          <path fill="#1976D2" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+          <path fill="#42A5F5" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+          <circle cx="138" cy="60" r="8" fill="#FFFFFF"/><circle cx="138" cy="60" r="4" fill="#1A237E"/>
+        </svg>
+        Basic
+      </div>
+      <div class="price-block"><span class="price-main" id="price-basic">€60</span><span class="price-sub" id="price-basic-sub">/έτος</span></div>
+      <div class="price-total" id="price-basic-mo" style="color:#16A34A;font-weight:700">€5/μήνα • εξοικονόμηση €36</div>
+      <div class="save-chip" id="save-basic"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Εξοικονόμηση €36</div>
+      <div class="plan-limit"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>30 τιμολόγια &amp; δελτία αποστολής/μήνα</div>
+      <div class="plan-divider"></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#1976D2"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Έκδοση τιμολογίων</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#1976D2"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">PDF εξαγωγή</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#1976D2"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Email υποστήριξη</span></div>
+      <button class="plan-btn" style="background:#1976D2;color:#fff" id="btn-basic" onclick="selectPlan('basic')">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        <span id="btn-basic-label">Επιλογή Basic — €60/έτος</span>
+      </button>
+    </div>
+
+    <!-- Pro (popular) -->
+    <div class="plan-card popular anim anim-3" id="card-pro">
+      <div class="popular-badge"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>ΔΗΜΟΦΙΛΕΣ</div>
+      <div class="plan-name" style="color:#7C3AED">
+        <svg viewBox="0 0 24 24" style="fill:#7C3AED"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>Pro
+      </div>
+      <div class="price-block"><span class="price-main" id="price-pro">€120</span><span class="price-sub" id="price-pro-sub">/έτος</span></div>
+      <div class="price-total" id="price-pro-mo" style="color:#16A34A;font-weight:700">€10/μήνα • εξοικονόμηση €60</div>
+      <div class="save-chip" id="save-pro"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Εξοικονόμηση €60</div>
+      <div class="plan-limit"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>40 τιμολόγια &amp; δελτία αποστολής/μήνα</div>
+      <div class="plan-divider"></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#7C3AED"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Έκδοση τιμολογίων</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#7C3AED"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">PDF εξαγωγή</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#7C3AED"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Προηγμένα στατιστικά</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#7C3AED"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Προτεραιότητα υποστήριξης</span></div>
+      <button class="plan-btn" style="background:#7C3AED;color:#fff" id="btn-pro" onclick="selectPlan('pro')">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        <span id="btn-pro-label">Επιλογή Pro — €120/έτος</span>
+      </button>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="plan-card anim anim-4" id="card-enterprise">
+      <div class="plan-name" style="color:#D97706">
+        <svg viewBox="0 0 24 24" style="fill:#D97706"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>Enterprise
+      </div>
+      <div class="price-block"><span class="price-main" id="price-enterprise">€240</span><span class="price-sub" id="price-enterprise-sub">/έτος</span></div>
+      <div class="price-total" id="price-enterprise-mo" style="color:#16A34A;font-weight:700">€20/μήνα • εξοικονόμηση €120</div>
+      <div class="save-chip" id="save-enterprise"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Εξοικονόμηση €120</div>
+      <div class="plan-limit"><svg viewBox="0 0 24 24"><path d="M18.6 6.62c-1.44 0-2.8.56-3.77 1.53L12 10.66 10.48 12h.01L7.8 14.39c-.64.64-1.49.99-2.4.99-1.87 0-3.39-1.51-3.39-3.38S3.53 8.62 5.4 8.62c.91 0 1.76.35 2.44 1.03l1.13 1 1.51-1.34L9.22 8.2C8.2 7.18 6.84 6.62 5.4 6.62 2.42 6.62 0 9.04 0 12s2.42 5.38 5.4 5.38c1.44 0 2.8-.56 3.77-1.53l2.83-2.5.01.01L13.52 12h-.01l2.69-2.39c.64-.64 1.49-.99 2.4-.99 1.87 0 3.39 1.51 3.39 3.38s-1.52 3.38-3.39 3.38c-.9 0-1.76-.35-2.44-1.03l-1.14-1.01-1.51 1.34 1.27 1.12c1.02 1.01 2.37 1.57 3.82 1.57C21.58 17.38 24 14.96 24 12s-2.42-5.38-5.4-5.38z"/></svg>Απεριόριστα τιμολόγια &amp; δελτία αποστολής</div>
+      <div class="plan-divider"></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#D97706"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Απεριόριστα τιμολόγια &amp; δελτία αποστολής</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#D97706"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">PDF εξαγωγή</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#D97706"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Πλήρη στατιστικά</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#D97706"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">Αφιερωμένη υποστήριξη</span></div>
+      <div class="feature-row"><svg class="feature-check" viewBox="0 0 24 24" style="fill:#D97706"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span class="feature-text">API πρόσβαση</span></div>
+      <button class="plan-btn" style="background:#D97706;color:#fff" id="btn-enterprise" onclick="selectPlan('enterprise')">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        <span id="btn-enterprise-label">Επιλογή Enterprise — €240/έτος</span>
+      </button>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+    Η ενεργοποίηση γίνεται εντός 24 ωρών μετά την πληρωμή μέσω τραπεζικής μεταφοράς.
+  </p>
+</div>
+
+<!-- Payment instruction sheet -->
+<div id="pay-modal" class="sheet-overlay" onclick="if(event.target.id==='pay-modal')this.style.display='none'">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">
+        <svg viewBox="0 0 24 24"><path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zM12 1L2 6v2h20V6z"/></svg>
+        Οδηγίες Πληρωμής
+      </span>
+      <button class="close-btn" onclick="document.getElementById('pay-modal').style.display='none'">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="pay-total-box">
+      <span class="pay-total-label" id="pay-plan-desc">—</span>
+      <span class="pay-total-amount" id="pay-total-amount">—</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Στοιχεία τραπεζικής μεταφοράς</div>
+    <div id="pay-bank-details"></div>
+    <p style="font-size:13px;color:#666;margin-top:14px;line-height:1.6;padding:14px;background:#f9fafb;border-radius:14px">
+      Μόλις ολοκληρωθεί η πληρωμή, η συνδρομή ενεργοποιείται εντός 24 ωρών. Στείλτε αποδεικτικό στο <strong>support@fishbill.gr</strong>
+    </p>
+    <button class="btn-modal-confirm" onclick="document.getElementById('pay-modal').style.display='none'" style="width:100%;margin-top:16px;height:54px;font-size:17px;border-radius:14px">Κατανόησα</button>
+  </div>
+</div>
+
+<!-- Cancel subscription modal -->
+<div id="cancel-modal" class="modal-backdrop" onclick="if(event.target.id==='cancel-modal')this.style.display='none'">
+  <div class="modal">
+    <div class="modal-title" style="color:#C62828">
+      <svg viewBox="0 0 24 24" style="fill:#C62828"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      Ακύρωση Συνδρομής
+    </div>
+    <p style="font-size:14px;color:#555;margin-bottom:20px;line-height:1.6">Η συνδρομή σας θα ακυρωθεί στο τέλος της τρέχουσας περιόδου. Μετά δεν θα μπορείτε να εκδίδετε νέα τιμολόγια.<br><br>Θέλετε να συνεχίσετε;</p>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="document.getElementById('cancel-modal').style.display='none'">Όχι, κρατήστε τη</button>
+      <button class="btn-modal-confirm danger" onclick="cancelSubscription()">Ακύρωση</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+  if(!requireAuth())throw 0;
+
+  // Pricing table (matches backend)
+  const PRICING = {
+    basic:      { monthly: 8,   semi_annual: 35,  annual: 60  },
+    pro:        { monthly: 12,  semi_annual: 65,  annual: 120 },
+    enterprise: { monthly: 30,  semi_annual: 130, annual: 240 },
+  };
+  const SAVINGS = {
+    basic:      { monthly: 0, semi_annual: 13, annual: 36 },
+    pro:        { monthly: 0, semi_annual: 25, annual: 60 },
+    enterprise: { monthly: 0, semi_annual: 50, annual: 120 },
+  };
+  const CYCLE_LABELS = { monthly:'μηνιαία', semi_annual:'6μηνη', annual:'ετήσια' };
+  const CYCLE_SUBS   = { monthly:'/μήνα', semi_annual:'/6μήνες', annual:'/έτος' };
+  const CYCLE_PER_MO = {
+    basic:      { monthly:'€8/μήνα', semi_annual:'€5.83/μήνα • εξοικονόμηση €13', annual:'€5/μήνα • εξοικονόμηση €36' },
+    pro:        { monthly:'€12/μήνα', semi_annual:'€10.83/μήνα • εξοικονόμηση €25', annual:'€10/μήνα • εξοικονόμηση €60' },
+    enterprise: { monthly:'€30/μήνα', semi_annual:'€21.67/μήνα • εξοικονόμηση €50', annual:'€20/μήνα • εξοικονόμηση €120' },
+  };
+  const PLAN_NAMES = { basic:'Basic', pro:'Pro', enterprise:'Enterprise' };
+
+  let bankSettings = {}, irisSettings = {}, currentPlan = null, isTrial = false, userAddons = null;
+  let selectedCycle = 'annual'; // default to annual — best value
+
+  function setCycle(cycle) {
+    selectedCycle = cycle;
+    // Toggle buttons
+    document.getElementById('toggle-monthly').classList.toggle('active', cycle==='monthly');
+    document.getElementById('toggle-semi').classList.toggle('active', cycle==='semi_annual');
+    document.getElementById('toggle-annual').classList.toggle('active', cycle==='annual');
+
+    // Section label
+    const labels = { monthly:'ΜΗΝΙΑΙΑ ΠΛΑΝΑ', semi_annual:'ΠΛΑΝΑ 6 ΜΗΝΩΝ', annual:'ΕΤΗΣΙΑ ΠΛΑΝΑ — ΚΑΛΥΤΕΡΗ ΑΞΙΑ' };
+    document.getElementById('plans-label').textContent = labels[cycle];
+
+    // Card highlights
+    ['basic','pro','enterprise'].forEach(p => {
+      const card = document.getElementById(`card-${p}`);
+      card.classList.toggle('annual-highlight', cycle==='annual');
+    });
+
+    // Update prices
+    ['basic','pro','enterprise'].forEach(p => {
+      const price   = PRICING[p][cycle];
+      const sub     = CYCLE_SUBS[cycle];
+      const perMo   = CYCLE_PER_MO[p][cycle];
+      const saving  = SAVINGS[p][cycle];
+      document.getElementById(`price-${p}`).textContent = `€${price}`;
+      document.getElementById(`price-${p}-sub`).textContent = sub;
+      document.getElementById(`price-${p}-mo`).textContent  = perMo;
+      document.getElementById(`price-${p}-mo`).style.color  = cycle!=='monthly' ? '#16A34A' : '#888';
+      document.getElementById(`save-${p}`).style.display     = cycle!=='monthly' ? 'inline-flex' : 'none';
+      if(saving) document.getElementById(`save-${p}`).lastChild.textContent = `Εξοικονόμηση €${saving}`;
+      const btnLabel = cycle==='monthly'
+        ? `Επιλογή ${PLAN_NAMES[p]} — €${price}/μήνα`
+        : `Επιλογή ${PLAN_NAMES[p]} — €${price}${sub}`;
+      const btnLabelEl = document.getElementById(`btn-${p}-label`);
+      if(btnLabelEl) btnLabelEl.textContent = btnLabel;
+    });
+
+    renderPlanButtons();
+  }
+
+  async function loadStatus(){
+    try{
+      const [subRes, settingsRes, irisRes, featuresRes] = await Promise.all([
+        api.get('/subscription/status'),
+        api.get('/platform/public-settings').catch(() => null),
+        api.get('/iris/platform').catch(() => null),
+        api.get('/settings/features').catch(() => null),
+      ]);
+      if(settingsRes) bankSettings = settingsRes;
+      if(irisRes && irisRes.data) irisSettings = irisRes.data;
+      if(featuresRes && featuresRes.data) userAddons = featuresRes.data;
+
+      const sub = subRes.data || subRes;
+      currentPlan = sub.plan;
+      isTrial     = sub.trial_active || sub.plan === 'trial';
+
+      // Only restore billing cycle for active subscribers; trial users default to 'annual' to show best pricing
+      if(!isTrial && sub.billing_cycle && ['monthly','semi_annual','annual'].includes(sub.billing_cycle)){
+        setCycle(sub.billing_cycle);
+      }
+
+      renderStatus(sub);
+      renderAddons();
+      renderPlanButtons();
+    }catch(e){
+      document.getElementById('status-area').innerHTML = `<div class="err-card">⚠️ ${e.message}</div>`;
+    }
+  }
+
+  function renderAddons(){
+    const el = document.getElementById('addons-area');
+    if(!el) return;
+    if(!userAddons){ el.innerHTML = ''; return; }
+    const { addons = [], plan_price = 0, total_monthly = 0, plan } = userAddons;
+    const enabledAddons = addons.filter(a => a.enabled);
+    // Skip rendering for trial users with no addons
+    if(isTrial && !enabledAddons.length){ el.innerHTML = ''; return; }
+    if(!plan || plan === 'trial') { el.innerHTML = ''; return; }
+    const planLabels = { basic:'Basic', pro:'Pro', enterprise:'Enterprise' };
+    el.innerHTML = `
+      <div style="background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:12px;border:1.5px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px">Μηνιαία Χρέωση</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:14px;">
+          <span style="color:#6b7280">Πλάνο ${planLabels[plan] || plan}</span>
+          <span style="font-weight:700;color:#1f2937">€${plan_price}<span style="font-size:12px;font-weight:500;color:#9ca3af">/μήνα</span></span>
+        </div>
+        ${enabledAddons.map(a => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid #f3f4f6;font-size:14px;">
+          <span style="color:#374151;display:flex;align-items:center;gap:7px">
+            <span style="width:7px;height:7px;border-radius:50%;background:#10B981;flex-shrink:0;display:inline-block"></span>
+            ${a.label}
+          </span>
+          <span style="font-weight:700;color:#059669">+€${a.price}<span style="font-size:12px;font-weight:500;color:#9ca3af">/μήνα</span></span>
+        </div>`).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid #f3f4f6;margin-top:6px;font-size:15px;font-weight:800;">
+          <span style="color:#111827">Σύνολο</span>
+          <span style="color:#0D47A1">€${total_monthly}<span style="font-size:12px;font-weight:500;color:#9ca3af">/μήνα</span></span>
+        </div>
+      </div>`;
+  }
+
+  function renderPlanButtons(){
+    const promoEl = document.getElementById('promo-banner');
+    const hasActiveSub = currentPlan && currentPlan !== 'trial' && !isTrial;
+    if(promoEl) promoEl.style.display = hasActiveSub ? 'none' : 'flex';
+
+    // Plan-change CTA for active subscribers
+    const ctaEl = document.getElementById('plan-change-cta');
+    if(ctaEl){
+      if(hasActiveSub){
+        const phone = (bankSettings && bankSettings.support_phone) || '';
+        const phoneHtml = phone
+          ? `: <a href="tel:${phone}" style="color:#1D4ED8;font-weight:700;text-decoration:none">${phone}</a>`
+          : ' για αναβάθμιση ή υποβάθμιση πλάνου';
+        ctaEl.style.display = 'block';
+        ctaEl.innerHTML = `<div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:16px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;flex-shrink:0;fill:#1D4ED8;margin-top:2px"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:3px">Για αλλαγή πλάνου</div>
+            <div style="font-size:13px;color:#3B82F6;line-height:1.5">Επικοινωνήστε μαζί μας τηλεφωνικά${phoneHtml}.</div>
+          </div>
+        </div>`;
+      } else {
+        ctaEl.style.display = 'none';
+      }
+    }
+
+    ['basic','pro','enterprise'].forEach(p => {
+      const btn = document.getElementById(`btn-${p}`);
+      if(!btn) return;
+      if(isTrial){
+        btn.disabled = true;
+        btn.style.opacity = '.45';
+        btn.style.cursor  = 'not-allowed';
+        btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Μόνο μετά τη δοκιμή`;
+      } else if(hasActiveSub){
+        if(p === currentPlan){
+          btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Τρέχον πλάνο`;
+          btn.style.opacity = '.65';
+          btn.disabled = true;
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = '.4';
+          btn.style.cursor  = 'not-allowed';
+          btn.onclick = null;
+        }
+      }
+    });
+  }
+
+  function renderStatus(s){
+    const planLabel = {
+      trial:'Δωρεάν Δοκιμή', basic:'Basic', pro:'Pro', enterprise:'Enterprise'
+    }[s.plan] || (s.plan || '—');
+
+    const CHECK = '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>';
+    const XMARK = '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>';
+    const effectivelyActive = s.has_access || s.trial_active || s.subscription_active;
+
+    let trialHtml = '';
+    if(s.trial_active && s.trial_days_remaining != null){
+      const days = s.trial_days_remaining;
+      const cls  = days<=3 ? 'urgent' : days<=7 ? 'warn' : 'ok';
+      const FIRE  = '<path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>';
+      const CLOCK = '<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>';
+      trialHtml = `<div class="trial-banner ${cls}">
+        <svg viewBox="0 0 24 24">${days<=3?FIRE:CLOCK}</svg>
+        <div>
+          <div style="font-weight:700;font-size:14px">${days<=3?'Η δοκιμαστική περίοδος λήγει σύντομα!':'Δωρεάν Δοκιμή'}</div>
+          <div style="font-size:13px;opacity:.85">${days} ημέρες απομένουν — αναβαθμίστε για συνέχεια</div>
+        </div>
+      </div>`;
+    }
+
+    // Show billing cycle badge if active subscription
+    let cycleHtml = '';
+    if(s.subscription_active && s.billing_cycle && s.billing_cycle !== 'monthly'){
+      const cycleLabels = { semi_annual:'Εξαμηνιαία', annual:'Ετήσια' };
+      cycleHtml = `<span style="display:inline-flex;align-items:center;gap:4px;background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:4px">${cycleLabels[s.billing_cycle]||s.billing_cycle}</span>`;
+    }
+
+    let cancelHtml = '';
+    if(s.subscription_active && s.plan !== 'trial'){
+      cancelHtml = `<button class="cancel-sub-btn" onclick="document.getElementById('cancel-modal').style.display='flex'">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        Ακύρωση συνδρομής
+      </button>`;
+    }
+
+    const statusSubtitle = s.trial_active
+      ? 'Δοκιμαστική περίοδος ενεργή'
+      : s.subscription_active
+        ? `Συνδρομή ενεργή${s.subscription_ends_at ? ' · λήξη '+s.subscription_ends_at.slice(0,10) : ''}`
+        : 'Χωρίς ενεργή συνδρομή — επιλέξτε πλάνο';
+
+    document.getElementById('status-area').innerHTML = `
+      <div class="status-banner anim anim-1">
+        <svg viewBox="0 0 24 24" style="width:32px;height:32px;flex-shrink:0;fill:${effectivelyActive?'#A5D6A7':'#EF9A9A'}">${effectivelyActive?CHECK:XMARK}</svg>
+        <div style="flex:1">
+          <div class="status-plan">${planLabel}</div>
+          <div class="status-sub">${statusSubtitle}</div>
+          ${cycleHtml}
+        </div>
+      </div>
+      ${trialHtml}${cancelHtml}`;
+  }
+
+  async function selectPlan(planId){
+    const price    = PRICING[planId][selectedCycle];
+    const planName = PLAN_NAMES[planId];
+    const btn      = document.getElementById(`btn-${planId}`);
+    const origHtml = btn.innerHTML;
+
+    btn.disabled  = true;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff;animation:spin .7s linear infinite"><path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/></svg> Αποστολή…';
+
+    try{
+      await api.post('/subscription/request', { plan: planId, billing_cycle: selectedCycle });
+      showSnack(`Αίτημα για ${planName} (${CYCLE_LABELS[selectedCycle]}) καταγράφηκε!`, 'ok');
+      showPaymentModal(planName, price, selectedCycle);
+      loadStatus();
+    }catch(e){
+      showSnack('Σφάλμα: ' + e.message, 'err');
+      btn.disabled  = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  function showPaymentModal(planName, price, cycle){
+    const cycleLabel = { monthly:'μηνιαία χρέωση', semi_annual:'χρέωση 6 μηνών', annual:'ετήσια χρέωση' }[cycle];
+    document.getElementById('pay-plan-desc').textContent    = `${planName} — ${cycleLabel}`;
+    document.getElementById('pay-total-amount').textContent = `€${price}`;
+
+    const bank  = bankSettings;
+    const iban  = bank.bank_iban || '';
+    const bname = bank.bank_name || '';
+    const benef = bank.bank_account_name || bank.bank_beneficiary || '';
+    const user  = T.getUser() || {};
+    const ref   = `Συνδρομή ${planName} ${CYCLE_LABELS[cycle]} — ${user.email || 'email σας'}`;
+
+    const iris        = irisSettings;
+    const irisEnabled = iris.iris_enabled === '1' || iris.iris_enabled === 1;
+    const irisIban    = iris.iris_iban || '';
+    const irisName    = iris.iris_bank_name || '';
+    const irisPhone   = iris.iris_mobile || '';
+    const irisInstr   = iris.iris_instructions || '';
+
+    const BANK = '<path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zM12 1L2 6v2h20V6z"/>';
+    const USER = '<path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>';
+    const CARD = '<path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>';
+    const MSG  = '<path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>';
+    const COPY = '<path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>';
+    const PHONE= '<path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>';
+
+    let payHtml = '';
+
+    if(irisEnabled && irisIban){
+      // Show IRIS payment details
+      payHtml += `
+        <div style="background:#E8F5E9;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#2E7D32;letter-spacing:.02em">
+          📱 Πληρωμή μέσω IRIS (άμεση τραπεζική μεταφορά)
+        </div>
+        ${irisName?`<div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${BANK}</svg>Τράπεζα</span><span class="pay-value">${irisName}</span></div>`:''}
+        <div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${CARD}</svg>IBAN</span>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end">
+            <span class="pay-value" style="font-size:13px;letter-spacing:.04em">${irisIban}</span>
+            <button class="pay-copy" onclick="copyText('${irisIban}',this)"><svg viewBox="0 0 24 24">${COPY}</svg></button>
+          </div></div>
+        ${irisPhone?`<div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${PHONE}</svg>Κινητό</span>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end">
+            <span class="pay-value">${irisPhone}</span>
+            <button class="pay-copy" onclick="copyText('${irisPhone}',this)"><svg viewBox="0 0 24 24">${COPY}</svg></button>
+          </div></div>`:''}
+        <div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${MSG}</svg>Αιτία</span><span class="pay-value" style="font-size:13px">${ref}</span></div>
+        ${irisInstr?`<div style="background:#F5F5F5;border-radius:8px;padding:10px 12px;font-size:12px;color:#555;margin-top:8px">${irisInstr}</div>`:''}`;
+    } else if(!iban && !bname){
+      payHtml = `<div style="background:#FFF3E0;border-radius:12px;padding:14px 16px;color:#E65100;font-size:14px;font-weight:600">
+        ⚠️ Τα τραπεζικά στοιχεία δεν έχουν ρυθμιστεί. Επικοινωνήστε με τον διαχειριστή.
+      </div>`;
+    } else {
+      payHtml = `
+        ${bname?`<div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${BANK}</svg>Τράπεζα</span><span class="pay-value">${bname}</span></div>`:''}
+        ${benef?`<div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${USER}</svg>Δικαιούχος</span><span class="pay-value">${benef}</span></div>`:''}
+        ${iban?`<div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${CARD}</svg>IBAN</span>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end">
+            <span class="pay-value" style="font-size:13px;letter-spacing:.04em">${iban}</span>
+            <button class="pay-copy" onclick="copyText('${iban}',this)"><svg viewBox="0 0 24 24">${COPY}</svg></button>
+          </div></div>`:''}
+        <div class="pay-row"><span class="pay-label"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#aaa">${MSG}</svg>Αιτία</span><span class="pay-value" style="font-size:13px">${ref}</span></div>`;
+    }
+
+    document.getElementById('pay-bank-details').innerHTML = payHtml;
+    document.getElementById('pay-modal').style.display = 'flex';
+  }
+
+  function copyText(text, btn){
+    navigator.clipboard.writeText(text).then(()=>{
+      const CHECK='<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>';
+      const COPY='<path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>';
+      btn.querySelector('svg').innerHTML = CHECK;
+      setTimeout(()=>{ btn.querySelector('svg').innerHTML = COPY; }, 2000);
+    }).catch(()=>{});
+  }
+
+  async function cancelSubscription(){
+    try{
+      await api.post('/subscription/cancel');
+      document.getElementById('cancel-modal').style.display = 'none';
+      showSnack('Η συνδρομή ακυρώθηκε.', 'ok');
+      loadStatus();
+    }catch(e){
+      document.getElementById('cancel-modal').style.display = 'none';
+      showSnack('Σφάλμα: ' + e.message, 'err');
+    }
+  }
+
+  function showSnack(msg, type='ok'){
+    const el = document.getElementById('snack-area');
+    el.innerHTML = `<div class="snack ${type}">${msg}</div>`;
+    setTimeout(()=>{ if(el.firstChild){ el.firstChild.style.opacity='0'; setTimeout(()=>el.innerHTML='',300); } }, 5000);
+  }
+
+  // Boot — annual is default, then load real status
+  setCycle('annual');
+  loadStatus();
+  initNavAvatar();
+</script>
+</body>
+</html>

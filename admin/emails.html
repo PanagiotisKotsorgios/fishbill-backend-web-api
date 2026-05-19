@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Email & Campaigns</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .3s ease-out both; }
+    .tab-btn { border-bottom: 2px solid transparent; transition: all .15s; }
+    .tab-btn.active { border-color: #2563eb; color: #2563eb; font-weight: 700; }
+    .section-panel { display: none; }
+    .section-panel.active { display: block; }
+    .input-field { width:100%; border:1.5px solid #e5e7eb; border-radius:10px; padding:9px 13px; font-size:14px; color:#111; background:#fafafa; transition:border-color .15s; outline:none; }
+    .input-field:focus { border-color:#3b82f6; background:#fff; box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+    .send-btn { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:10px; padding:11px 28px; font-size:14px; font-weight:700; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:8px; }
+    .send-btn:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); }
+    .send-btn:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+    .label-text { display:block; font-size:12px; font-weight:600; color:#6b7280; margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+    .audience-card { border:2px solid #e5e7eb; border-radius:14px; padding:14px 18px; cursor:pointer; transition:all .15s; background:#fff; }
+    .audience-card:hover { border-color:#93c5fd; background:#eff6ff; }
+    .audience-card.selected { border-color:#2563eb; background:#eff6ff; }
+    .user-row { border:1.5px solid #e5e7eb; border-radius:10px; padding:10px 14px; background:#fff; transition:all .15s; cursor:pointer; }
+    .user-row:hover { border-color:#93c5fd; background:#f0f9ff; }
+    .user-row.selected { border-color:#2563eb; background:#eff6ff; }
+    textarea.input-field { resize:vertical; min-height:120px; font-size:14px; line-height:1.6; }
+    .template-chip { display:inline-flex; align-items:center; gap:6px; border:1.5px solid #e5e7eb; border-radius:20px; padding:5px 14px; font-size:12px; font-weight:600; cursor:pointer; background:#fff; transition:all .12s; }
+    .template-chip:hover { border-color:#2563eb; color:#2563eb; background:#eff6ff; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div id="sidebar-container"></div>
+
+  <div class="pt-14 lg:pt-0 min-h-screen">
+    <main class="p-6">
+
+      <!-- Header -->
+      <div class="mb-6 anim">
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <i class="fas fa-paper-plane text-blue-600"></i>
+          Email & Campaigns
+        </h1>
+        <p class="text-sm text-gray-500 mt-0.5">Αποστολή email σε ψαράδες — άμεση ή μαζική</p>
+      </div>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all"></div>
+
+      <!-- Tabs -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 anim" style="animation-delay:.05s">
+        <div class="flex border-b border-gray-100 px-4 gap-1">
+          <button class="tab-btn active px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('campaign')">
+            <i class="fas fa-bullhorn mr-1.5"></i>Campaign
+          </button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('direct')">
+            <i class="fas fa-envelope mr-1.5"></i>Άμεσο Email
+          </button>
+          <button class="tab-btn px-4 py-3 text-sm whitespace-nowrap" onclick="switchTab('templates')">
+            <i class="fas fa-file-lines mr-1.5"></i>Πρότυπα
+          </button>
+        </div>
+
+        <!-- ── CAMPAIGN TAB ── -->
+        <div id="tab-campaign" class="section-panel active p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+            <!-- Left: Compose -->
+            <div class="lg:col-span-3 space-y-5">
+              <div>
+                <span class="label-text">Θέμα Email</span>
+                <input id="camp-subject" type="text" class="input-field" placeholder="π.χ. Νέα ανακοίνωση FishBill" />
+              </div>
+              <div>
+                <span class="label-text">Μήνυμα</span>
+                <textarea id="camp-message" class="input-field" placeholder="Γράψτε το μήνυμά σας...&#10;&#10;Υποστηρίζεται απλό κείμενο. Νέες γραμμές μετατρέπονται σε <br>."></textarea>
+              </div>
+
+              <!-- Quick templates -->
+              <div>
+                <span class="label-text">Γρήγορα Πρότυπα</span>
+                <div class="flex flex-wrap gap-2 mt-1">
+                  <button class="template-chip" onclick="applyTemplate('welcome')">
+                    <i class="fas fa-hand-wave text-yellow-500"></i> Καλωσόρισμα
+                  </button>
+                  <button class="template-chip" onclick="applyTemplate('feature')">
+                    <i class="fas fa-star text-blue-500"></i> Νέα Λειτουργία
+                  </button>
+                  <button class="template-chip" onclick="applyTemplate('reminder')">
+                    <i class="fas fa-bell text-orange-500"></i> Υπενθύμιση
+                  </button>
+                  <button class="template-chip" onclick="applyTemplate('maintenance')">
+                    <i class="fas fa-wrench text-gray-500"></i> Συντήρηση
+                  </button>
+                  <button class="template-chip" onclick="applyTemplate('promo')">
+                    <i class="fas fa-percent text-green-500"></i> Προσφορά
+                  </button>
+                </div>
+              </div>
+
+              <!-- Preview -->
+              <div id="camp-preview-wrap" class="hidden">
+                <span class="label-text">Προεπισκόπηση</span>
+                <div id="camp-preview" class="border border-gray-200 rounded-xl p-4 bg-gray-50 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
+              </div>
+
+              <div class="flex items-center gap-3 flex-wrap">
+                <button class="send-btn" id="camp-send-btn" onclick="sendCampaign()">
+                  <i class="fas fa-paper-plane"></i>
+                  <span id="camp-send-label">Αποστολή Campaign</span>
+                </button>
+                <button onclick="previewCampaign()" class="px-4 py-2.5 border border-gray-200 rounded-10px text-sm font-600 text-gray-700 bg-white hover:bg-gray-50 transition-all" style="border-radius:10px;font-weight:600">
+                  <i class="fas fa-eye mr-1.5 text-gray-400"></i>Προεπισκόπηση
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Audience picker -->
+            <div class="lg:col-span-2 space-y-4">
+              <span class="label-text">Κοινό</span>
+
+              <div class="space-y-2" id="audience-cards">
+                <div class="audience-card selected" data-aud="all" onclick="selectAudience('all', this)">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-base flex-shrink-0">
+                      <i class="fas fa-globe"></i>
+                    </div>
+                    <div>
+                      <div class="font-700 text-sm text-gray-900" style="font-weight:700">Όλοι</div>
+                      <div class="text-xs text-gray-500">Κάθε εγγεγραμμένη επιχείρηση</div>
+                    </div>
+                    <span id="cnt-all" class="ml-auto text-xs font-700 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full"></span>
+                  </div>
+                </div>
+
+                <div class="audience-card" data-aud="trial" onclick="selectAudience('trial', this)">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-base flex-shrink-0">
+                      <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                      <div class="font-700 text-sm text-gray-900" style="font-weight:700">Δοκιμαστική Περίοδος</div>
+                      <div class="text-xs text-gray-500">Μόνο trial χρήστες</div>
+                    </div>
+                    <span id="cnt-trial" class="ml-auto text-xs font-700 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full"></span>
+                  </div>
+                </div>
+
+                <div class="audience-card" data-aud="active" onclick="selectAudience('active', this)">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-base flex-shrink-0">
+                      <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                      <div class="font-700 text-sm text-gray-900" style="font-weight:700">Ενεργή Συνδρομή</div>
+                      <div class="text-xs text-gray-500">Με ενεργή συνδρομή</div>
+                    </div>
+                    <span id="cnt-active" class="ml-auto text-xs font-700 text-green-600 bg-green-50 px-2 py-0.5 rounded-full"></span>
+                  </div>
+                </div>
+
+                <div class="audience-card" data-aud="inactive" onclick="selectAudience('inactive', this)">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-base flex-shrink-0">
+                      <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div>
+                      <div class="font-700 text-sm text-gray-900" style="font-weight:700">Ανενεργοί</div>
+                      <div class="text-xs text-gray-500">Ληγμένη / χωρίς συνδρομή</div>
+                    </div>
+                    <span id="cnt-inactive" class="ml-auto text-xs font-700 text-red-500 bg-red-50 px-2 py-0.5 rounded-full"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Audience summary -->
+              <div id="audience-summary" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 font-medium hidden">
+                <i class="fas fa-info-circle mr-1.5"></i>
+                <span id="audience-summary-text"></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── DIRECT EMAIL TAB ── -->
+        <div id="tab-direct" class="section-panel p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+            <!-- Left: Compose -->
+            <div class="lg:col-span-3 space-y-5">
+              <div>
+                <span class="label-text">Θέμα Email</span>
+                <input id="dir-subject" type="text" class="input-field" placeholder="Θέμα του email" />
+              </div>
+              <div>
+                <span class="label-text">Μήνυμα</span>
+                <textarea id="dir-message" class="input-field" placeholder="Γράψτε το προσωπικό μήνυμα..."></textarea>
+              </div>
+              <button class="send-btn" id="dir-send-btn" onclick="sendDirect()">
+                <i class="fas fa-paper-plane"></i>
+                <span id="dir-send-label">Αποστολή</span>
+              </button>
+            </div>
+
+            <!-- Right: User picker -->
+            <div class="lg:col-span-2">
+              <div class="flex items-center justify-between mb-3">
+                <span class="label-text">Παραλήπτης</span>
+                <span id="dir-selected-badge" class="hidden text-xs font-700 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full" style="font-weight:700"></span>
+              </div>
+              <input id="dir-search" type="text" class="input-field mb-3" placeholder="Αναζήτηση επιχείρησης..." oninput="filterUsers()" />
+              <div id="dir-user-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                <div class="text-sm text-gray-400 text-center py-8">Φόρτωση χρηστών...</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── TEMPLATES TAB ── -->
+        <div id="tab-templates" class="section-panel p-6">
+          <div class="max-w-2xl">
+            <p class="text-sm text-gray-500 mb-6">Τα παρακάτω πρότυπα αποστέλλονται αυτόματα από το σύστημα. Μπορείτε να τα χρησιμοποιήσετε ως βάση για campaign.</p>
+
+            <div class="space-y-4">
+              <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600 flex-shrink-0"><i class="fas fa-file-invoice"></i></div>
+                  <div class="flex-1">
+                    <div class="font-700 text-sm text-gray-900 mb-1" style="font-weight:700">Δημιουργία Παραστατικού</div>
+                    <div class="text-xs text-gray-500 mb-2">Αποστέλλεται αυτόματα όταν δημιουργείται νέο παραστατικό (αν ο χρήστης το έχει ενεργοποιήσει).</div>
+                    <span class="inline-flex items-center gap-1 text-xs text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full font-600"><i class="fas fa-check-circle"></i>Αυτόματο</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0"><i class="fas fa-satellite-dish"></i></div>
+                  <div class="flex-1">
+                    <div class="font-700 text-sm text-gray-900 mb-1" style="font-weight:700">Επιτυχής Μετάδοση myDATA</div>
+                    <div class="text-xs text-gray-500 mb-2">Αποστέλλεται μετά από επιτυχή μετάδοση στο myDATA με τον αριθμό MARK.</div>
+                    <span class="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full font-600"><i class="fas fa-check-circle"></i>Αυτόματο</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 flex-shrink-0"><i class="fas fa-exclamation-triangle"></i></div>
+                  <div class="flex-1">
+                    <div class="font-700 text-sm text-gray-900 mb-1" style="font-weight:700">Αποτυχία Μετάδοσης</div>
+                    <div class="text-xs text-gray-500 mb-2">Αποστέλλεται όταν αποτύχει η μετάδοση με λεπτομέρειες σφάλματος.</div>
+                    <span class="inline-flex items-center gap-1 text-xs text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full font-600"><i class="fas fa-check-circle"></i>Αυτόματο</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0"><i class="fas fa-chart-bar"></i></div>
+                  <div class="flex-1">
+                    <div class="font-700 text-sm text-gray-900 mb-1" style="font-weight:700">Ημερήσια Σύνοψη</div>
+                    <div class="text-xs text-gray-500 mb-2">Αποστέλλεται κάθε μέρα στις 07:00 με στατιστικά (τιμολόγια, έσοδα, μεταδόσεις). Απαιτεί ενεργοποίηση από τον ψαρά.</div>
+                    <span class="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full font-600"><i class="fas fa-clock"></i>Cron 07:00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500 flex-shrink-0"><i class="fas fa-hourglass-half"></i></div>
+                  <div class="flex-1">
+                    <div class="font-700 text-sm text-gray-900 mb-1" style="font-weight:700">Λήξη Trial / Συνδρομής</div>
+                    <div class="text-xs text-gray-500 mb-2">Υπενθυμίσεις 3 ημέρες και 1 ημέρα πριν τη λήξη, και αμέσως μετά τη λήξη.</div>
+                    <span class="inline-flex items-center gap-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full font-600"><i class="fas fa-clock"></i>Cron 08:00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /tabs card -->
+
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/sidebar.js"></script>
+
+  <script>
+    const API = CONFIG.API_URL;
+    let allUsers = [];
+    let selectedAudience = 'all';
+    let selectedBizId = null;
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    buildSidebar();
+    (async () => {
+      if (!requireAuth()) return;
+      if (!requireRole('super_admin')) return;
+      await loadUsers();
+    })();
+
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        const tabs = ['campaign', 'direct', 'templates'];
+        b.classList.toggle('active', tabs[i] === name);
+      });
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    // ── Load users ────────────────────────────────────────────────────────────
+    async function loadUsers() {
+      try {
+        const res = await apiFetch(`${API}/platform/email/users`);
+        allUsers = res.data || [];
+        renderUserList(allUsers);
+        updateAudienceCounts();
+      } catch (e) {
+        console.error('Failed to load users', e);
+      }
+    }
+
+    function renderUserList(users) {
+      const list = document.getElementById('dir-user-list');
+      if (!users.length) {
+        list.innerHTML = '<div class="text-sm text-gray-400 text-center py-8">Δεν βρέθηκαν επιχειρήσεις.</div>';
+        return;
+      }
+      list.innerHTML = users.map(u => `
+        <div class="user-row ${selectedBizId === u.id ? 'selected' : ''}"
+             data-id="${u.id}" onclick="selectUser('${u.id}', this)">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-800 flex-shrink-0">
+              ${(u.biz_name || '?').charAt(0).toUpperCase()}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-600 text-gray-900 truncate" style="font-weight:600">${escHtml(u.biz_name || '-')}</div>
+              <div class="text-xs text-gray-400 truncate">${escHtml(u.email || '-')}</div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+              u.plan === 'trial' ? 'bg-amber-50 text-amber-700' :
+              u.subscription_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+            }">${
+              u.plan === 'trial' ? 'Trial' : u.subscription_active ? 'Ενεργή' : 'Ανενεργή'
+            }</span>
+          </div>
+        </div>`).join('');
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('dir-search').value.toLowerCase();
+      renderUserList(allUsers.filter(u =>
+        (u.biz_name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+      ));
+    }
+
+    function selectUser(id, el) {
+      selectedBizId = id;
+      document.querySelectorAll('.user-row').forEach(r => r.classList.remove('selected'));
+      el.classList.add('selected');
+      const user = allUsers.find(u => u.id === id);
+      const badge = document.getElementById('dir-selected-badge');
+      if (user) {
+        badge.textContent = user.biz_name;
+        badge.classList.remove('hidden');
+      }
+    }
+
+    // ── Audience ──────────────────────────────────────────────────────────────
+    function selectAudience(aud, el) {
+      selectedAudience = aud;
+      document.querySelectorAll('.audience-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      updateAudienceSummary(aud);
+    }
+
+    function updateAudienceCounts() {
+      const counts = { all: 0, trial: 0, active: 0, inactive: 0 };
+      allUsers.forEach(u => {
+        counts.all++;
+        if (u.plan === 'trial') counts.trial++;
+        else if (u.subscription_active) counts.active++;
+        else counts.inactive++;
+      });
+      for (const [k, v] of Object.entries(counts)) {
+        const el = document.getElementById('cnt-' + k);
+        if (el) el.textContent = v;
+      }
+      updateAudienceSummary(selectedAudience);
+    }
+
+    function updateAudienceSummary(aud) {
+      const counts = { all: 0, trial: 0, active: 0, inactive: 0 };
+      allUsers.forEach(u => {
+        counts.all++;
+        if (u.plan === 'trial') counts.trial++;
+        else if (u.subscription_active) counts.active++;
+        else counts.inactive++;
+      });
+      const n = counts[aud] || counts.all;
+      const labels = {
+        all: 'Όλοι οι ψαράδες',
+        trial: 'Χρήστες σε trial',
+        active: 'Χρήστες με ενεργή συνδρομή',
+        inactive: 'Χρήστες με ληγμένη συνδρομή',
+      };
+      const summary = document.getElementById('audience-summary');
+      const sumText = document.getElementById('audience-summary-text');
+      sumText.textContent = `${labels[aud] || 'Επιλεγμένοι'}: ${n} παραλήπτες`;
+      summary.classList.remove('hidden');
+    }
+
+    // ── Campaign send ─────────────────────────────────────────────────────────
+    async function sendCampaign() {
+      const subject = document.getElementById('camp-subject').value.trim();
+      const message = document.getElementById('camp-message').value.trim();
+      if (!subject || !message) {
+        return showToast('Συμπληρώστε θέμα και μήνυμα.', 'error');
+      }
+
+      const btn = document.getElementById('camp-send-btn');
+      const label = document.getElementById('camp-send-label');
+      btn.disabled = true;
+      label.textContent = 'Αποστολή...';
+
+      try {
+        const res = await apiFetch(`${API}/platform/email/campaign`, {
+          method: 'POST',
+          body: JSON.stringify({ subject, message, audience: selectedAudience }),
+        });
+        const d = res.data;
+        showToast(`Στάλθηκε: ${d.sent} επιτυχία${d.failed ? `, ${d.failed} αποτυχία` : ''} από ${d.total} παραλήπτες.`, 'success');
+      } catch (e) {
+        showToast('Σφάλμα: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        label.textContent = 'Αποστολή Campaign';
+      }
+    }
+
+    // ── Direct send ───────────────────────────────────────────────────────────
+    async function sendDirect() {
+      if (!selectedBizId) return showToast('Επιλέξτε παραλήπτη.', 'error');
+      const subject = document.getElementById('dir-subject').value.trim();
+      const message = document.getElementById('dir-message').value.trim();
+      if (!subject || !message) {
+        return showToast('Συμπληρώστε θέμα και μήνυμα.', 'error');
+      }
+
+      const btn = document.getElementById('dir-send-btn');
+      const label = document.getElementById('dir-send-label');
+      btn.disabled = true;
+      label.textContent = 'Αποστολή...';
+
+      try {
+        const res = await apiFetch(`${API}/platform/email/send-direct`, {
+          method: 'POST',
+          body: JSON.stringify({ biz_id: selectedBizId, subject, message }),
+        });
+        showToast(res.data.message, 'success');
+        document.getElementById('dir-subject').value = '';
+        document.getElementById('dir-message').value = '';
+        selectedBizId = null;
+        document.querySelectorAll('.user-row').forEach(r => r.classList.remove('selected'));
+        document.getElementById('dir-selected-badge').classList.add('hidden');
+      } catch (e) {
+        showToast('Σφάλμα: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        label.textContent = 'Αποστολή';
+      }
+    }
+
+    // ── Preview ───────────────────────────────────────────────────────────────
+    function previewCampaign() {
+      const message = document.getElementById('camp-message').value.trim();
+      const wrap = document.getElementById('camp-preview-wrap');
+      const prev = document.getElementById('camp-preview');
+      if (!message) return;
+      prev.textContent = message;
+      wrap.classList.remove('hidden');
+    }
+
+    // ── Templates ─────────────────────────────────────────────────────────────
+    const TEMPLATES = {
+      welcome: {
+        subject: 'Καλώς ήρθατε στο FishBill!',
+        message: 'Γεια σας,\n\nΣας καλωσορίζουμε στο FishBill — το πιο έξυπνο εργαλείο τιμολόγησης για Έλληνες αλιείς.\n\nΜπορείτε να ξεκινήσετε άμεσα δημιουργώντας το πρώτο σας παραστατικό.\n\nΑν χρειαστείτε βοήθεια, απαντήστε σε αυτό το email.\n\nΜε εκτίμηση,\nΗ Ομάδα FishBill',
+      },
+      feature: {
+        subject: 'Νέα λειτουργία στο FishBill',
+        message: 'Γεια σας,\n\nΈχουμε προσθέσει μια νέα λειτουργία στο FishBill που θα κάνει την εργασία σας ακόμα πιο εύκολη.\n\n[Περιγράψτε τη λειτουργία εδώ]\n\nΜπείτε στην εφαρμογή για να τη δοκιμάσετε!\n\nΜε εκτίμηση,\nΗ Ομάδα FishBill',
+      },
+      reminder: {
+        subject: 'Υπενθύμιση: FishBill',
+        message: 'Γεια σας,\n\nΘέλαμε να σας υπενθυμίσουμε ότι [εισάγετε υπενθύμιση εδώ].\n\nΑν έχετε οποιαδήποτε ερώτηση, είμαστε εδώ να βοηθήσουμε.\n\nΜε εκτίμηση,\nΗ Ομάδα FishBill',
+      },
+      maintenance: {
+        subject: 'Προγραμματισμένη Συντήρηση FishBill',
+        message: 'Γεια σας,\n\nΣας ενημερώνουμε ότι το FishBill θα είναι εκτός λειτουργίας για συντήρηση:\n\n📅 Ημερομηνία: [ημερομηνία]\n🕐 Ώρα: [ώρα έναρξης] – [ώρα λήξης]\n\nΜετά τη συντήρηση θα επανέλθει κανονικά.\n\nΣυγνώμη για οποιαδήποτε ταλαιπωρία.\n\nΜε εκτίμηση,\nΗ Ομάδα FishBill',
+      },
+      promo: {
+        subject: 'Ειδική Προσφορά FishBill',
+        message: 'Γεια σας,\n\nΈχουμε μια ειδική προσφορά για εσάς!\n\n🎉 [Περιγραφή προσφοράς]\n\nΗ προσφορά ισχύει έως [ημερομηνία λήξης].\n\nΜπείτε στην εφαρμογή για να επωφεληθείτε!\n\nΜε εκτίμηση,\nΗ Ομάδα FishBill',
+      },
+    };
+
+    function applyTemplate(key) {
+      const t = TEMPLATES[key];
+      if (!t) return;
+      document.getElementById('camp-subject').value = t.subject;
+      document.getElementById('camp-message').value = t.message;
+      document.getElementById('camp-preview-wrap').classList.add('hidden');
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showToast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all ${
+        type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+      }`;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    async function apiFetch(url, opts = {}) {
+      const token = getToken();
+      const res = await fetch(url, {
+        ...opts,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(opts.headers || {}),
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+      return data;
+    }
+  </script>
+</body>
+</html>
