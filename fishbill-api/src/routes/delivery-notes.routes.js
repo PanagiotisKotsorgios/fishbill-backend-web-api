@@ -127,7 +127,7 @@ router.get('/', async (req, res, next) => {
     const [rows] = await pool.query(
       `SELECT dn.id, dn.series, dn.number, dn.issue_date, dn.recipient_name,
               dn.recipient_afm, dn.recipient_city, dn.status, dn.mydata_mark,
-              dn.vehicle_plate, dn.created_at
+              dn.vehicle_plate, dn.client_ref, dn.created_at
        FROM delivery_notes dn ${where}
        ORDER BY dn.created_at DESC
        LIMIT ${lim} OFFSET ${offset}`,
