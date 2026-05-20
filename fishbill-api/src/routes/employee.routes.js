@@ -1,15 +1,12 @@
 /**
  * Employee Privilege Management Routes
  * Super Admin grants/revokes specific privileges to system employees.
- * All destructive actions require email OTP verification.
  */
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { requireSuperAdmin } = require('../middleware/role');
-const crypto = require('crypto');
-const emailSvc = require('../services/email.service');
 
 router.use(authenticate);
 
@@ -40,40 +37,6 @@ const VALID_PRIVILEGES = [
   'admin_campaigns',         // Email & Campaigns
 ];
 
-// ── Send OTP email helper ─────────────────────────────────────────────────────
-async function sendOtp(toEmail, otp, action) {
-  const html = `<!DOCTYPE html>
-<html lang="el"><head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background:#f0f7f9;font-family:Inter,Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f7f9;padding:32px 16px">
-  <tr><td align="center">
-    <table width="100%" style="max-width:480px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(11,114,133,.12)">
-      <tr><td style="background:linear-gradient(135deg,#0A5568,#0B7285);padding:24px 32px;text-align:center">
-        <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:1.5px">🐟 FishBill</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">Ασφάλεια Λογαριασμού</div>
-      </td></tr>
-      <tr><td style="padding:32px">
-        <h2 style="color:#0A5568;margin:0 0 12px;font-size:20px">Επιβεβαίωση Ενέργειας</h2>
-        <p style="color:#374151;font-size:14px;margin:0 0 8px">Ενέργεια: <strong>${action}</strong></p>
-        <p style="color:#374151;font-size:14px;margin:0 0 16px">Ο κωδικός επιβεβαίωσής σας:</p>
-        <div style="font-size:40px;font-weight:900;letter-spacing:10px;color:#0B7285;background:#f0f7f9;border:2px solid #ceeaee;padding:24px;border-radius:12px;text-align:center;margin:0 0 20px">${otp}</div>
-        <p style="color:#6B7280;font-size:13px;margin:0 0 8px">Ισχύει για <strong>10 λεπτά</strong>. Μην τον μοιραστείτε με κανέναν.</p>
-        <p style="color:#9CA3AF;font-size:12px;margin:0">Αν δεν ζητήσατε αυτή την ενέργεια, αγνοήστε αυτό το email.</p>
-      </td></tr>
-      <tr><td style="background:#f5fbfc;padding:16px 32px;text-align:center;border-top:1px solid #d5edf2">
-        <p style="margin:0;font-size:12px;color:#8aacb4">&copy; 2026 FishBill · Ηλεκτρονική Τιμολόγηση myDATA για Αλιείς</p>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
-
-  await emailSvc.sendEmail({
-    to: toEmail,
-    subject: `[FishBill] Κωδικός Επιβεβαίωσης — ${action}`,
-    html,
-  });
-}
 
 // ── GET /api/employees — list all employees with privileges + biz count ────────
 router.get('/', requireSuperAdmin, async (req, res) => {
@@ -156,66 +119,25 @@ router.get('/:id/privileges', requireSuperAdmin, async (req, res) => {
   }
 });
 
-// ── POST /api/employees/request-otp — send OTP to super_admin email ───────────
-router.post('/request-otp', requireSuperAdmin, async (req, res) => {
-  const { action } = req.body;
-  if (!action) return res.status(400).json({ error: 'action required' });
-
-  try {
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const expires = new Date(Date.now() + 10 * 60 * 1000);
-
-    // Store OTP in platform_settings
-    const key = `emp_otp_${req.user.id}`;
-    const val = JSON.stringify({ otp, action, expires: expires.toISOString() });
-    await db.query(
-      `INSERT INTO platform_settings (setting_key, setting_value) VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE setting_value = ?`,
-      [key, val, val]
-    );
-
-    await sendOtp(req.user.email, otp, action);
-    res.json({ message: `OTP sent to ${req.user.email}` });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ── POST /api/employees/:id/privileges — set privileges (requires OTP) ────────
+// ── POST /api/employees/:id/privileges — set privileges (super_admin only) ────
 router.post('/:id/privileges', requireSuperAdmin, async (req, res) => {
-  const { privileges, otp } = req.body;
+  const { privileges } = req.body;
   const employeeId = req.params.id;
 
   if (!Array.isArray(privileges))
     return res.status(400).json({ error: 'privileges must be an array' });
 
-  // Validate privilege keys
   const invalid = privileges.filter(p => !VALID_PRIVILEGES.includes(p));
   if (invalid.length)
-    return res.status(400).json({ error: `Invalid privileges: ${invalid.join(', ')}` });
+    return res.status(400).json({ error: `Άγνωστα δικαιώματα: ${invalid.join(', ')}` });
 
-  // Verify OTP
-  const key = `emp_otp_${req.user.id}`;
   try {
-    const [[row]] = await db.query(
-      'SELECT setting_value FROM platform_settings WHERE setting_key = ?', [key]
-    );
-    if (!row) return res.status(400).json({ error: 'OTP not found. Request a new one.' });
-
-    const stored = JSON.parse(row.setting_value);
-    if (new Date() > new Date(stored.expires))
-      return res.status(400).json({ error: 'OTP expired. Request a new one.' });
-    if (stored.otp !== String(otp))
-      return res.status(400).json({ error: 'Λανθασμένος κωδικός OTP.' });
-
-    // Check target is actually an employee
     const [[emp]] = await db.query(
-      "SELECT id, full_name, role FROM users WHERE id = ? AND role = 'employee'",
+      "SELECT id, full_name FROM users WHERE id = ? AND role = 'employee' LIMIT 1",
       [employeeId]
     );
-    if (!emp) return res.status(404).json({ error: 'Employee not found.' });
+    if (!emp) return res.status(404).json({ error: 'Ο εργαζόμενος δεν βρέθηκε.' });
 
-    // Upsert privileges
     const privJson = JSON.stringify(privileges);
     await db.query(
       `INSERT INTO employee_privileges (user_id, privileges, granted_by, granted_at)
@@ -224,10 +146,7 @@ router.post('/:id/privileges', requireSuperAdmin, async (req, res) => {
       [employeeId, privJson, req.user.id, privJson, req.user.id]
     );
 
-    // Clean up OTP
-    await db.query("DELETE FROM platform_settings WHERE setting_key = ?", [key]);
-
-    res.json({ message: `Privileges updated for ${emp.full_name}`, privileges });
+    res.json({ message: `Τα δικαιώματα ενημερώθηκαν για ${emp.full_name}`, privileges });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

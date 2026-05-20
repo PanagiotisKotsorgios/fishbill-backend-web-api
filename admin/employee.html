@@ -27,31 +27,6 @@
 
   <div id="sidebar-container"></div>
 
-  <!-- OTP Modal -->
-  <div id="otp-modal" class="fixed inset-0 bg-black/60 z-[60] hidden items-center justify-center p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-      <div class="flex items-center gap-3 mb-5">
-        <div class="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center">
-          <i class="fas fa-lock text-amber-600 text-lg"></i>
-        </div>
-        <div>
-          <h3 class="text-base font-bold text-gray-900">Επιβεβαίωση OTP</h3>
-          <p class="text-xs text-gray-500">Εισάγετε τον κωδικό που εστάλη στο email σας</p>
-        </div>
-      </div>
-      <div id="otp-action-label" class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3"></div>
-      <input id="otp-input" type="text" maxlength="6" placeholder="000000"
-        class="w-full text-center text-3xl font-black tracking-[10px] border-2 border-gray-200 rounded-xl py-4 outline-none focus:border-blue-500 transition-colors"
-        oninput="this.value=this.value.replace(/\D/g,'')" />
-      <div id="otp-err" class="mt-3 text-sm text-red-600 font-medium hidden"></div>
-      <div class="flex gap-3 mt-5">
-        <button onclick="closeOtpModal()" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50">Άκυρο</button>
-        <button onclick="confirmOtp()" id="otp-confirm-btn" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
-          <i class="fas fa-check mr-1.5"></i>Επιβεβαίωση
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Privilege Editor Modal -->
   <div id="priv-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
@@ -624,71 +599,37 @@
       renderPrivGroups();
     }
 
-    // ── OTP flow ──────────────────────────────────────────────────────────────
+    // ── Save privileges ───────────────────────────────────────────────────────
     async function requestOtpAndSave() {
       if (!currentEmployee) return;
+
+      // Use the shared session-level AdminOTP — prompts once per browser session,
+      // then skips the dialog on subsequent saves within the same session.
+      try {
+        await AdminOTP.requireAction(`Αλλαγή δικαιωμάτων για ${currentEmployee.name}`);
+      } catch(e) {
+        return; // user cancelled
+      }
+
       const btn = document.getElementById('priv-save-btn');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Αποστολή OTP…';
-
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Αποθήκευση…';
       try {
-        const action = `Αλλαγή δικαιωμάτων για ${currentEmployee.name}`;
-        const res = await api.post('/employees/request-otp', { action });
-        showToast(res.message || 'OTP εστάλη στο email σας', 'ok');
-        openOtpModal(action);
-      } catch(e) {
-        showToast(e.message, 'err');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση';
-      }
-    }
+        await api.post(`/employees/${currentEmployee.id}/privileges`, { privileges: pendingPrivileges });
 
-    function openOtpModal(action) {
-      document.getElementById('otp-action-label').textContent = action;
-      document.getElementById('otp-input').value = '';
-      document.getElementById('otp-err').classList.add('hidden');
-      document.getElementById('otp-modal').classList.replace('hidden','flex');
-    }
-
-    function closeOtpModal() {
-      document.getElementById('otp-modal').classList.replace('flex','hidden');
-    }
-
-    async function confirmOtp() {
-      const otp = document.getElementById('otp-input').value.trim();
-      if (otp.length !== 6) {
-        document.getElementById('otp-err').textContent = 'Ο κωδικός πρέπει να είναι 6 ψηφία.';
-        document.getElementById('otp-err').classList.remove('hidden');
-        return;
-      }
-
-      const btn = document.getElementById('otp-confirm-btn');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Επαλήθευση…';
-
-      try {
-        await api.post(`/employees/${currentEmployee.id}/privileges`, {
-          privileges: pendingPrivileges,
-          otp,
-        });
-
-        // Update local state
         currentEmployee.privileges = pendingPrivileges;
         const idx = allEmployees.findIndex(e => e.id === currentEmployee.id);
         if (idx !== -1) allEmployees[idx].privileges = [...pendingPrivileges];
 
-        closeOtpModal();
         closePrivModal();
         renderStats();
         renderEmployees(allEmployees);
         showToast('Τα δικαιώματα αποθηκεύτηκαν επιτυχώς!', 'ok');
       } catch(e) {
-        document.getElementById('otp-err').textContent = e.message || 'Λανθασμένος κωδικός.';
-        document.getElementById('otp-err').classList.remove('hidden');
+        showToast(e.message || 'Σφάλμα αποθήκευσης.', 'err');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check mr-1.5"></i>Επιβεβαίωση';
+        btn.innerHTML = '<i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση';
       }
     }
 
@@ -706,11 +647,6 @@
       clearTimeout(_toastTimer);
       _toastTimer = setTimeout(() => el.classList.add('hidden'), 4000);
     }
-
-    // ── Enter key in OTP input ────────────────────────────────────────────────
-    document.getElementById('otp-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') confirmOtp();
-    });
 
     // ── New Employee Modal ────────────────────────────────────────────────────
     function openNewEmployeeModal() {
