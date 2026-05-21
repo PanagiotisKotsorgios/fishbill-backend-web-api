@@ -20,21 +20,27 @@ const pdfService = require('../services/pdf.service');
 (async () => {
   try {
     await pool.execute(
-      `ALTER TABLE delivery_notes ADD COLUMN IF NOT EXISTS client_ref VARCHAR(100) NULL`
-    );
+      `ALTER TABLE delivery_notes ADD COLUMN client_ref VARCHAR(100) NULL`
+    ).catch(e => { if (e.errno !== 1060) throw e; }); // 1060 = duplicate column, already exists
     await pool.execute(
-      `ALTER TABLE delivery_notes ADD INDEX IF NOT EXISTS idx_dn_client_ref (business_id, client_ref)`
-    ).catch(() => {});
+      `ALTER TABLE delivery_notes ADD INDEX idx_dn_client_ref (business_id, client_ref)`
+    ).catch(() => {}); // ignore if index already exists
     console.log('[delivery-notes] client_ref migration OK');
   } catch (e) {
     console.warn('[delivery-notes] client_ref migration skipped:', e.message);
   }
-  // Extra DN credits column on businesses
-  try {
-    await pool.execute(
-      `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS extra_dn_credits INT NOT NULL DEFAULT 0`
-    );
-  } catch (_) {}
+  // Extra DN credits column on businesses — retry once on deadlock; ignore 1060 (already exists)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await pool.execute(`ALTER TABLE businesses ADD COLUMN extra_dn_credits INT NOT NULL DEFAULT 0`);
+      console.log('[delivery-notes] extra_dn_credits column added');
+      break;
+    } catch (e) {
+      if (e.errno === 1060) break; // already exists, nothing to do
+      if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      else console.warn('[delivery-notes] extra_dn_credits migration failed:', e.message);
+    }
+  }
   // DN credit purchase requests table
   try {
     await pool.execute(`
@@ -210,7 +216,7 @@ router.post('/', validate(createSchema), async (req, res, next) => {
     // ── Monthly delivery-note limit check ─────────────────────────────────────
     if (req.user.role !== 'super_admin') {
       const [[biz]] = await conn.execute(
-        'SELECT plan, trial_ends_at, subscription_active, subscription_ends_at, extra_dn_credits FROM businesses WHERE id = ? LIMIT 1',
+        'SELECT plan, trial_ends_at, subscription_active, subscription_ends_at FROM businesses WHERE id = ? LIMIT 1',
         [business_id]
       );
       if (biz) {
@@ -233,7 +239,14 @@ router.post('/', validate(createSchema), async (req, res, next) => {
              WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
             [business_id, monthStart]
           );
-          const extraCredits = biz.extra_dn_credits ?? 0;
+          // Extra credits — separate query so missing column never blocks DN creation
+          let extraCredits = 0;
+          try {
+            const [[credRow]] = await conn.execute(
+              'SELECT extra_dn_credits FROM businesses WHERE id = ? LIMIT 1', [business_id]
+            );
+            extraCredits = credRow?.extra_dn_credits ?? 0;
+          } catch (_) {}
           const effectiveLimit = monthlyLimit + extraCredits;
           if (cnt >= effectiveLimit) {
             await conn.rollback();
@@ -245,12 +258,14 @@ router.post('/', validate(createSchema), async (req, res, next) => {
               used: cnt,
             });
           }
-          // Consume one extra credit if we're past the base limit
+          // Consume one extra credit if past the base monthly limit
           if (cnt >= monthlyLimit && extraCredits > 0) {
-            await conn.execute(
-              'UPDATE businesses SET extra_dn_credits = extra_dn_credits - 1 WHERE id = ?',
-              [business_id]
-            );
+            try {
+              await conn.execute(
+                'UPDATE businesses SET extra_dn_credits = extra_dn_credits - 1 WHERE id = ?',
+                [business_id]
+              );
+            } catch (_) {}
           }
         }
       }
