@@ -16,7 +16,7 @@ const DN_PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
 const emailSvc  = require('../services/email.service');
 const pdfService = require('../services/pdf.service');
 
-// ── Self-migration: add client_ref column if missing ─────────────────────────
+// ── Self-migrations ───────────────────────────────────────────────────────────
 (async () => {
   try {
     await pool.execute(
@@ -24,12 +24,34 @@ const pdfService = require('../services/pdf.service');
     );
     await pool.execute(
       `ALTER TABLE delivery_notes ADD INDEX IF NOT EXISTS idx_dn_client_ref (business_id, client_ref)`
-    ).catch(() => {}); // index may already exist
+    ).catch(() => {});
     console.log('[delivery-notes] client_ref migration OK');
   } catch (e) {
-    // Table may not exist yet on fresh installs — that's fine
     console.warn('[delivery-notes] client_ref migration skipped:', e.message);
   }
+  // Extra DN credits column on businesses
+  try {
+    await pool.execute(
+      `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS extra_dn_credits INT NOT NULL DEFAULT 0`
+    );
+  } catch (_) {}
+  // DN credit purchase requests table
+  try {
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS dn_credit_requests (
+        id          CHAR(36)      NOT NULL PRIMARY KEY,
+        business_id CHAR(36)      NOT NULL,
+        credits     INT           NOT NULL DEFAULT 10,
+        amount_eur  DECIMAL(6,2)  NOT NULL DEFAULT 0,
+        status      ENUM('pending','granted','rejected') NOT NULL DEFAULT 'pending',
+        notes       TEXT          NULL,
+        requested_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        resolved_at  DATETIME     NULL,
+        resolved_by  CHAR(36)     NULL,
+        CONSTRAINT fk_dcr_biz FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+      )
+    `);
+  } catch (_) {}
 })();
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -188,7 +210,7 @@ router.post('/', validate(createSchema), async (req, res, next) => {
     // ── Monthly delivery-note limit check ─────────────────────────────────────
     if (req.user.role !== 'super_admin') {
       const [[biz]] = await conn.execute(
-        'SELECT plan, trial_ends_at, subscription_active, subscription_ends_at FROM businesses WHERE id = ? LIMIT 1',
+        'SELECT plan, trial_ends_at, subscription_active, subscription_ends_at, extra_dn_credits FROM businesses WHERE id = ? LIMIT 1',
         [business_id]
       );
       if (biz) {
@@ -211,12 +233,24 @@ router.post('/', validate(createSchema), async (req, res, next) => {
              WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
             [business_id, monthStart]
           );
-          if (cnt >= monthlyLimit) {
+          const extraCredits = biz.extra_dn_credits ?? 0;
+          const effectiveLimit = monthlyLimit + extraCredits;
+          if (cnt >= effectiveLimit) {
             await conn.rollback();
             return res.status(403).json({
               error: `Έχετε φτάσει το μηνιαίο όριο των ${monthlyLimit} δελτίων αποστολής για το πλάνο σας.`,
               error_code: 'DN_LIMIT_REACHED',
+              monthly_limit: monthlyLimit,
+              extra_credits: extraCredits,
+              used: cnt,
             });
+          }
+          // Consume one extra credit if we're past the base limit
+          if (cnt >= monthlyLimit && extraCredits > 0) {
+            await conn.execute(
+              'UPDATE businesses SET extra_dn_credits = extra_dn_credits - 1 WHERE id = ?',
+              [business_id]
+            );
           }
         }
       }
@@ -581,6 +615,53 @@ router.get('/:id/pdf', async (req, res, next) => {
     stream.on('error', (err) => { if (!res.headersSent) next(err); });
     stream.pipe(res);
     stream.on('end', () => fs.unlink(filePath, () => {}));
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/delivery-notes/request-extra-credits ────────────────────────────
+router.post('/request-extra-credits', async (req, res, next) => {
+  try {
+    const { credits, amount_eur, notes } = req.body;
+    const validPackages = [10, 20, 30];
+    if (!validPackages.includes(Number(credits)))
+      return res.status(400).json({ error: 'Επιλέξτε πακέτο 10, 20 ή 30 πιστώσεων.' });
+
+    const business_id = req.user.business_id;
+    if (!business_id)
+      return res.status(400).json({ error: 'Δεν βρέθηκε επιχείρηση.' });
+
+    const id = require('crypto').randomUUID();
+    await pool.execute(
+      `INSERT INTO dn_credit_requests (id, business_id, credits, amount_eur, notes, status)
+       VALUES (?, ?, ?, ?, ?, 'pending')`,
+      [id, business_id, Number(credits), Number(amount_eur) || 0, notes || null]
+    );
+
+    // Notify admin
+    try {
+      const [[biz]] = await pool.execute(
+        'SELECT name, afm FROM businesses WHERE id = ? LIMIT 1', [business_id]
+      );
+      await emailSvc.notifyAdmin(
+        `Νέο αίτημα αγοράς ${credits} επιπλέον δελτίων αποστολής`,
+        `<p>Η επιχείρηση <strong>${biz?.name || business_id}</strong> (ΑΦΜ: ${biz?.afm || '—'}) ζητά <strong>${credits} επιπλέον δελτία αποστολής</strong>.</p>
+         <p>Συνδεθείτε στο admin panel για να εγκρίνετε το αίτημα.</p>`
+      );
+    } catch (_) { /* email failure never blocks the request */ }
+
+    res.status(201).json({ data: { id, message: 'Το αίτημά σας καταχωρήθηκε. Ο διαχειριστής θα το επεξεργαστεί σύντομα.' } });
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/delivery-notes/extra-credits — current extra credits balance ─────
+router.get('/extra-credits', async (req, res, next) => {
+  try {
+    const business_id = req.user.business_id;
+    if (!business_id) return res.json({ extra_credits: 0 });
+    const [[biz]] = await pool.execute(
+      'SELECT extra_dn_credits FROM businesses WHERE id = ? LIMIT 1', [business_id]
+    );
+    res.json({ extra_credits: biz?.extra_dn_credits ?? 0 });
   } catch (err) { next(err); }
 });
 

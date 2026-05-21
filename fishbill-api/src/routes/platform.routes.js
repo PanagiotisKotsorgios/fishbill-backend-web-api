@@ -1789,4 +1789,74 @@ router.get('/online-users', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── GET /api/platform/dn-credit-requests — list all extra-credit requests ─────
+router.get('/dn-credit-requests', async (req, res, next) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT dcr.*, b.name AS business_name, b.afm AS business_afm,
+             u.full_name AS resolved_by_name
+      FROM dn_credit_requests dcr
+      JOIN businesses b ON b.id = dcr.business_id
+      LEFT JOIN users u ON u.id = dcr.resolved_by
+      ORDER BY dcr.requested_at DESC
+      LIMIT 200
+    `);
+    res.json({ data: rows });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/dn-credit-requests/:id/grant — approve & add credits ──
+router.post('/dn-credit-requests/:id/grant', async (req, res, next) => {
+  try {
+    const [[req_row]] = await pool.execute(
+      "SELECT * FROM dn_credit_requests WHERE id = ? AND status = 'pending' LIMIT 1",
+      [req.params.id]
+    );
+    if (!req_row) return res.status(404).json({ error: 'Αίτημα δεν βρέθηκε ή έχει ήδη επεξεργαστεί.' });
+
+    await pool.execute(
+      'UPDATE businesses SET extra_dn_credits = extra_dn_credits + ? WHERE id = ?',
+      [req_row.credits, req_row.business_id]
+    );
+    await pool.execute(
+      "UPDATE dn_credit_requests SET status='granted', resolved_at=NOW(), resolved_by=? WHERE id=?",
+      [req.user.id, req.params.id]
+    );
+
+    const [[biz]] = await pool.execute(
+      'SELECT name, extra_dn_credits FROM businesses WHERE id = ? LIMIT 1',
+      [req_row.business_id]
+    );
+    res.json({ data: { message: `Εγκρίθηκαν ${req_row.credits} πιστώσεις για ${biz?.name}.`, extra_dn_credits: biz?.extra_dn_credits } });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/businesses/:bizId/grant-dn-credits — manual grant ──────
+router.post('/businesses/:bizId/grant-dn-credits', async (req, res, next) => {
+  try {
+    const { credits } = req.body;
+    if (!Number.isInteger(Number(credits)) || Number(credits) < 1)
+      return res.status(400).json({ error: 'Εισάγετε έγκυρο αριθμό πιστώσεων.' });
+    await pool.execute(
+      'UPDATE businesses SET extra_dn_credits = extra_dn_credits + ? WHERE id = ?',
+      [Number(credits), req.params.bizId]
+    );
+    const [[biz]] = await pool.execute(
+      'SELECT name, extra_dn_credits FROM businesses WHERE id = ? LIMIT 1', [req.params.bizId]
+    );
+    res.json({ data: { message: `Χορηγήθηκαν ${credits} πιστώσεις σε ${biz?.name}.`, extra_dn_credits: biz?.extra_dn_credits } });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/dn-credit-requests/:id/reject ─────────────────────────
+router.post('/dn-credit-requests/:id/reject', async (req, res, next) => {
+  try {
+    await pool.execute(
+      "UPDATE dn_credit_requests SET status='rejected', resolved_at=NOW(), resolved_by=? WHERE id=? AND status='pending'",
+      [req.user.id, req.params.id]
+    );
+    res.json({ data: { message: 'Αίτημα απορρίφθηκε.' } });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

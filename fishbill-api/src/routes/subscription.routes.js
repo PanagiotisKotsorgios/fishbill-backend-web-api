@@ -42,6 +42,7 @@ router.get('/status', async (req, res, next) => {
       const [rows] = await pool.execute(
         `SELECT b.plan, b.trial_ends_at, b.subscription_active, b.subscription_ends_at,
                 b.auto_renew, b.billing_cycle, COALESCE(b.is_parametrised, 0) AS is_parametrised,
+                COALESCE(b.extra_dn_credits, 0) AS extra_dn_credits,
                 COALESCE(bs.feature_ospa, 0) AS addon_ospa,
                 COALESCE(bs.feature_weighing_slips, 0) AS addon_weighing_slips
          FROM businesses b
@@ -116,6 +117,7 @@ router.get('/status', async (req, res, next) => {
         invoices_remaining:      invoicesLeft,
         dn_used:                 dnUsed,
         dn_remaining:            dnLeft,
+        extra_dn_credits:        biz.extra_dn_credits ?? 0,
         plan_price_eur:          planPrice,
         in_grace_period:         !!inGracePeriod,
         grace_days_remaining:    graceDaysRemaining ?? null,
