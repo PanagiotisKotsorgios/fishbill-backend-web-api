@@ -44,7 +44,8 @@ router.get('/status', async (req, res, next) => {
         `SELECT b.plan, b.trial_ends_at, b.subscription_active, b.subscription_ends_at,
                 b.auto_renew, b.billing_cycle, COALESCE(b.is_parametrised, 0) AS is_parametrised,
                 COALESCE(bs.feature_ospa, 0) AS addon_ospa,
-                COALESCE(bs.feature_weighing_slips, 0) AS addon_weighing_slips
+                COALESCE(bs.feature_weighing_slips, 0) AS addon_weighing_slips,
+                DATE_FORMAT(b.billing_cycle_started_at, '%Y-%m-%d') AS billing_cycle_started_at
          FROM businesses b
          LEFT JOIN business_settings bs ON bs.business_id = b.id
          WHERE b.id = ? LIMIT 1`,
@@ -82,17 +83,20 @@ router.get('/status', async (req, res, next) => {
 
     const cycle = biz.billing_cycle || 'monthly';
 
-    // Count invoices and delivery notes used this calendar month
+    // Count invoices and delivery notes since the later of: month start or plan renewal date
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const cycleStart = biz.billing_cycle_started_at && biz.billing_cycle_started_at > monthStart
+      ? biz.billing_cycle_started_at
+      : monthStart;
     const [[{ inv_used }]]  = await pool.execute(
       `SELECT COUNT(*) AS inv_used FROM invoices
        WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
-      [req.user.business_id, monthStart]
+      [req.user.business_id, cycleStart]
     ).catch(() => [[{ inv_used: 0 }]]);
     const [[{ dn_used }]]   = await pool.execute(
       `SELECT COUNT(*) AS dn_used FROM delivery_notes
        WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
-      [req.user.business_id, monthStart]
+      [req.user.business_id, cycleStart]
     ).catch(() => [[{ dn_used: 0 }]]);
 
     const invoicesUsed   = Number(inv_used  || 0);
