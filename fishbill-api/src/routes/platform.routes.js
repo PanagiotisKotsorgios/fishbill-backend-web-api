@@ -33,11 +33,13 @@ router.get('/status', async (req, res, next) => {
 router.get('/public-settings', async (req, res, next) => {
   try {
     const [rows] = await pool.execute(
-      "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key LIKE 'bank_%' OR setting_key LIKE 'iris_%' OR setting_key IN ('support_phone','provider_name')"
+      `SELECT setting_key, setting_value FROM platform_settings
+       WHERE setting_key LIKE 'bank_%' OR setting_key LIKE 'iris_%'
+          OR setting_key LIKE 'payment_%'
+          OR setting_key IN ('support_phone','provider_name')`
     );
     const map = {};
     rows.forEach(r => { map[r.setting_key] = r.setting_value; });
-    // Aliases for Android model field names
     if (map.iris_iban && !map.iris_mobile) map.iris_mobile = map.iris_iban;
     if (map.iris_bank && !map.iris_bank_name) map.iris_bank_name = map.iris_bank;
     res.json(map);
@@ -51,16 +53,18 @@ router.get('/public-settings', async (req, res, next) => {
 router.get('/app-config', async (req, res, next) => {
   try {
     const [rows] = await pool.execute(
-      "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('app_base_url','web_base_url','app_min_version','maintenance_mode','maintenance_message')"
+      "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('app_base_url','web_base_url','app_min_version','maintenance_mode','maintenance_message','app_latest_version_code','app_latest_apk_url')"
     );
     const map = {};
     rows.forEach(r => { map[r.setting_key] = r.setting_value; });
     res.json({
-      app_base_url:        map.app_base_url        || null,
-      web_base_url:        map.web_base_url        || null,
-      app_min_version:     map.app_min_version      || null,
-      maintenance:         map.maintenance_mode === '1' || map.maintenance_mode === 'true',
-      maintenance_message: map.maintenance_message  || null,
+      app_base_url:             map.app_base_url             || null,
+      web_base_url:             map.web_base_url             || null,
+      app_min_version:          map.app_min_version           || null,
+      maintenance:              map.maintenance_mode === '1' || map.maintenance_mode === 'true',
+      maintenance_message:      map.maintenance_message       || null,
+      app_latest_version_code:  map.app_latest_version_code ? parseInt(map.app_latest_version_code, 10) : null,
+      app_latest_apk_url:       map.app_latest_apk_url       || null,
     });
   } catch (err) { next(err); }
 });
@@ -1814,37 +1818,53 @@ router.post('/dn-credit-requests/:id/grant', async (req, res, next) => {
     );
     if (!req_row) return res.status(404).json({ error: 'Αίτημα δεν βρέθηκε ή έχει ήδη επεξεργαστεί.' });
 
-    await pool.execute(
-      'UPDATE businesses SET extra_dn_credits = extra_dn_credits + ? WHERE id = ?',
-      [req_row.credits, req_row.business_id]
-    );
+    // Grant DN credits
+    if (req_row.credits > 0) {
+      await pool.execute(
+        'UPDATE businesses SET extra_dn_credits = extra_dn_credits + ? WHERE id = ?',
+        [req_row.credits, req_row.business_id]
+      );
+    }
+    // Grant invoice credits
+    if ((req_row.invoice_credits ?? 0) > 0) {
+      await pool.execute(
+        'UPDATE businesses SET extra_invoice_credits = COALESCE(extra_invoice_credits, 0) + ? WHERE id = ?',
+        [req_row.invoice_credits, req_row.business_id]
+      );
+    }
     await pool.execute(
       "UPDATE dn_credit_requests SET status='granted', resolved_at=NOW(), resolved_by=? WHERE id=?",
       [req.user.id, req.params.id]
     );
 
     const [[biz]] = await pool.execute(
-      'SELECT name, extra_dn_credits FROM businesses WHERE id = ? LIMIT 1',
+      'SELECT name, extra_dn_credits, COALESCE(extra_invoice_credits,0) AS extra_invoice_credits FROM businesses WHERE id = ? LIMIT 1',
       [req_row.business_id]
     );
-    res.json({ data: { message: `Εγκρίθηκαν ${req_row.credits} πιστώσεις για ${biz?.name}.`, extra_dn_credits: biz?.extra_dn_credits } });
+    const summary = [
+      req_row.credits > 0            ? `${req_row.credits} ΔΑ`               : null,
+      (req_row.invoice_credits ?? 0) > 0 ? `${req_row.invoice_credits} τιμολόγια` : null,
+    ].filter(Boolean).join(', ');
+    res.json({ data: { message: `Εγκρίθηκαν ${summary} για ${biz?.name}.`, extra_dn_credits: biz?.extra_dn_credits, extra_invoice_credits: biz?.extra_invoice_credits } });
   } catch (err) { next(err); }
 });
 
 // ── POST /api/platform/businesses/:bizId/grant-dn-credits — manual grant ──────
 router.post('/businesses/:bizId/grant-dn-credits', async (req, res, next) => {
   try {
-    const { credits } = req.body;
-    if (!Number.isInteger(Number(credits)) || Number(credits) < 1)
+    const { credits, invoice_credits } = req.body;
+    const dnCredits  = Number(credits ?? 0);
+    const invCredits = Number(invoice_credits ?? 0);
+    if (dnCredits < 0 || invCredits < 0 || (dnCredits === 0 && invCredits === 0))
       return res.status(400).json({ error: 'Εισάγετε έγκυρο αριθμό πιστώσεων.' });
-    await pool.execute(
-      'UPDATE businesses SET extra_dn_credits = extra_dn_credits + ? WHERE id = ?',
-      [Number(credits), req.params.bizId]
-    );
+
+    if (dnCredits  > 0) await pool.execute('UPDATE businesses SET extra_dn_credits = extra_dn_credits + ? WHERE id = ?', [dnCredits, req.params.bizId]);
+    if (invCredits > 0) await pool.execute('UPDATE businesses SET extra_invoice_credits = COALESCE(extra_invoice_credits,0) + ? WHERE id = ?', [invCredits, req.params.bizId]);
+
     const [[biz]] = await pool.execute(
-      'SELECT name, extra_dn_credits FROM businesses WHERE id = ? LIMIT 1', [req.params.bizId]
+      'SELECT name, extra_dn_credits, COALESCE(extra_invoice_credits,0) AS extra_invoice_credits FROM businesses WHERE id = ? LIMIT 1', [req.params.bizId]
     );
-    res.json({ data: { message: `Χορηγήθηκαν ${credits} πιστώσεις σε ${biz?.name}.`, extra_dn_credits: biz?.extra_dn_credits } });
+    res.json({ data: { message: `Χορηγήθηκαν πιστώσεις σε ${biz?.name}.`, extra_dn_credits: biz?.extra_dn_credits, extra_invoice_credits: biz?.extra_invoice_credits } });
   } catch (err) { next(err); }
 });
 
@@ -1856,6 +1876,37 @@ router.post('/dn-credit-requests/:id/reject', async (req, res, next) => {
       [req.user.id, req.params.id]
     );
     res.json({ data: { message: 'Αίτημα απορρίφθηκε.' } });
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/platform/payment-settings — read payment/bank details (admin) ────
+router.get('/payment-settings', authenticate, requireSuperAdmin, async (req, res, next) => {
+  try {
+    const KEYS = ['payment_bank_name','payment_beneficiary','payment_iban','payment_reference_hint','payment_notes','payment_iris_enabled','payment_iris_phone'];
+    const [rows] = await pool.execute(
+      `SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN (${KEYS.map(() => '?').join(',')})`,
+      KEYS
+    );
+    const map = {};
+    rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+    res.json({ data: map });
+  } catch (err) { next(err); }
+});
+
+// ── PUT /api/platform/payment-settings — update payment/bank details (admin) ──
+router.put('/payment-settings', authenticate, requireSuperAdmin, async (req, res, next) => {
+  try {
+    const ALLOWED = ['payment_bank_name','payment_beneficiary','payment_iban','payment_reference_hint','payment_notes','payment_iris_enabled','payment_iris_phone'];
+    for (const key of ALLOWED) {
+      const val = req.body[key];
+      if (val === undefined) continue;
+      await pool.execute(
+        `INSERT INTO platform_settings (setting_key, setting_value)
+         VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [key, String(val)]
+      );
+    }
+    res.json({ data: { message: 'Στοιχεία πληρωμής αποθηκεύτηκαν.' } });
   } catch (err) { next(err); }
 });
 

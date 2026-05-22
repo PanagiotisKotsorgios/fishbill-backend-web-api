@@ -55,6 +55,21 @@ function fireNotif(bizId, flag, fn, extraArgs) {
   })();
 }
 
+// ── Self-migration: extra invoice credits ─────────────────────────────────────
+(async () => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await pool.execute(`ALTER TABLE businesses ADD COLUMN extra_invoice_credits INT NOT NULL DEFAULT 0`);
+      console.log('[invoices] extra_invoice_credits column added');
+      break;
+    } catch (e) {
+      if (e.errno === 1060) break;
+      if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      else console.warn('[invoices] extra_invoice_credits migration failed:', e.message);
+    }
+  }
+})();
+
 router.use(authenticate);
 
 // ---------------------------------------------------------------------------
@@ -269,7 +284,47 @@ router.get('/', async (req, res, next) => {
       inv.lines = lines;
     }
 
-    res.json({ data: rows, total: countRows[0].total, page, limit });
+    // Compute limit status so the app can block the create button proactively
+    const INV_PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
+    let atLimit = false;
+    let usedThisMonth = 0;
+    let monthlyLimit = -1;
+    let extraCredits = 0;
+    if (req.user.role !== 'super_admin' && req.user.business_id) {
+      try {
+        const [[biz]] = await pool.execute(
+          `SELECT plan, COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits
+           FROM businesses WHERE id = ? LIMIT 1`,
+          [req.user.business_id]
+        );
+        if (biz) {
+          monthlyLimit = INV_PLAN_LIMITS[biz.plan] ?? -1;
+          extraCredits = biz.extra_invoice_credits;
+          if (monthlyLimit !== -1) {
+            const now        = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+            const [[{ cnt }]] = await pool.execute(
+              `SELECT COUNT(*) AS cnt FROM invoices
+               WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
+              [req.user.business_id, monthStart]
+            );
+            usedThisMonth = cnt;
+            atLimit = cnt >= (monthlyLimit + extraCredits);
+          }
+        }
+      } catch (_) {}
+    }
+
+    res.json({
+      data: rows,
+      total: countRows[0].total,
+      page,
+      limit,
+      at_limit: atLimit,
+      used_this_month: usedThisMonth,
+      monthly_limit: monthlyLimit,
+      extra_credits: extraCredits,
+    });
   } catch (err) {
     next(err);
   }
@@ -310,7 +365,9 @@ router.post(
       // Check monthly invoice limit based on subscription plan (super_admin bypasses)
       const PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
       const [[bizRow]] = await conn.execute(
-        `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at FROM businesses WHERE id = ? LIMIT 1`,
+        `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at,
+                COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits
+         FROM businesses WHERE id = ? LIMIT 1`,
         [businessId]
       );
       if (bizRow && req.user.role !== 'super_admin') {
@@ -325,7 +382,8 @@ router.post(
           await conn.rollback();
           return res.status(403).json({ error: 'Η συνδρομή σας έχει λήξει. Επιλέξτε πλάνο για να συνεχίσετε.' });
         }
-        const monthlyLimit = PLAN_LIMITS[bizRow.plan] ?? -1;
+        const monthlyLimit  = PLAN_LIMITS[bizRow.plan] ?? -1;
+        const extraCredits  = bizRow.extra_invoice_credits ?? 0;
         if (monthlyLimit !== -1) {
           const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
             .toISOString().slice(0, 10);
@@ -334,11 +392,25 @@ router.post(
              WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
             [businessId, monthStart]
           );
-          if (countRow.cnt >= monthlyLimit) {
+          const effectiveLimit = monthlyLimit + extraCredits;
+          if (countRow.cnt >= effectiveLimit) {
             await conn.rollback();
             return res.status(403).json({
               error: `Έχετε φτάσει το μηνιαίο όριο των ${monthlyLimit} τιμολογίων για το πλάνο σας.`,
+              error_code: 'INVOICE_LIMIT_REACHED',
+              monthly_limit: monthlyLimit,
+              extra_credits: extraCredits,
+              used: countRow.cnt,
             });
+          }
+          // Consume one extra credit if past the base monthly limit
+          if (countRow.cnt >= monthlyLimit && extraCredits > 0) {
+            try {
+              await conn.execute(
+                'UPDATE businesses SET extra_invoice_credits = extra_invoice_credits - 1 WHERE id = ?',
+                [businessId]
+              );
+            } catch (_) {}
           }
         }
       }

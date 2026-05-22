@@ -45,19 +45,26 @@ const pdfService = require('../services/pdf.service');
   try {
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS dn_credit_requests (
-        id          CHAR(36)      NOT NULL PRIMARY KEY,
-        business_id CHAR(36)      NOT NULL,
-        credits     INT           NOT NULL DEFAULT 10,
-        amount_eur  DECIMAL(6,2)  NOT NULL DEFAULT 0,
-        status      ENUM('pending','granted','rejected') NOT NULL DEFAULT 'pending',
-        notes       TEXT          NULL,
-        requested_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        resolved_at  DATETIME     NULL,
-        resolved_by  CHAR(36)     NULL,
+        id              CHAR(36)      NOT NULL PRIMARY KEY,
+        business_id     CHAR(36)      NOT NULL,
+        credits         INT           NOT NULL DEFAULT 10,
+        invoice_credits INT           NOT NULL DEFAULT 0,
+        amount_eur      DECIMAL(6,2)  NOT NULL DEFAULT 0,
+        status          ENUM('pending','granted','rejected') NOT NULL DEFAULT 'pending',
+        notes           TEXT          NULL,
+        requested_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        resolved_at     DATETIME      NULL,
+        resolved_by     CHAR(36)      NULL,
         CONSTRAINT fk_dcr_biz FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
       )
     `);
   } catch (_) {}
+  // Add invoice_credits column if table existed without it
+  try {
+    await pool.execute(
+      `ALTER TABLE dn_credit_requests ADD COLUMN invoice_credits INT NOT NULL DEFAULT 0`
+    );
+  } catch (e) { if (e.errno !== 1060) console.warn('[delivery-notes] invoice_credits col migration:', e.message); }
 })();
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -162,9 +169,44 @@ router.get('/', async (req, res, next) => {
       params
     );
 
+    // Compute limit status so the app can block the create button before the user fills the form
+    let atLimit = false;
+    let usedThisMonth = 0;
+    let monthlyLimit = -1;
+    let extraCredits = 0;
+    if (req.user.role !== 'super_admin') {
+      try {
+        const [[biz]] = await pool.execute(
+          `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at,
+                  COALESCE(extra_dn_credits, 0) AS extra_dn_credits
+           FROM businesses WHERE id = ? LIMIT 1`,
+          [business_id]
+        );
+        if (biz) {
+          monthlyLimit = DN_PLAN_LIMITS[biz.plan] ?? -1;
+          extraCredits = biz.extra_dn_credits;
+          if (monthlyLimit !== -1) {
+            const now        = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+            const [[{ cnt }]] = await pool.execute(
+              `SELECT COUNT(*) AS cnt FROM delivery_notes
+               WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
+              [business_id, monthStart]
+            );
+            usedThisMonth = cnt;
+            atLimit = cnt >= (monthlyLimit + extraCredits);
+          }
+        }
+      } catch (_) {}
+    }
+
     res.json({
       data: rows,
-      meta: { total, page: parseInt(page), limit: lim, pages: Math.ceil(total / lim) },
+      meta: {
+        total, page: parseInt(page), limit: lim, pages: Math.ceil(total / lim),
+        at_limit: atLimit, used_this_month: usedThisMonth,
+        monthly_limit: monthlyLimit, extra_credits: extraCredits,
+      },
     });
   } catch (err) { next(err); }
 });
@@ -636,10 +678,15 @@ router.get('/:id/pdf', async (req, res, next) => {
 // ── POST /api/delivery-notes/request-extra-credits ────────────────────────────
 router.post('/request-extra-credits', async (req, res, next) => {
   try {
-    const { credits, amount_eur, notes } = req.body;
-    const validPackages = [10, 20, 30];
-    if (!validPackages.includes(Number(credits)))
-      return res.status(400).json({ error: 'Επιλέξτε πακέτο 10, 20 ή 30 πιστώσεων.' });
+    // Accept combined credits (dn_credits + invoice_credits) or legacy single `credits` field
+    const dnCredits  = Number(req.body.dn_credits  ?? req.body.credits ?? 0);
+    const invCredits = Number(req.body.invoice_credits ?? 0);
+    const amount_eur = Number(req.body.amount_eur) || 0;
+    const { notes }  = req.body;
+
+    const validCombos = [10, 20, 30]; // valid per-type credit amounts
+    if (!validCombos.includes(dnCredits) && !validCombos.includes(invCredits))
+      return res.status(400).json({ error: 'Επιλέξτε έγκυρο πακέτο πιστώσεων.' });
 
     const business_id = req.user.business_id;
     if (!business_id)
@@ -647,9 +694,9 @@ router.post('/request-extra-credits', async (req, res, next) => {
 
     const id = require('crypto').randomUUID();
     await pool.execute(
-      `INSERT INTO dn_credit_requests (id, business_id, credits, amount_eur, notes, status)
-       VALUES (?, ?, ?, ?, ?, 'pending')`,
-      [id, business_id, Number(credits), Number(amount_eur) || 0, notes || null]
+      `INSERT INTO dn_credit_requests (id, business_id, credits, invoice_credits, amount_eur, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+      [id, business_id, dnCredits, invCredits, amount_eur, notes || null]
     );
 
     // Notify admin
@@ -657,12 +704,16 @@ router.post('/request-extra-credits', async (req, res, next) => {
       const [[biz]] = await pool.execute(
         'SELECT name, afm FROM businesses WHERE id = ? LIMIT 1', [business_id]
       );
+      const summary = [
+        dnCredits  > 0 ? `${dnCredits} δελτία αποστολής` : null,
+        invCredits > 0 ? `${invCredits} τιμολόγια`        : null,
+      ].filter(Boolean).join(' + ');
       await emailSvc.notifyAdmin(
-        `Νέο αίτημα αγοράς ${credits} επιπλέον δελτίων αποστολής`,
-        `<p>Η επιχείρηση <strong>${biz?.name || business_id}</strong> (ΑΦΜ: ${biz?.afm || '—'}) ζητά <strong>${credits} επιπλέον δελτία αποστολής</strong>.</p>
+        `Νέο αίτημα αγοράς επιπλέον πιστώσεων`,
+        `<p>Η επιχείρηση <strong>${biz?.name || business_id}</strong> (ΑΦΜ: ${biz?.afm || '—'}) ζητά επιπλέον: <strong>${summary}</strong>.</p>
          <p>Συνδεθείτε στο admin panel για να εγκρίνετε το αίτημα.</p>`
       );
-    } catch (_) { /* email failure never blocks the request */ }
+    } catch (_) {}
 
     res.status(201).json({ data: { id, message: 'Το αίτημά σας καταχωρήθηκε. Ο διαχειριστής θα το επεξεργαστεί σύντομα.' } });
   } catch (err) { next(err); }

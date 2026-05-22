@@ -495,6 +495,23 @@
                   <input id="p-app_min_version" class="input-field" placeholder="1.0.0" />
                 </div>
               </div>
+              <!-- APK Auto-Updater -->
+              <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">
+                <h4 class="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><i class="fas fa-download"></i> Αυτόματος Ενημερωτής APK</h4>
+                <p class="text-xs text-blue-600 mb-3">Αν ο αριθμός έκδοσης είναι μεγαλύτερος από την εγκατεστημένη, η εφαρμογή θα εμφανίσει μη-κλειστό popup κατεβάσματος κατά την εκκίνηση σε όλες τις συσκευές.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="label-text">Τελευταίος Κωδικός Έκδοσης <span class="text-gray-400">(ακέραιος, π.χ. 8)</span></label>
+                    <input id="p-app_latest_version_code" type="number" min="1" step="1" class="input-field" placeholder="8" />
+                    <p class="text-xs text-gray-400 mt-1">Πρέπει να είναι μεγαλύτερος του <code>versionCode</code> στο build.gradle της εφαρμογής.</p>
+                  </div>
+                  <div>
+                    <label class="label-text">URL Αρχείου APK</label>
+                    <input id="p-app_latest_apk_url" class="input-field font-mono text-sm" placeholder="https://github.com/.../releases/download/v1.x/fishbill.apk" />
+                    <p class="text-xs text-gray-400 mt-1">Άμεσο link κατεβάσματος APK (π.χ. από GitHub Releases). Αφήστε κενό για απενεργοποίηση.</p>
+                  </div>
+                </div>
+              </div>
               <button onclick="saveMobileConfig()" class="save-btn"><i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Mobile Config</button>
             </div>
 
@@ -1078,15 +1095,27 @@
     }
 
     async function saveMobileConfig() {
-      const url     = (document.getElementById('p-app_base_url').value || '').trim();
-      const webUrl  = (document.getElementById('p-web_base_url').value || '').trim();
-      const ver     = (document.getElementById('p-app_min_version').value || '').trim();
+      const url        = (document.getElementById('p-app_base_url').value || '').trim();
+      const webUrl     = (document.getElementById('p-web_base_url').value || '').trim();
+      const ver        = (document.getElementById('p-app_min_version').value || '').trim();
+      const apkVerCode = (document.getElementById('p-app_latest_version_code').value || '').trim();
+      const apkUrl     = (document.getElementById('p-app_latest_apk_url').value || '').trim();
       if (url && !url.endsWith('/')) {
         toast('Το API Base URL πρέπει να τελειώνει σε /', 'err');
         return;
       }
+      if (apkVerCode && (isNaN(parseInt(apkVerCode)) || parseInt(apkVerCode) < 1)) {
+        toast('Ο κωδικός έκδοσης APK πρέπει να είναι θετικός ακέραιος', 'err');
+        return;
+      }
       try {
-        await api.post('/platform/settings', { app_base_url: url, web_base_url: webUrl, app_min_version: ver });
+        await api.post('/platform/settings', {
+          app_base_url: url,
+          web_base_url: webUrl,
+          app_min_version: ver,
+          app_latest_version_code: apkVerCode,
+          app_latest_apk_url: apkUrl,
+        });
         toast('✓ Mobile config αποθηκεύτηκε! Η εφαρμογή θα το εφαρμόσει στην επόμενη εκκίνηση.');
       } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
     }

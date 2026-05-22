@@ -1,6 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const pool = require('../config/database');
+const express  = require('express');
+const router   = express.Router();
+const pool     = require('../config/database');
+const emailSvc = require('../services/email.service');
 const { authenticate } = require('../middleware/auth');
 
 router.use(authenticate);
@@ -395,6 +396,48 @@ router.get('/package-details', (req, res) => {
       ],
     },
   });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/subscription/notify-renewal — user taps "Ενημέρωση Πληρωμής"
+// Sends an email to the admin so they know to look for and confirm the payment.
+// ---------------------------------------------------------------------------
+router.post('/notify-renewal', async (req, res, next) => {
+  try {
+    const [[biz]] = await pool.execute(
+      `SELECT b.name, b.afm, b.plan, b.subscription_ends_at,
+              u.full_name, u.email
+       FROM businesses b
+       JOIN users u ON u.business_id = b.id AND u.role IN ('owner','admin')
+       WHERE b.id = ? ORDER BY FIELD(u.role,'owner','admin') DESC LIMIT 1`,
+      [req.user.business_id]
+    );
+    if (!biz) return res.status(404).json({ error: 'Δεν βρέθηκε επιχείρηση.' });
+
+    const planLabel = { basic: 'Βασικό', pro: 'Pro', enterprise: 'Enterprise', trial: 'Δοκιμαστικό' }[biz.plan] ?? biz.plan;
+    const endsAt    = biz.subscription_ends_at
+      ? new Date(biz.subscription_ends_at).toLocaleDateString('el-GR')
+      : '—';
+
+    await emailSvc.sendAdminActionEmail({
+      subject: `Ενημέρωση πληρωμής συνδρομής — ${biz.name}`,
+      bodyHtml: `
+        <h1 style="font-size:20px;font-weight:800;color:#0D47A1;margin:0 0 12px">💳 Ενημέρωση Ανανέωσης Συνδρομής</h1>
+        <p style="font-size:14px;color:#3a5560;margin:0 0 16px">
+          Ο χρήστης <strong>${biz.full_name}</strong> (${biz.email}) ενημέρωσε ότι έχει πραγματοποιήσει πληρωμή ανανέωσης συνδρομής.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:16px">
+          ${[['Επιχείρηση', biz.name], ['ΑΦΜ', biz.afm || '—'], ['Πλάνο', planLabel], ['Τρέχουσα λήξη', endsAt]]
+            .map(([k,v]) => `<tr>
+              <td style="padding:8px 12px;background:#f5fbfc;border:1px solid #d5edf2;font-weight:600;color:#4a6572;width:40%">${k}</td>
+              <td style="padding:8px 12px;border:1px solid #d5edf2;color:#1a2e35;font-weight:700">${v}</td>
+            </tr>`).join('')}
+        </table>
+        <p style="font-size:13px;color:#6b7280;">Ελέγξτε τις εισερχόμενες καταθέσεις και εγκρίνετε τη συνδρομή από το admin panel.</p>`,
+    });
+
+    res.json({ data: { message: 'Ο διαχειριστής ενημερώθηκε. Θα επικυρώσει την πληρωμή σύντομα.' } });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;
