@@ -1796,6 +1796,12 @@ router.get('/online-users', async (req, res, next) => {
 // ── GET /api/platform/dn-credit-requests — list all extra-credit requests ─────
 router.get('/dn-credit-requests', async (req, res, next) => {
   try {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+    const [[{ total }]] = await pool.execute(
+      'SELECT COUNT(*) AS total FROM dn_credit_requests dcr JOIN businesses b ON b.id = dcr.business_id'
+    );
     const [rows] = await pool.execute(`
       SELECT dcr.*, b.name AS business_name, b.afm AS business_afm,
              u.full_name AS resolved_by_name
@@ -1803,9 +1809,9 @@ router.get('/dn-credit-requests', async (req, res, next) => {
       JOIN businesses b ON b.id = dcr.business_id
       LEFT JOIN users u ON u.id = dcr.resolved_by
       ORDER BY dcr.requested_at DESC
-      LIMIT 200
+      LIMIT ${limit} OFFSET ${offset}
     `);
-    res.json({ data: rows });
+    res.json({ data: rows, total, page, limit });
   } catch (err) { next(err); }
 });
 

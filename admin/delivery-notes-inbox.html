@@ -195,6 +195,7 @@
     // ── State ──────────────────────────────────────────────────────────────────
     var dnCurrentTab    = 'pending';
     var dnCurrentPage   = 1;
+    var dnLimit         = 10;
     var dnSelected      = null;
     var dnSelectedBizId = null;
     var dnSelectedBiz   = null;
@@ -404,7 +405,7 @@
         ? _dnBase + '/pending'
         : _dnBase + '/transmitted';
 
-      var params = { page: dnCurrentPage, limit: 30 };
+      var params = { page: dnCurrentPage, limit: dnLimit };
       if (dnSelectedBizId) params.business_id = dnSelectedBizId;
       var q = document.getElementById('dn-search-input').value.trim();
       if (q) params.search = q;
@@ -418,7 +419,7 @@
         var badgeEl = document.getElementById(dnCurrentTab === 'pending' ? 'badge-pending' : 'badge-done');
         if (badgeEl) badgeEl.textContent = res.total;
         dnRenderList(dnAllNotes);
-        dnRenderPagination(dnCurrentPage, res.total, 30);
+        renderPagination('dn-pagination', res.total, dnCurrentPage, dnLimit, dnLoadNotes, function(l) { dnLimit = l; dnLoadNotes(1); });
       } catch(e) {
         document.getElementById('dn-list').innerHTML =
           '<div class="text-center py-10 text-red-400 text-xs px-4">' + e.message + '</div>';
@@ -463,20 +464,7 @@
       return '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">' + status + '</span>';
     }
 
-    function dnRenderPagination(page, total, limit) {
-      var pages = Math.ceil(total / limit);
-      var el = document.getElementById('dn-pagination');
-      if (pages <= 1) { el.innerHTML = ''; return; }
-      var start = Math.max(1, page - 3);
-      var end   = Math.min(pages, start + 6);
-      var nums  = [];
-      for (var i = start; i <= end; i++) nums.push(i);
-      el.innerHTML = '<div class="flex gap-1 justify-center p-2 flex-wrap items-center">' +
-        (page > 1 ? '<button onclick="dnLoadNotes(' + (page-1) + ')" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-left"></i></button>' : '') +
-        nums.map(function(p){ return '<button onclick="dnLoadNotes(' + p + ')" class="px-2.5 py-1 rounded-lg text-xs font-bold ' + (p===page?'bg-indigo-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200') + '">' + p + '</button>'; }).join('') +
-        (page < pages ? '<button onclick="dnLoadNotes(' + (page+1) + ')" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-right"></i></button>' : '') +
-        '<span class="text-xs text-gray-400 ml-1">' + total + ' σύνολο</span></div>';
-    }
+    // dnRenderPagination delegated to page.js shared renderPagination function
 
     // ── Select note ────────────────────────────────────────────────────────────
     function dnSelectNote(id) {

@@ -168,6 +168,7 @@
             <i class="fas fa-spinner fa-spin mr-2"></i>Φόρτωση…
           </div>
         </div>
+        <div id="dncred-pagination"></div>
       </div>
 
     </div>
@@ -177,13 +178,17 @@
     let allRequests = [];
     let currentFilter = 'all';
     let pendingGrantId = null;
+    let dnCredPage  = 1;
+    let dnCredLimit = 10;
 
-    async function loadRequests() {
+    async function loadRequests(page) {
+      if (page) dnCredPage = page;
       try {
-        const res = await api.get('/platform/dn-credit-requests');
+        const res = await api.get('/platform/dn-credit-requests', { page: dnCredPage, limit: dnCredLimit });
         allRequests = res.data || [];
         updateStats();
         renderRequests();
+        renderPagination('dncred-pagination', res.total || allRequests.length, dnCredPage, dnCredLimit, loadRequests, function(l) { dnCredLimit = l; loadRequests(1); });
         loadBusinesses();
       } catch(e) {
         document.getElementById('requests-list').innerHTML =

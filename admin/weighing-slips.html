@@ -364,7 +364,7 @@
 
     // ── State ──────────────────────────────────────────────────────────────────
     let currentPage = 1;
-    const PAGE_SIZE = 30;
+    const PAGE_SIZE = 10;
     let totalPages  = 1;
     let debounceTimer = null;
     const IS_ADMIN = (getCurrentUser()?.role || getUser()?.role) === 'super_admin';

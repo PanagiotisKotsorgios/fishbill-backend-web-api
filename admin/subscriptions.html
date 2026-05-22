@@ -156,6 +156,7 @@
     initPage({ requireRole: 'super_admin' });
 
     let currentPage = 1;
+    let subsLimit   = 10;
     let searchTimer = null;
     let allData = [];
 
@@ -203,11 +204,11 @@
         '<div class="flex justify-center py-16"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div></div>';
 
       try {
-        const res = await api.get('/platform/subscriptions', { page, limit: 30, filter, search: search || undefined });
+        const res = await api.get('/platform/subscriptions', { page, limit: subsLimit, filter, search: search || undefined });
         allData = res.data || [];
         renderStats(allData);
         renderTable(allData);
-        renderPagination(page, res.total, 30);
+        renderPagination('pagination', res.total, page, subsLimit, loadSubs, function(l) { subsLimit = l; loadSubs(1); });
       } catch (e) {
         document.getElementById('table-body').innerHTML = `<div class="text-center py-12 text-red-500 text-sm"><i class='fas fa-triangle-exclamation'></i> ${e.message}</div>`;
       }
@@ -348,20 +349,7 @@
         </div>`;
     }
 
-    function renderPagination(page, total, limit) {
-      const totalPages = Math.ceil(total / limit);
-      const el = document.getElementById('pagination');
-      if (totalPages <= 1) { el.innerHTML = ''; return; }
-      const btn = (l, p, active, disabled) => {
-        const cls = active ? 'bg-blue-600 text-white' : disabled ? 'text-gray-300 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200';
-        return `<button ${disabled ? 'disabled' : `onclick="loadSubs(${p})"`} class="px-3 py-2 rounded-xl text-sm font-medium ${cls} transition-colors">${l}</button>`;
-      };
-      el.innerHTML = `<div class="flex items-center justify-center gap-2 p-4 border-t border-gray-100 flex-wrap">
-        ${btn('‹', page-1, false, page<=1)}
-        ${Array.from({length: Math.min(totalPages,7)}, (_, i) => btn(i+1, i+1, i+1===page, false)).join('')}
-        ${btn('›', page+1, false, page>=totalPages)}
-      </div>`;
-    }
+    // renderPagination delegated to page.js shared function
 
     function fmtDate(d) {
       if (!d) return '—';

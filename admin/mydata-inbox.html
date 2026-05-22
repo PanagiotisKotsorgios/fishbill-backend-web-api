@@ -218,6 +218,7 @@
 
     let currentTab      = 'pending';
     let currentPage     = 1;
+    let pageLimit       = 10;
     let selectedInv     = null;
     let selectedBizId   = null;
     let selectedBizData = null;
@@ -427,7 +428,7 @@
         ? '/platform/invoices/pending-mark'
         : '/platform/invoices/transmitted';
 
-      const params = { page, limit: 30 };
+      const params = { page, limit: pageLimit };
       if (selectedBizId) params.business_id = selectedBizId;
 
       const q = document.getElementById('search-input')?.value.trim();
@@ -450,7 +451,7 @@
         badgeEl.textContent = res.total;
 
         renderList(allInvoices);
-        renderPagination(page, res.total, 30);
+        renderPagination('pagination', res.total, page, pageLimit, loadInvoices, function(l) { pageLimit = l; loadInvoices(1); });
       } catch(e) {
         document.getElementById('inv-list').innerHTML =
           `<div class="text-center py-10 text-red-400 text-xs px-4">${e.message}</div>`;
@@ -498,21 +499,7 @@
       }).join('');
     }
 
-    function renderPagination(page, total, limit) {
-      const pages = Math.ceil(total / limit);
-      const el    = document.getElementById('pagination');
-      if (pages <= 1) { el.innerHTML = ''; return; }
-      const start = Math.max(1, page - 3);
-      const end   = Math.min(pages, start + 6);
-      el.innerHTML = `<div class="flex gap-1 justify-center p-2 flex-wrap items-center">
-        ${page > 1 ? `<button onclick="loadInvoices(${page-1})" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-left"></i></button>` : ''}
-        ${Array.from({length:end-start+1}, (_,i) => start+i).map(p => `
-          <button onclick="loadInvoices(${p})"
-            class="px-2.5 py-1 rounded-lg text-xs font-bold ${p===page?'bg-indigo-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}">${p}</button>`).join('')}
-        ${page < pages ? `<button onclick="loadInvoices(${page+1})" class="px-2 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"><i class="fas fa-chevron-right"></i></button>` : ''}
-        <span class="text-xs text-gray-400 ml-1">${total} σύνολο</span>
-      </div>`;
-    }
+    // renderPagination delegated to page.js shared function
 
     // ── Select invoice ─────────────────────────────────────────────────────────
     function selectInvoice(id) {
