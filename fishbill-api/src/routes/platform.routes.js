@@ -279,8 +279,18 @@ router.post('/subscriptions/:bizId/activate', async (req, res, next) => {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + monthCount);
 
+    // Ensure billing_cycle_started_at column exists (one-time auto-migration)
+    try {
+      const [[col]] = await pool.execute(
+        "SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='businesses' AND COLUMN_NAME='billing_cycle_started_at'"
+      );
+      if (!col.c) {
+        await pool.execute("ALTER TABLE businesses ADD COLUMN billing_cycle_started_at DATE NULL DEFAULT NULL");
+      }
+    } catch (_) {}
+
     // Build SET clause dynamically to avoid errors on older schema
-    const setClauses = ['subscription_active = 1', 'subscription_ends_at = ?', 'updated_at = NOW()'];
+    const setClauses = ['subscription_active = 1', 'subscription_ends_at = ?', 'billing_cycle_started_at = CURDATE()', 'updated_at = NOW()'];
     const params     = [endDate];
 
     if (validPlan) { setClauses.unshift('plan = ?'); params.unshift(plan); }
@@ -300,14 +310,17 @@ router.post('/subscriptions/:bizId/activate', async (req, res, next) => {
         params
       );
     } catch (e) {
-      if (!e.message.includes('billing_cycle')) throw e;
-      // billing_cycle column not yet migrated — retry without it
-      const fallbackClauses = setClauses.filter(c => !c.includes('billing_cycle'));
-      const fallbackParams  = params.filter((_, i) => !setClauses[i]?.includes('billing_cycle'));
-      await pool.execute(
-        `UPDATE businesses SET ${fallbackClauses.join(', ')} WHERE id = ?`,
-        fallbackParams
-      );
+      if (!e.message.includes('billing_cycle') && !e.message.includes('billing_cycle_started_at')) throw e;
+      // Column not yet migrated — retry without the unknown column
+      const safeSet    = setClauses.filter(c => !c.includes('billing_cycle'));
+      const safeParams = [];
+      let pi = 0;
+      for (const clause of setClauses) {
+        if (clause.includes('billing_cycle')) continue;
+        if (clause.includes('?')) safeParams.push(params[pi++]); else pi++;
+      }
+      safeParams.push(bizId);
+      await pool.execute(`UPDATE businesses SET ${safeSet.join(', ')} WHERE id = ?`, safeParams);
     }
 
     const cycleLabel = { monthly: 'μηνιαία', semi_annual: '6μηνη', annual: 'ετήσια' }[validCycle] || '';

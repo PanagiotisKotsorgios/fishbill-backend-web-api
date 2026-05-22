@@ -47,6 +47,7 @@ async function runMigrations() {
   await addColumnIfMissing('delivery_notes', 'transmitted_at',         'DATETIME NULL DEFAULT NULL');
   await addColumnIfMissing('delivery_notes', 'pdf_path',               'VARCHAR(500) NULL DEFAULT NULL');
   await addColumnIfMissing('business_settings', 'default_vat_rate',    'TINYINT NOT NULL DEFAULT 13');
+  await addColumnIfMissing('businesses', 'billing_cycle_started_at', 'DATE NULL DEFAULT NULL');
   // Price correction: ensure price_pro is 12 (was 15)
   try {
     await pool.execute(

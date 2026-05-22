@@ -178,7 +178,8 @@ router.get('/', async (req, res, next) => {
       try {
         const [[biz]] = await pool.execute(
           `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at,
-                  COALESCE(extra_dn_credits, 0) AS extra_dn_credits
+                  COALESCE(extra_dn_credits, 0) AS extra_dn_credits,
+                  DATE_FORMAT(billing_cycle_started_at, '%Y-%m-%d') AS billing_cycle_started_at
            FROM businesses WHERE id = ? LIMIT 1`,
           [business_id]
         );
@@ -188,10 +189,13 @@ router.get('/', async (req, res, next) => {
           if (monthlyLimit !== -1) {
             const now        = new Date();
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+            const countFrom  = biz.billing_cycle_started_at && biz.billing_cycle_started_at > monthStart
+              ? biz.billing_cycle_started_at
+              : monthStart;
             const [[{ cnt }]] = await pool.execute(
               `SELECT COUNT(*) AS cnt FROM delivery_notes
                WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
-              [business_id, monthStart]
+              [business_id, countFrom]
             );
             usedThisMonth = cnt;
             atLimit = cnt >= (monthlyLimit + extraCredits);
@@ -258,7 +262,9 @@ router.post('/', validate(createSchema), async (req, res, next) => {
     // ── Monthly delivery-note limit check ─────────────────────────────────────
     if (req.user.role !== 'super_admin') {
       const [[biz]] = await conn.execute(
-        'SELECT plan, trial_ends_at, subscription_active, subscription_ends_at FROM businesses WHERE id = ? LIMIT 1',
+        `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at,
+                DATE_FORMAT(billing_cycle_started_at, '%Y-%m-%d') AS billing_cycle_started_at
+         FROM businesses WHERE id = ? LIMIT 1`,
         [business_id]
       );
       if (biz) {
@@ -276,10 +282,13 @@ router.post('/', validate(createSchema), async (req, res, next) => {
         const monthlyLimit = DN_PLAN_LIMITS[biz.plan] ?? -1;
         if (monthlyLimit !== -1) {
           const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+          const countFrom  = biz.billing_cycle_started_at && biz.billing_cycle_started_at > monthStart
+            ? biz.billing_cycle_started_at
+            : monthStart;
           const [[{ cnt }]] = await conn.execute(
             `SELECT COUNT(*) AS cnt FROM delivery_notes
              WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
-            [business_id, monthStart]
+            [business_id, countFrom]
           );
           // Extra credits — separate query so missing column never blocks DN creation
           let extraCredits = 0;

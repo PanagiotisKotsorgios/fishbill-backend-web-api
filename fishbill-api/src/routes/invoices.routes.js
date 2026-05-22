@@ -293,7 +293,8 @@ router.get('/', async (req, res, next) => {
     if (req.user.role !== 'super_admin' && req.user.business_id) {
       try {
         const [[biz]] = await pool.execute(
-          `SELECT plan, COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits
+          `SELECT plan, COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits,
+                  DATE_FORMAT(billing_cycle_started_at, '%Y-%m-%d') AS billing_cycle_started_at
            FROM businesses WHERE id = ? LIMIT 1`,
           [req.user.business_id]
         );
@@ -303,10 +304,14 @@ router.get('/', async (req, res, next) => {
           if (monthlyLimit !== -1) {
             const now        = new Date();
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+            // Use billing_cycle_started_at if set and after month start (plan renewal mid-month resets counter)
+            const countFrom  = biz.billing_cycle_started_at && biz.billing_cycle_started_at > monthStart
+              ? biz.billing_cycle_started_at
+              : monthStart;
             const [[{ cnt }]] = await pool.execute(
               `SELECT COUNT(*) AS cnt FROM invoices
                WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
-              [req.user.business_id, monthStart]
+              [req.user.business_id, countFrom]
             );
             usedThisMonth = cnt;
             atLimit = cnt >= (monthlyLimit + extraCredits);
@@ -366,7 +371,8 @@ router.post(
       const PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
       const [[bizRow]] = await conn.execute(
         `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at,
-                COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits
+                COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits,
+                DATE_FORMAT(billing_cycle_started_at, '%Y-%m-%d') AS billing_cycle_started_at
          FROM businesses WHERE id = ? LIMIT 1`,
         [businessId]
       );
@@ -387,10 +393,13 @@ router.post(
         if (monthlyLimit !== -1) {
           const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
             .toISOString().slice(0, 10);
+          const countFrom  = bizRow.billing_cycle_started_at && bizRow.billing_cycle_started_at > monthStart
+            ? bizRow.billing_cycle_started_at
+            : monthStart;
           const [[countRow]] = await conn.execute(
             `SELECT COUNT(*) AS cnt FROM invoices
              WHERE business_id = ? AND issue_date >= ? AND status != 'cancelled'`,
-            [businessId, monthStart]
+            [businessId, countFrom]
           );
           const effectiveLimit = monthlyLimit + extraCredits;
           if (countRow.cnt >= effectiveLimit) {
