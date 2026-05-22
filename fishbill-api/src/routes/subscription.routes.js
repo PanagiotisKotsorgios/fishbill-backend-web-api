@@ -405,8 +405,12 @@ router.get('/package-details', (req, res) => {
 router.post('/notify-renewal', async (req, res, next) => {
   try {
     const [[biz]] = await pool.execute(
-      `SELECT b.name, b.afm, b.plan, b.subscription_ends_at,
-              u.full_name, u.email
+      `SELECT b.name, b.afm, b.city, b.plan,
+              b.billing_cycle, b.plan_price_override,
+              b.subscription_ends_at, b.subscription_active,
+              b.extra_dn_credits, b.extra_invoice_credits,
+              b.is_first_subscription,
+              u.full_name, u.email, u.phone
        FROM businesses b
        JOIN users u ON u.business_id = b.id AND u.role IN ('owner','admin')
        WHERE b.id = ? ORDER BY FIELD(u.role,'owner','admin') DESC LIMIT 1`,
@@ -414,26 +418,107 @@ router.post('/notify-renewal', async (req, res, next) => {
     );
     if (!biz) return res.status(404).json({ error: 'Δεν βρέθηκε επιχείρηση.' });
 
-    const planLabel = { basic: 'Βασικό', pro: 'Pro', enterprise: 'Enterprise', trial: 'Δοκιμαστικό' }[biz.plan] ?? biz.plan;
-    const endsAt    = biz.subscription_ends_at
+    // ── Labels ────────────────────────────────────────────────────────────────
+    const planLabel = {
+      basic:      'Βασικό',
+      pro:        'Pro / Προηγμένο',
+      enterprise: 'Enterprise / Επιχειρηματικό',
+      trial:      'Δωρεάν Δοκιμή',
+    }[biz.plan] ?? biz.plan;
+
+    const cycleLabel = {
+      monthly:    'Μηνιαία (1 μήνας)',
+      quarterly:  'Τριμηνιαία (3 μήνες)',
+      semi_annual:'Εξαμηνιαία (6 μήνες)',
+      yearly:     'Ετήσια (12 μήνες)',
+      annual:     'Ετήσια (12 μήνες)',
+    }[biz.billing_cycle] ?? (biz.billing_cycle || '—');
+
+    // Price: fetch from platform_settings if no override
+    let priceLabel = '—';
+    try {
+      const priceKey = `price_${biz.plan}`;
+      const [[ps]] = await pool.execute(
+        'SELECT setting_value FROM platform_settings WHERE setting_key = ? LIMIT 1', [priceKey]
+      );
+      const basePrice = parseFloat(biz.plan_price_override ?? ps?.setting_value ?? 0);
+      if (basePrice > 0) {
+        const multiplier = { monthly:1, quarterly:3, semi_annual:6, yearly:12, annual:12 }[biz.billing_cycle] ?? 1;
+        priceLabel = `€${(basePrice * multiplier).toFixed(2)} / ${cycleLabel.split(' ')[0].toLowerCase()}`;
+      }
+    } catch (_) {}
+
+    const endsAt   = biz.subscription_ends_at
       ? new Date(biz.subscription_ends_at).toLocaleDateString('el-GR')
       : '—';
+    const sentAt   = new Date().toLocaleString('el-GR');
+    const isFirst  = biz.is_first_subscription;
+
+    // ── New subscription_ends_at after renewal ────────────────────────────────
+    const cycleMonths = { monthly:1, quarterly:3, semi_annual:6, yearly:12, annual:12 }[biz.billing_cycle] ?? 1;
+    const base = biz.subscription_ends_at && new Date(biz.subscription_ends_at) > new Date()
+      ? new Date(biz.subscription_ends_at)
+      : new Date();
+    base.setMonth(base.getMonth() + cycleMonths);
+    const newEndsAt = base.toLocaleDateString('el-GR');
+
+    const row = (label, value, highlight = false) => `
+      <tr>
+        <td style="padding:9px 14px;background:#f5fbfc;border:1px solid #d5edf2;font-weight:600;color:#4a6572;white-space:nowrap;width:38%">${label}</td>
+        <td style="padding:9px 14px;border:1px solid #d5edf2;color:${highlight ? '#0D47A1' : '#1a2e35'};font-weight:${highlight ? '800' : '700'}">${value}</td>
+      </tr>`;
 
     await emailSvc.sendAdminActionEmail({
-      subject: `Ενημέρωση πληρωμής συνδρομής — ${biz.name}`,
+      subject: `💳 Ανανέωση συνδρομής — ${biz.name} (${planLabel}, ${cycleLabel.split(' ')[0]})`,
       bodyHtml: `
-        <h1 style="font-size:20px;font-weight:800;color:#0D47A1;margin:0 0 12px">💳 Ενημέρωση Ανανέωσης Συνδρομής</h1>
-        <p style="font-size:14px;color:#3a5560;margin:0 0 16px">
-          Ο χρήστης <strong>${biz.full_name}</strong> (${biz.email}) ενημέρωσε ότι έχει πραγματοποιήσει πληρωμή ανανέωσης συνδρομής.
+        <h1 style="font-size:20px;font-weight:800;color:#0D47A1;margin:0 0 6px">💳 Αίτημα Ανανέωσης Συνδρομής</h1>
+        <p style="font-size:13px;color:#6b7280;margin:0 0 18px">Αποστάλθηκε: ${sentAt}</p>
+
+        <p style="font-size:14px;color:#3a5560;margin:0 0 16px;line-height:1.65">
+          Ο χρήστης <strong>${biz.full_name}</strong>
+          ${biz.phone ? `(τηλ: <strong>${biz.phone}</strong>)` : ''}
+          ειδοποίησε ότι πραγματοποίησε πληρωμή για ανανέωση της συνδρομής του.
         </p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:16px">
-          ${[['Επιχείρηση', biz.name], ['ΑΦΜ', biz.afm || '—'], ['Πλάνο', planLabel], ['Τρέχουσα λήξη', endsAt]]
-            .map(([k,v]) => `<tr>
-              <td style="padding:8px 12px;background:#f5fbfc;border:1px solid #d5edf2;font-weight:600;color:#4a6572;width:40%">${k}</td>
-              <td style="padding:8px 12px;border:1px solid #d5edf2;color:#1a2e35;font-weight:700">${v}</td>
-            </tr>`).join('')}
+
+        <!-- Στοιχεία Επιχείρησης -->
+        <p style="font-size:12px;font-weight:700;color:#0D47A1;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">Στοιχεία Επιχείρησης</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:18px">
+          ${row('Επωνυμία', biz.name)}
+          ${row('ΑΦΜ', biz.afm || '—')}
+          ${biz.city ? row('Πόλη', biz.city) : ''}
+          ${row('Email', biz.email)}
+          ${biz.phone ? row('Τηλέφωνο', biz.phone) : ''}
         </table>
-        <p style="font-size:13px;color:#6b7280;">Ελέγξτε τις εισερχόμενες καταθέσεις και εγκρίνετε τη συνδρομή από το admin panel.</p>`,
+
+        <!-- Στοιχεία Συνδρομής -->
+        <p style="font-size:12px;font-weight:700;color:#0D47A1;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">Στοιχεία Συνδρομής</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:18px">
+          ${row('Πλάνο', planLabel, true)}
+          ${row('Περίοδος χρέωσης', cycleLabel, true)}
+          ${row('Τιμή', priceLabel)}
+          ${row('Τρέχουσα λήξη', endsAt)}
+          ${row('Νέα λήξη (εκτιμώμενη)', newEndsAt, true)}
+          ${row('Πρώτη ανανέωση;', isFirst ? 'Ναι — πρώτη φορά' : 'Όχι — υπάρχουσα συνδρομή')}
+        </table>
+
+        ${(biz.extra_dn_credits > 0 || biz.extra_invoice_credits > 0) ? `
+        <!-- Επιπλέον πιστώσεις -->
+        <p style="font-size:12px;font-weight:700;color:#0D47A1;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">Επιπλέον Πιστώσεις</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:18px">
+          ${biz.extra_dn_credits > 0 ? row('Extra Δελτία Αποστολής', `+${biz.extra_dn_credits}`) : ''}
+          ${biz.extra_invoice_credits > 0 ? row('Extra Τιμολόγια', `+${biz.extra_invoice_credits}`) : ''}
+        </table>` : ''}
+
+        <!-- Οδηγίες -->
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+          <p style="margin:0;font-size:13px;color:#1e40af;font-weight:600">📋 Ενέργειες διαχειριστή</p>
+          <ol style="margin:8px 0 0;padding-left:18px;font-size:13px;color:#1e3a8a;line-height:1.8">
+            <li>Ελέγξτε τις εισερχόμενες καταθέσεις / IRIS για ποσό <strong>${priceLabel}</strong></li>
+            <li>Εντοπίστε την κατάθεση από <strong>${biz.name}</strong> (ΑΦΜ: ${biz.afm || '—'})</li>
+            <li>Εγκρίνετε τη συνδρομή από το Admin Panel → Επιχειρήσεις → Συνδρομές</li>
+            <li>Η νέα λήξη πρέπει να οριστεί περίπου στις <strong>${newEndsAt}</strong></li>
+          </ol>
+        </div>`,
     });
 
     res.json({ data: { message: 'Ο διαχειριστής ενημερώθηκε. Θα επικυρώσει την πληρωμή σύντομα.' } });
