@@ -104,6 +104,15 @@ app.use('/api/auth/owner-recovery',  sensitiveAuthLimiter);
 // ── Static files — avatars + weighing-slip images ────────────────────────────
 app.use('/avatars', express.static(path.join(__dirname, '../public/avatars')));
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+// ── APK downloads — no auth required so DownloadManager can fetch directly ───
+app.use('/apk', express.static(path.join(__dirname, '../public/apk'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.apk')) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment');
+    }
+  }
+}));
 app.use('/uploads/invoices', express.static(path.join(__dirname, '../uploads/invoices')));
 app.use('/uploads/delivery-notes', express.static(path.join(__dirname, '../uploads/delivery-notes')));
 
