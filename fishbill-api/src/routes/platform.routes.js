@@ -215,8 +215,8 @@ router.get('/subscriptions', async (req, res, next) => {
                 COALESCE(b.outstanding_balance, 0) AS outstanding_balance,
                 COALESCE(b.contact_phone, b.phone, '') AS contact_phone,
                 (SELECT COUNT(*) FROM invoices i WHERE i.business_id = b.id) AS invoice_count,
-                (SELECT COUNT(*) FROM invoices i WHERE i.business_id = b.id AND i.issue_date >= '${monthStart}' AND i.status != 'cancelled') AS invoices_this_month,
-                (SELECT COUNT(*) FROM delivery_notes dn WHERE dn.business_id = b.id AND dn.issue_date >= '${monthStart}' AND dn.status != 'cancelled') AS dn_this_month,
+                (SELECT COUNT(*) FROM invoices i WHERE i.business_id = b.id AND i.issue_date >= GREATEST('${monthStart}', COALESCE(DATE_FORMAT(b.billing_cycle_started_at,'%Y-%m-%d'),'${monthStart}')) AND i.status != 'cancelled') AS invoices_this_month,
+                (SELECT COUNT(*) FROM delivery_notes dn WHERE dn.business_id = b.id AND dn.issue_date >= GREATEST('${monthStart}', COALESCE(DATE_FORMAT(b.billing_cycle_started_at,'%Y-%m-%d'),'${monthStart}')) AND dn.status != 'cancelled') AS dn_this_month,
                 (SELECT u.email FROM users u WHERE u.business_id = b.id AND u.role = 'owner' LIMIT 1) AS owner_email,
                 COALESCE((SELECT bs.feature_ospa FROM business_settings bs WHERE bs.business_id = b.id LIMIT 1), 0) AS addon_ospa,
                 COALESCE((SELECT bs.feature_weighing_slips FROM business_settings bs WHERE bs.business_id = b.id LIMIT 1), 0) AS addon_weighing
