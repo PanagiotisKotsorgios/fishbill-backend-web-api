@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+fishbill-api/node_modules/
+
+# Secrets & environment
+.env
+.env.*
+!.env.docker.example
+
+# Logs
+*.log
+server.log
+server.err
+logs/
+
+# Git / IDE
+.git/
+.gitignore
+.claude/
+.vscode/
+.idea/
+
+# Large binary / runtime directories (mounted as named volumes)
+fishbill-api/public/apk/
+fishbill-api/public/avatars/
+fishbill-api/public/uploads/
+fishbill-api/uploads/
+fishbill-api/pdfs/
+fishbill-api/backups/
+
+# Database dumps (schema is mounted separately)
+database/Database.sql
+database/*.bak
+
+# Documentation & development-only files
+*.md
+hosting-offer-request.md
+fishbill-complete-guide.md
+FishBill_Documentation.md
+*.txt
+*.docx
+*.pptx
+*.bat
+TODO.txt
+start-api.bat
+
+# XAMPP/Apache-specific (not used in Docker)
+.htaccess
