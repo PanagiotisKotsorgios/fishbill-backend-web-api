@@ -1,0 +1,60 @@
+services:
+
+  # ── MySQL 8 ────────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${DB_NAME:-fishbill_db}
+      MYSQL_USER:          ${DB_USER:-fishbill_user}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/fishbill_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ── Node.js API ────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./fishbill-api
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      DB_HOST: db          # override to reach the db container
+      DB_PORT: "3306"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - api_uploads:/app/uploads
+      - api_pdfs:/app/pdfs
+      - api_avatars:/app/public/avatars
+      - api_weighing_slips:/app/public/uploads
+      - api_apk:/app/public/apk
+      - api_backups:/app/backups
+
+  # ── Nginx (static web + reverse proxy) ────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      - api
+
+volumes:
+  db_data:          # MySQL data directory
+  api_uploads:      # generated invoice & delivery-note PDFs
+  api_pdfs:         # temp PDF output
+  api_avatars:      # user avatar images
+  api_weighing_slips: # weighing-slip photos
+  api_apk:          # APK files (optional self-hosting)
+  api_backups:      # database backup JSONs
