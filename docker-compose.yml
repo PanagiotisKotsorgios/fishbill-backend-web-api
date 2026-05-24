@@ -24,6 +24,7 @@ services:
     build:
       context: ./fishbill-api
     restart: unless-stopped
+    command: ["./entrypoint.sh"]
     env_file: .env         # Coolify generates .env from its UI; on bare Docker use .env.docker → cp .env.production .env
     environment:
       DB_HOST: db          # override to reach the db container
