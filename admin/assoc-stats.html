@@ -103,7 +103,7 @@
     const debt    = parseFloat(a.total_outstanding || 0);
     const invTotal= parseInt(a.total_invoices || 0);
     const invMonth= parseInt(a.invoices_this_month || 0);
-    const pct     = biz > 0 ? Math.round((active / biz) * 100) : 0;
+    const pct     = biz > 0 ? Math.min(100, Math.round((active / biz) * 100)) : 0;
 
     const payColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-red-500';
     const pctColor = pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-red-600';
