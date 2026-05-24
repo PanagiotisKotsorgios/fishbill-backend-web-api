@@ -378,7 +378,7 @@
           <td class="px-5 py-3 whitespace-nowrap text-xs text-gray-500">${fmtDateTime(r.created_at)}</td>
         </tr>`).join('');
 
-      renderPagination('audit-pagination', total, page, LIMIT, 'loadAudit', function(l) { LIMIT = l; loadAudit(1); });
+      renderPagination('audit-pagination', total, page, LIMIT, loadAudit, function(l) { LIMIT = l; loadAudit(1); });
     } catch (e) {
       tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-red-500 text-sm">Σφάλμα: ${e.message}</td></tr>`;
     }
@@ -480,7 +480,7 @@
           <td class="px-5 py-3 whitespace-nowrap text-xs text-gray-500">${fmtDateTime(r.attempted_at)}</td>
         </tr>`).join('');
 
-      renderPagination('transmission-pagination', total, page, LIMIT, 'loadTransmission', function(l) { LIMIT = l; loadTransmission(1); });
+      renderPagination('transmission-pagination', total, page, LIMIT, loadTransmission, function(l) { LIMIT = l; loadTransmission(1); });
     } catch (e) {
       tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-red-500 text-sm">Σφάλμα: ${e.message}</td></tr>`;
     }

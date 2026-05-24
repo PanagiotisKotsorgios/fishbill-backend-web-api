@@ -206,7 +206,7 @@
         </tr>`;
       }).join('');
 
-      renderPagination('backups-pagination', total, page, LIMIT, 'loadBackups', function(l) { LIMIT = l; loadBackups(1); });
+      renderPagination('backups-pagination', total, page, LIMIT, loadBackups, function(l) { LIMIT = l; loadBackups(1); });
     } catch (e) {
       tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-red-500 text-sm">Σφάλμα: ${e.message}</td></tr>`;
     }

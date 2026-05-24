@@ -377,7 +377,7 @@
           </table>
         </div>`;
 
-      renderPagination('users-pagination', totalUsers, page, usersLimit, 'loadUsers', function(l) { usersLimit = l; loadUsers(1); });
+      renderPagination('users-pagination', totalUsers, page, usersLimit, loadUsers, function(l) { usersLimit = l; loadUsers(1); });
     } catch(err) {
       showError('users-table', err.message);
     }

@@ -499,7 +499,7 @@
           </table>
         </div>`;
 
-      renderPagination('biz-pagination', total, page, bizLimit, 'loadBusinesses', function(l) { bizLimit = l; loadBusinesses(1); });
+      renderPagination('biz-pagination', total, page, bizLimit, loadBusinesses, function(l) { bizLimit = l; loadBusinesses(1); });
     } catch(err) {
       showError('biz-table', err.message);
     }

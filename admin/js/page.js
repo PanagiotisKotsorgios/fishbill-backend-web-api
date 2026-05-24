@@ -43,6 +43,19 @@ function showEmpty(containerId, message = 'Δεν βρέθηκαν αποτελ�
 
 // ─── Pagination ──────────────────────────────────────────────────────────────
 
+// Global registry so onclick strings can reference named handlers, not function bodies
+window._pgReg = window._pgReg || {};
+window._pgGo  = function(key, p) {
+  const cb = window._pgReg[key]?.onPage;
+  if (typeof cb === 'function') cb(p);
+  else if (typeof cb === 'string' && typeof window[cb] === 'function') window[cb](p);
+};
+window._pgLim = function(key, l) {
+  const cb = window._pgReg[key]?.onLimit;
+  if (typeof cb === 'function') cb(l);
+  else if (typeof cb === 'string' && typeof window[cb] === 'function') window[cb](l);
+};
+
 /**
  * Render pagination controls.
  * @param {string|Element} containerId
@@ -62,6 +75,10 @@ function renderPagination(containerId, total, page, limit, onPage, onLimit) {
   const from = Math.min((page - 1) * limit + 1, total || 1);
   const to   = Math.min(page * limit, total);
 
+  // Register callbacks under a stable key so onclick attributes stay tiny
+  const key = 'pg_' + (typeof containerId === 'string' ? containerId : containerId.id || 'el') + '_' + Date.now();
+  window._pgReg[key] = { onPage, onLimit };
+
   // Build page numbers
   const pages = [];
   for (let i = 1; i <= totalPages; i++) {
@@ -80,14 +97,14 @@ function renderPagination(containerId, total, page, limit, onPage, onLimit) {
       : disabled
         ? `${base} text-gray-300 cursor-not-allowed`
         : `${base} text-gray-600 hover:bg-gray-100`;
-    const attr = disabled ? 'disabled' : `onclick="(${onPage})(${p})"`;
+    const attr = disabled ? 'disabled' : `onclick="_pgGo('${key}',${p})"`;
     return `<button ${attr} class="${cls}">${label}</button>`;
   };
 
   const sizeSelector = onLimit ? `
     <div class="flex items-center gap-1.5 ml-4">
       <span class="text-xs text-gray-400">Ανά σελ.:</span>
-      <select onchange="(${onLimit})(parseInt(this.value))"
+      <select onchange="_pgLim('${key}',parseInt(this.value))"
         class="border border-gray-200 rounded-lg text-xs text-gray-700 py-1 px-2 bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent cursor-pointer">
         ${[10, 25, 50, 100].map(n => `<option value="${n}"${n === limit ? ' selected' : ''}>${n}</option>`).join('')}
       </select>
