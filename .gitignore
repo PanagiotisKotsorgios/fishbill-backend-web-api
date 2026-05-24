@@ -28,6 +28,14 @@ pdfs/
 # User avatar uploads (binary, user-specific)
 public/avatars/
 
+# Runtime generated — never commit user data or build artifacts
+fishbill-api/backups/
+fishbill-api/public/apk/
+fishbill-api/public/uploads/
+fishbill-api/pdfs/
+fishbill-api/logs/
+fishbill-api/uploads/
+
 # OS / editor
 .DS_Store
 Thumbs.db

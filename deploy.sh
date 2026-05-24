@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ENV_FILE=".env.production"
-DOCKER_ENV=".env.docker"
+DOCKER_ENV=".env"
 
 # ── 1. Validate env file ──────────────────────────────────────────────────
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -21,7 +21,7 @@ if grep -q "CHANGE_ME" "$ENV_FILE"; then
   exit 1
 fi
 
-echo "==> Copying $ENV_FILE → $DOCKER_ENV"
+echo "==> Copying $ENV_FILE → $DOCKER_ENV (used by docker compose)"
 cp "$ENV_FILE" "$DOCKER_ENV"
 
 # ── 2. Pull latest code ───────────────────────────────────────────────────

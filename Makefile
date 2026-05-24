@@ -19,6 +19,12 @@ down:
 build:
 	docker compose build
 
+# Copy .env.production → .env (needed before first deploy on bare Docker)
+env-init:
+	@test -f .env.production || (echo "ERROR: .env.production not found. Copy .env.production.example and fill it in."; exit 1)
+	cp .env.production .env
+	@echo ".env ready."
+
 # Stream logs from all containers (Ctrl-C to stop)
 logs:
 	docker compose logs -f
