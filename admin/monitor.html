@@ -140,7 +140,7 @@
 <script src="js/page.js"></script>
 <script src="js/sidebar.js"></script>
 <script>
-  initPage({ requireRole: 'employee,super_admin' });
+  initPage({ requireRole: ['employee', 'super_admin'] });
 
   let myPrivileges = [];
   let currentBiz   = null;

@@ -134,7 +134,7 @@ async function request(method, endpoint, data = null, params = null) {
       }
       _dbgError('401 Unauthorized — clearing session');
       clearToken();
-      window.location.href = '/fishbill/admin/index.html';
+      window.location.href = '401.html';
       return null;
     }
 
@@ -168,7 +168,8 @@ async function request(method, endpoint, data = null, params = null) {
     _dbgError(`✖ ${method.toUpperCase()} ${endpoint}:`, err.message);
 
     if (err.name === 'TypeError' && (err.message.includes('fetch') || err.message.includes('Failed to fetch'))) {
-      throw new Error('Δεν είναι δυνατή η σύνδεση με τον server (port 4000). Εκτελέστε το start-api.bat για να ξεκινήσετε τον server.');
+      window.location.href = '503.html';
+      return null;
     }
     throw err;
   }

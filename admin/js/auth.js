@@ -8,22 +8,22 @@ function requireAuth() {
     window.location.href = 'index.html';
     return false;
   }
-  // Check token expiry
+  // Check token validity / expiry
   try {
     const user = getUser();
     if (!user) {
       clearToken();
-      window.location.href = 'index.html';
+      window.location.href = '401.html';
       return false;
     }
     if (user.exp && user.exp * 1000 < Date.now()) {
       clearToken();
-      window.location.href = 'index.html';
+      window.location.href = '401.html';
       return false;
     }
   } catch (e) {
     clearToken();
-    window.location.href = 'index.html';
+    window.location.href = '401.html';
     return false;
   }
   return true;

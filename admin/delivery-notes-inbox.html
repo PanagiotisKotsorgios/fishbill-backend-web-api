@@ -186,7 +186,7 @@
     var _isEmployee = _curUser && _curUser.role === 'employee';
     // Route non-admin non-employee away
     if (_curUser && _curUser.role !== 'super_admin' && _curUser.role !== 'employee') {
-      location.href = 'dashboard.html';
+      location.href = '403.html';
     }
 
     // API base switches between super_admin platform routes and employee-scoped routes
