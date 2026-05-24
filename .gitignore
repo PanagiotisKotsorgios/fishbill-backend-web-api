@@ -36,6 +36,17 @@ fishbill-api/pdfs/
 fishbill-api/logs/
 fishbill-api/uploads/
 
+# Office / document files — never commit these to source control
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.odt
+*.ods
+*.odp
+
 # OS / editor
 .DS_Store
 Thumbs.db
