@@ -6,7 +6,8 @@
 // ─── Token management ───────────────────────────────────────────────────────
 
 function getToken() {
-  return localStorage.getItem('fishbill_token');
+  // Per-tab impersonation token takes priority (set by employee-dashboard.html)
+  return sessionStorage.getItem('fishbill_imp_token') || localStorage.getItem('fishbill_token');
 }
 
 function setToken(token, refreshToken) {
@@ -33,6 +34,8 @@ function setCurrentUser(userData) {
 
 /** Return the stored user object (set after login). Falls back to JWT decode. */
 function getCurrentUser() {
+  // In impersonation mode, always decode from the session token (skip localStorage user)
+  if (sessionStorage.getItem('fishbill_imp_token')) return getUser();
   try {
     const stored = localStorage.getItem('fishbill_user');
     if (stored) return JSON.parse(stored);

@@ -52,6 +52,10 @@
           class="px-4 py-2 rounded-t-lg text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700">
           <i class="fas fa-building mr-1.5"></i>Επιχειρήσεις
         </button>
+        <button id="modal-tab-details" onclick="switchModalTab('details')"
+          class="px-4 py-2 rounded-t-lg text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+          <i class="fas fa-user-pen mr-1.5"></i>Στοιχεία
+        </button>
       </div>
 
       <!-- Tab: Privileges -->
@@ -94,6 +98,61 @@
             class="px-5 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700">
             <i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Επιχειρήσεων
           </button>
+        </div>
+      </div>
+
+      <!-- Tab: Details & Actions -->
+      <div id="modal-panel-details" class="hidden overflow-y-auto flex-1 p-6 space-y-5">
+        <!-- Edit details -->
+        <div>
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Επεξεργασία Στοιχείων</p>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Ονοματεπώνυμο</label>
+              <input id="det-name" type="text" placeholder="Γιώργης Παπαδόπουλος"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+              <input id="det-email" type="email" placeholder="employee@fishbill.gr"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+            </div>
+            <button onclick="saveEmployeeDetails()" id="det-save-btn"
+              class="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors">
+              <i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Στοιχείων
+            </button>
+          </div>
+        </div>
+        <hr class="border-gray-100">
+        <!-- Password reset -->
+        <div>
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Επαναφορά Κωδικού</p>
+          <div class="flex gap-2">
+            <input id="det-password" type="password" placeholder="Νέος κωδικός (≥8 χαρακτήρες)"
+              class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500 transition-all" />
+            <button onclick="savePasswordReset()" id="det-pw-btn"
+              class="px-4 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors flex-shrink-0">
+              <i class="fas fa-key"></i>
+            </button>
+          </div>
+        </div>
+        <hr class="border-gray-100">
+        <!-- Actions -->
+        <div>
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Ενέργειες</p>
+          <div class="space-y-2">
+            <button onclick="toggleEmployeeActive()" id="det-toggle-btn"
+              class="w-full py-2.5 rounded-xl text-sm font-bold transition-colors border">
+            </button>
+            <button onclick="impersonateEmployee()" id="det-imp-btn"
+              class="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors">
+              <i class="fas fa-user-secret mr-1.5"></i>Σύνδεση ως Εργαζόμενος (30 λεπτά)
+            </button>
+            <button onclick="confirmDeleteEmployee()"
+              class="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold hover:bg-red-100 transition-colors">
+              <i class="fas fa-trash mr-1.5"></i>Διαγραφή Εργαζομένου
+            </button>
+          </div>
         </div>
       </div>
 
@@ -311,7 +370,11 @@
     async function loadEmployees() {
       try {
         const res = await api.get('/employees');
-        allEmployees = res.employees || [];
+        allEmployees = (res.employees || []).map(e => ({
+          ...e,
+          privileges: Array.isArray(e.privileges) ? e.privileges
+            : (typeof e.privileges === 'string' ? e.privileges.split(',').filter(Boolean) : []),
+        }));
         renderStats();
         renderEmployees(allEmployees);
       } catch(e) {
@@ -384,18 +447,16 @@
 
     // ── Modal tab switching ───────────────────────────────────────────────────
     function switchModalTab(tab) {
-      const isPrivs = tab === 'privs';
-      document.getElementById('modal-panel-privs').classList.toggle('hidden', !isPrivs);
-      document.getElementById('modal-panel-biz').classList.toggle('hidden', isPrivs);
-      document.getElementById('modal-footer-privs').classList.toggle('hidden', !isPrivs);
-      const activeTab = 'px-4 py-2 rounded-t-lg text-sm font-semibold border-b-2 border-blue-600 text-blue-600 bg-blue-50';
+      const activeTab   = 'px-4 py-2 rounded-t-lg text-sm font-semibold border-b-2 border-blue-600 text-blue-600 bg-blue-50';
       const inactiveTab = 'px-4 py-2 rounded-t-lg text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700';
-      document.getElementById('modal-tab-privs').className = isPrivs ? activeTab : inactiveTab;
-      document.getElementById('modal-tab-biz').className   = isPrivs ? inactiveTab : activeTab;
-      if (!isPrivs && currentEmployee) {
-        loadBizChecklist();
-        loadAssociations();
-      }
+      document.getElementById('modal-panel-privs').classList.toggle('hidden', tab !== 'privs');
+      document.getElementById('modal-panel-biz').classList.toggle('hidden', tab !== 'biz');
+      document.getElementById('modal-panel-details').classList.toggle('hidden', tab !== 'details');
+      document.getElementById('modal-footer-privs').classList.toggle('hidden', tab !== 'privs');
+      document.getElementById('modal-tab-privs').className   = tab === 'privs'   ? activeTab : inactiveTab;
+      document.getElementById('modal-tab-biz').className     = tab === 'biz'     ? activeTab : inactiveTab;
+      document.getElementById('modal-tab-details').className = tab === 'details' ? activeTab : inactiveTab;
+      if (tab === 'biz' && currentEmployee) { loadBizChecklist(); loadAssociations(); }
     }
 
     // ── Privilege Modal ───────────────────────────────────────────────────────
@@ -404,10 +465,23 @@
       if (!currentEmployee) return;
 
       document.getElementById('priv-emp-name').textContent = empName;
-      pendingPrivileges = [...(currentEmployee.privileges || [])];
+      pendingPrivileges = [...(Array.isArray(currentEmployee.privileges) ? currentEmployee.privileges : [])];
       renderPrivGroups();
-      switchModalTab('privs');
 
+      // Pre-fill details tab
+      document.getElementById('det-name').value     = currentEmployee.name  || '';
+      document.getElementById('det-email').value    = currentEmployee.email || '';
+      document.getElementById('det-password').value = '';
+      const active = !!currentEmployee.is_active;
+      const toggleBtn = document.getElementById('det-toggle-btn');
+      toggleBtn.className = active
+        ? 'w-full py-2.5 rounded-xl text-sm font-bold transition-colors border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+        : 'w-full py-2.5 rounded-xl text-sm font-bold transition-colors border border-green-200 bg-green-50 text-green-700 hover:bg-green-100';
+      toggleBtn.innerHTML = active
+        ? '<i class="fas fa-ban mr-1.5"></i>Απενεργοποίηση Λογαριασμού'
+        : '<i class="fas fa-circle-check mr-1.5"></i>Ενεργοποίηση Λογαριασμού';
+
+      switchModalTab('privs');
       document.getElementById('priv-modal').classList.replace('hidden','flex');
     }
 
@@ -692,6 +766,90 @@
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-plus mr-1.5"></i>Δημιουργία';
       }
+    }
+
+    // ── Details tab actions ───────────────────────────────────────────────────
+    async function saveEmployeeDetails() {
+      if (!currentEmployee) return;
+      const name  = document.getElementById('det-name').value.trim();
+      const email = document.getElementById('det-email').value.trim();
+      if (!name && !email) return showToast('Συμπληρώστε τουλάχιστον ένα πεδίο.', 'err');
+      const btn = document.getElementById('det-save-btn');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Αποθήκευση…';
+      try {
+        const body = {};
+        if (name)  body.name  = name;
+        if (email) body.email = email;
+        await api.put(`/employees/${currentEmployee.id}`, body);
+        if (name)  { currentEmployee.name  = name;  allEmployees.find(e=>e.id===currentEmployee.id).name  = name; }
+        if (email) { currentEmployee.email = email; allEmployees.find(e=>e.id===currentEmployee.id).email = email; }
+        document.getElementById('priv-emp-name').textContent = currentEmployee.name;
+        renderEmployees(allEmployees);
+        showToast('Στοιχεία ενημερώθηκαν!', 'ok');
+      } catch(e) { showToast(e.message, 'err'); }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk mr-1.5"></i>Αποθήκευση Στοιχείων'; }
+    }
+
+    async function savePasswordReset() {
+      if (!currentEmployee) return;
+      const pw  = document.getElementById('det-password').value;
+      if (!pw || pw.length < 8) return showToast('Κωδικός τουλάχιστον 8 χαρακτήρες.', 'err');
+      const btn = document.getElementById('det-pw-btn');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      try {
+        await api.post(`/employees/${currentEmployee.id}/reset-password`, { password: pw });
+        document.getElementById('det-password').value = '';
+        showToast('Κωδικός αλλάχθηκε!', 'ok');
+      } catch(e) { showToast(e.message, 'err'); }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i>'; }
+    }
+
+    async function toggleEmployeeActive() {
+      if (!currentEmployee) return;
+      const newState = !currentEmployee.is_active;
+      const btn = document.getElementById('det-toggle-btn');
+      btn.disabled = true;
+      try {
+        await api.patch(`/employees/${currentEmployee.id}/active`, { is_active: newState });
+        currentEmployee.is_active = newState;
+        const idx = allEmployees.findIndex(e => e.id === currentEmployee.id);
+        if (idx !== -1) allEmployees[idx].is_active = newState;
+        btn.className = newState
+          ? 'w-full py-2.5 rounded-xl text-sm font-bold transition-colors border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+          : 'w-full py-2.5 rounded-xl text-sm font-bold transition-colors border border-green-200 bg-green-50 text-green-700 hover:bg-green-100';
+        btn.innerHTML = newState
+          ? '<i class="fas fa-ban mr-1.5"></i>Απενεργοποίηση Λογαριασμού'
+          : '<i class="fas fa-circle-check mr-1.5"></i>Ενεργοποίηση Λογαριασμού';
+        renderStats();
+        renderEmployees(allEmployees);
+        showToast(newState ? 'Λογαριασμός ενεργοποιήθηκε.' : 'Λογαριασμός απενεργοποιήθηκε.', 'ok');
+      } catch(e) { showToast(e.message, 'err'); btn.disabled = false; }
+    }
+
+    async function impersonateEmployee() {
+      if (!currentEmployee) return;
+      const btn = document.getElementById('det-imp-btn');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Δημιουργία συνεδρίας…';
+      try {
+        const res = await api.post(`/employees/${currentEmployee.id}/impersonate`, {});
+        window.open(`employee-dashboard.html?_imp=${encodeURIComponent(res.token)}`, '_blank');
+        showToast(`Συνδεθήκατε ως ${res.name} (30 λεπτά)`, 'ok');
+      } catch(e) { showToast(e.message, 'err'); }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-secret mr-1.5"></i>Σύνδεση ως Εργαζόμενος (30 λεπτά)'; }
+    }
+
+    async function confirmDeleteEmployee() {
+      if (!currentEmployee) return;
+      const name = currentEmployee.name;
+      if (!confirm(`Διαγραφή "${name}" μόνιμα;\n\nΘα αφαιρεθούν όλα τα δικαιώματα και οι αναθέσεις επιχειρήσεων.`)) return;
+      try {
+        await api.delete(`/employees/${currentEmployee.id}`);
+        allEmployees = allEmployees.filter(e => e.id !== currentEmployee.id);
+        closePrivModal();
+        renderStats();
+        renderEmployees(allEmployees);
+        showToast(`${name} διαγράφηκε.`, 'ok');
+      } catch(e) { showToast(e.message, 'err'); }
     }
 
     loadEmployees();

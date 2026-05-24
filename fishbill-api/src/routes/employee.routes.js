@@ -10,6 +10,13 @@ const { requireSuperAdmin } = require('../middleware/role');
 
 router.use(authenticate);
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function parsePrivileges(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return String(raw).split(',').filter(Boolean); }
+}
+
 // ── Valid privilege keys ──────────────────────────────────────────────────────
 const VALID_PRIVILEGES = [
   'view_dashboard', 'view_invoices', 'edit_invoices', 'delete_invoices',
@@ -52,7 +59,7 @@ router.get('/', requireSuperAdmin, async (req, res) => {
     );
     res.json({ employees: rows.map(r => ({
       ...r,
-      privileges: r.privileges ? JSON.parse(r.privileges) : [],
+      privileges: parsePrivileges(r.privileges),
       biz_count: parseInt(r.biz_count) || 0,
     })) });
   } catch (e) {
@@ -113,7 +120,7 @@ router.get('/:id/privileges', requireSuperAdmin, async (req, res) => {
       'SELECT privileges FROM employee_privileges WHERE user_id = ?',
       [req.params.id]
     );
-    res.json({ privileges: row ? JSON.parse(row.privileges || '[]') : [] });
+    res.json({ privileges: row ? parsePrivileges(row.privileges) : [] });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -161,7 +168,7 @@ router.get('/my-privileges', async (req, res) => {
       'SELECT privileges FROM employee_privileges WHERE user_id = ?',
       [req.user.id]
     );
-    res.json({ privileges: row ? JSON.parse(row.privileges || '[]') : [] });
+    res.json({ privileges: row ? parsePrivileges(row.privileges) : [] });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -254,6 +261,80 @@ router.post('/', requireSuperAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── PUT /api/employees/:id — update name / email ──────────────────────────────
+router.put('/:id', requireSuperAdmin, async (req, res) => {
+  const { name, email } = req.body;
+  if (!name && !email) return res.status(400).json({ error: 'Δώστε τουλάχιστον ένα πεδίο.' });
+  try {
+    const [[emp]] = await db.query("SELECT id FROM users WHERE id=? AND role='employee' LIMIT 1", [req.params.id]);
+    if (!emp) return res.status(404).json({ error: 'Εργαζόμενος δεν βρέθηκε.' });
+    const fields = [], vals = [];
+    if (name)  { fields.push('full_name=?'); vals.push(name); }
+    if (email) {
+      const [ex] = await db.query('SELECT id FROM users WHERE email=? AND id!=? LIMIT 1', [email, req.params.id]);
+      if (ex.length) return res.status(409).json({ error: 'Το email χρησιμοποιείται ήδη.' });
+      fields.push('email=?'); vals.push(email);
+    }
+    vals.push(req.params.id);
+    await db.query(`UPDATE users SET ${fields.join(',')}, updated_at=NOW() WHERE id=?`, vals);
+    res.json({ data: { message: 'Τα στοιχεία ενημερώθηκαν.' } });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/employees/:id/reset-password ─────────────────────────────────
+router.post('/:id/reset-password', requireSuperAdmin, async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 8)
+    return res.status(400).json({ error: 'Κωδικός τουλάχιστον 8 χαρακτήρες.' });
+  try {
+    const bcrypt = require('bcrypt');
+    const hash = await bcrypt.hash(password, 12);
+    const [r] = await db.query("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=? AND role='employee'", [hash, req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Εργαζόμενος δεν βρέθηκε.' });
+    res.json({ data: { message: 'Ο κωδικός αλλάχθηκε.' } });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PATCH /api/employees/:id/active — toggle is_active ────────────────────
+router.patch('/:id/active', requireSuperAdmin, async (req, res) => {
+  const { is_active } = req.body;
+  if (typeof is_active !== 'boolean') return res.status(400).json({ error: 'is_active must be boolean.' });
+  try {
+    await db.query("UPDATE users SET is_active=?, updated_at=NOW() WHERE id=? AND role='employee'", [is_active ? 1 : 0, req.params.id]);
+    res.json({ data: { is_active } });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DELETE /api/employees/:id ─────────────────────────────────────────────
+router.delete('/:id', requireSuperAdmin, async (req, res) => {
+  try {
+    const [[emp]] = await db.query("SELECT id, full_name FROM users WHERE id=? AND role='employee' LIMIT 1", [req.params.id]);
+    if (!emp) return res.status(404).json({ error: 'Εργαζόμενος δεν βρέθηκε.' });
+    await db.query('DELETE FROM employee_privileges WHERE user_id=?', [req.params.id]);
+    await db.query('DELETE FROM employee_businesses WHERE employee_id=?', [req.params.id]);
+    await db.query('DELETE FROM users WHERE id=?', [req.params.id]);
+    res.json({ data: { message: `${emp.full_name} διαγράφηκε.` } });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── POST /api/employees/:id/impersonate — generate short-lived token ──────
+router.post('/:id/impersonate', requireSuperAdmin, async (req, res) => {
+  const jwt = require('jsonwebtoken');
+  try {
+    const [[emp]] = await db.query(
+      "SELECT id, full_name, email FROM users WHERE id=? AND role='employee' AND is_active=1 LIMIT 1",
+      [req.params.id]
+    );
+    if (!emp) return res.status(404).json({ error: 'Εργαζόμενος δεν βρέθηκε ή είναι ανενεργός.' });
+    const token = jwt.sign(
+      { id: emp.id, role: 'employee', name: emp.full_name, full_name: emp.full_name, email: emp.email, impersonated_by: req.user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '30m' }
+    );
+    res.json({ token, name: emp.full_name, email: emp.email });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

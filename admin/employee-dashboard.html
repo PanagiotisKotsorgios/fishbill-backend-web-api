@@ -97,6 +97,16 @@
   <script src="js/ui.js"></script>
   <script src="js/sidebar.js"></script>
   <script>
+    // Handle impersonation: ?_imp=TOKEN stores a per-tab auth token in sessionStorage
+    (function() {
+      const p = new URLSearchParams(location.search);
+      const t = p.get('_imp');
+      if (t) {
+        sessionStorage.setItem('fishbill_imp_token', t);
+        history.replaceState(null, '', location.pathname);
+      }
+    })();
+
     requireAuth();
     buildSidebar();
 
