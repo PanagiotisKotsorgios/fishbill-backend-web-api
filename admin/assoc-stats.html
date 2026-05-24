@@ -44,8 +44,9 @@
   </main>
 </div>
 
-<script src="js/sidebar.js"></script>
 <script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
 <script>
   async function load() {
     document.getElementById('assoc-list').innerHTML = '<div class="col-span-2 text-center py-12 text-gray-300 text-sm">Φόρτωση…</div>';
@@ -167,6 +168,7 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  requireAuth();
   buildSidebar();
   load();
 </script>
