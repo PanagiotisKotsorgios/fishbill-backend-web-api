@@ -36,6 +36,10 @@ fishbill-api/pdfs/
 fishbill-api/logs/
 fishbill-api/uploads/
 
+# Personal notes / drafts — never commit
+*.txt
+!robots.txt
+
 # Office / document files — never commit these to source control
 *.doc
 *.docx
