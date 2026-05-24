@@ -35,7 +35,6 @@ const VALID_PRIVILEGES = [
   'view_subscriptions',      // view subscription & payment info for assigned businesses
   'manage_reminders',        // log SMS reminders for assigned businesses
   // Admin module access (employee working autonomously in admin panel)
-  'admin_credentials',       // Θησαυροφυλάκιο — credentials vault (scoped to assigned businesses)
   'admin_mydata_inbox',      // Εισερχόμενα myDATA
   'admin_delivery_notes',    // Δελτία Αποστολής inbox — transmit, mark, upload PDF
   'admin_charges',           // Χρεώσεις

@@ -84,8 +84,7 @@ const NAV_GROUPS = [
   {
     label: 'Σύστημα',
     items: [
-      { href: 'credentials.html',           icon: 'fa-vault',              label: 'Θησαυροφυλάκιο',      roles: ['super_admin'] },
-      { href: 'mydata-inbox.html',          icon: 'fa-inbox',              label: 'Εισερχόμενα myDATA',  roles: ['super_admin'] },
+{ href: 'mydata-inbox.html',          icon: 'fa-inbox',              label: 'Εισερχόμενα myDATA',  roles: ['super_admin'] },
       { href: 'delivery-notes-inbox.html', icon: 'fa-truck',              label: 'Δελτία Αποστολής',    roles: ['super_admin'] },
       { href: 'billing.html',      icon: 'fa-credit-card',        label: 'Χρεώσεις',            roles: ['super_admin'] },
       { href: 'reminders.html',   icon: 'fa-bell-ring',         label: 'Υπενθυμίσεις SMS',    roles: ['super_admin'] },

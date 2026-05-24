@@ -238,7 +238,6 @@ app.use('/api/platform',       require('./routes/platform.routes'));
 app.use('/api/monitor',        require('./routes/monitor.routes'));
 app.use('/api/afm',            require('./routes/afm.routes'));
 app.use('/api/admin/otp',      authenticate, require('./routes/admin-otp.routes'));
-app.use('/api/credentials',        require('./routes/credentials.routes'));
 app.use('/api/employee-actions',   require('./routes/employee-actions.routes'));
 
 // ── 404 ───────────────────────────────────────────────────────────────────────

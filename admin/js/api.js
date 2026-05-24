@@ -389,10 +389,7 @@ const AdminOTP = {
 window.AdminOTP = AdminOTP;
 
 // Pages that require OTP on load (managed here so individual pages don't need boilerplate)
-const _OTP_GATED_PAGES = new Set([
-  // credentials.html handles its own OTP + email notification flow
-  // Add page filenames here to auto-gate them without page-level code
-]);
+const _OTP_GATED_PAGES = new Set([]);
 
 // Auto-gate for the protected "Σύστημα" section pages on page load
 document.addEventListener('DOMContentLoaded', () => {
