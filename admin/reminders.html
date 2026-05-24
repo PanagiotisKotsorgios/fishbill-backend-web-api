@@ -56,6 +56,9 @@
         <button class="btn btn-ghost" onclick="refresh()">
           <i class="fas fa-rotate-right"></i> Ανανέωση
         </button>
+        <button class="btn btn-success" onclick="openSmsModalFree()">
+          <i class="fas fa-comment-sms"></i> Νέα Καταγραφή SMS
+        </button>
       </div>
     </div>
 
@@ -169,6 +172,23 @@
     </div>
     <form id="sms-form" class="p-6 space-y-4" onsubmit="submitSms(event)">
       <input type="hidden" id="modal-biz-id">
+
+      <!-- Business picker — shown only in free (standalone) mode -->
+      <div id="modal-biz-picker" class="hidden">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Επιχείρηση</label>
+        <div class="relative">
+          <input type="text" id="modal-biz-search" class="input pr-8" placeholder="Αναζήτηση επιχείρησης…" autocomplete="off"
+            oninput="filterBizDropdown(this.value)" onfocus="showBizDropdown()">
+          <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs pointer-events-none"></i>
+        </div>
+        <div id="modal-biz-dropdown" class="hidden mt-1 border border-gray-200 rounded-xl bg-white shadow-lg max-h-48 overflow-y-auto z-10 relative">
+          <div id="modal-biz-list"></div>
+        </div>
+        <p id="modal-biz-selected-label" class="hidden mt-1.5 text-xs text-emerald-600 font-semibold flex items-center gap-1">
+          <i class="fas fa-circle-check"></i> <span id="modal-biz-selected-name"></span>
+        </p>
+      </div>
+
       <div>
         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Τηλέφωνο</label>
         <input type="tel" id="modal-phone" class="input" placeholder="+30 69X XXX XXXX" required>
@@ -430,8 +450,9 @@
 
   function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); }
 
-  // ── SMS Modal ─────────────────────────────────────────────────────────────────
+  // ── SMS Modal (from row) ──────────────────────────────────────────────────────
   function openSmsModal(bizId, bizName, phone, expiryType) {
+    document.getElementById('modal-biz-picker').classList.add('hidden');
     document.getElementById('modal-biz-id').value   = bizId;
     document.getElementById('modal-biz-name').textContent = bizName;
     document.getElementById('modal-phone').value    = phone || '';
@@ -444,15 +465,124 @@
     setTimeout(() => document.getElementById('modal-phone').focus(), 50);
   }
 
-  function closeSmsModal() { document.getElementById('sms-modal').classList.add('hidden'); }
+  // ── Free-form SMS modal (choose any business) ─────────────────────────────────
+  let _bizCache = null;
+
+  async function openSmsModalFree() {
+    document.getElementById('modal-biz-id').value   = '';
+    document.getElementById('modal-biz-name').textContent = 'Επιλέξτε επιχείρηση';
+    document.getElementById('modal-phone').value    = '';
+    document.getElementById('modal-reason').value   = 'other';
+    document.getElementById('modal-notes').value    = '';
+    document.getElementById('modal-biz-search').value = '';
+    document.getElementById('modal-biz-dropdown').classList.add('hidden');
+    document.getElementById('modal-biz-selected-label').classList.add('hidden');
+    document.getElementById('modal-biz-picker').classList.remove('hidden');
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('modal-sent-at').value  = now.toISOString().slice(0, 16);
+    document.getElementById('sms-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('modal-biz-search').focus(), 50);
+    if (!_bizCache) await loadBizCache();
+  }
+
+  async function loadBizCache() {
+    try {
+      const res = await api.get('/businesses', { limit: 100, page: 1 });
+      _bizCache = res.data || [];
+    } catch { _bizCache = []; }
+    renderBizList(_bizCache.slice(0, 40));
+  }
+
+  let _bizSearchTimer = null;
+  function filterBizDropdown(q) {
+    document.getElementById('modal-biz-dropdown').classList.remove('hidden');
+    if (!q.trim()) {
+      renderBizList((_bizCache || []).slice(0, 40));
+      return;
+    }
+    const local = (_bizCache || []).filter(b =>
+      (b.name||'').toLowerCase().includes(q.toLowerCase()) ||
+      (b.afm||'').includes(q) ||
+      (b.contact_phone||'').includes(q));
+    renderBizList(local.slice(0, 40));
+    // If local cache has few results, also search server-side
+    clearTimeout(_bizSearchTimer);
+    _bizSearchTimer = setTimeout(async () => {
+      try {
+        const res = await api.get('/businesses', { search: q, limit: 40, page: 1 });
+        const merged = [...(res.data || [])];
+        const seen = new Set(merged.map(b => b.id));
+        local.forEach(b => { if (!seen.has(b.id)) merged.push(b); });
+        renderBizList(merged.slice(0, 40));
+      } catch {}
+    }, 350);
+  }
+
+  function showBizDropdown() {
+    if (!_bizCache) { loadBizCache().then(() => { document.getElementById('modal-biz-dropdown').classList.remove('hidden'); }); return; }
+    document.getElementById('modal-biz-dropdown').classList.remove('hidden');
+    renderBizList((_bizCache).slice(0, 40));
+  }
+
+  function renderBizList(list) {
+    const el = document.getElementById('modal-biz-list');
+    if (!list.length) {
+      el.innerHTML = '<div class="px-4 py-3 text-xs text-gray-400">Δεν βρέθηκε επιχείρηση.</div>';
+      return;
+    }
+    el.innerHTML = list.map(b => {
+      const planCls = b.plan === 'trial' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+      const planLabel = b.plan === 'trial' ? 'Trial' : 'Συνδρομή';
+      return `<div class="px-4 py-2.5 cursor-pointer hover:bg-blue-50 flex items-center justify-between gap-2 border-b border-gray-50 last:border-0"
+           onclick="selectBiz('${esc(b.id)}','${esc(b.name)}','${esc(b.contact_phone||'')}')">
+        <div>
+          <div class="text-sm font-semibold text-gray-800">${esc(b.name)}</div>
+          <div class="text-xs text-gray-400">${b.afm||''}${b.contact_phone ? ' · ' + esc(b.contact_phone) : ''}</div>
+        </div>
+        <span class="text-xs badge ${planCls} flex-shrink-0">${planLabel}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function selectBiz(id, name, phone) {
+    document.getElementById('modal-biz-id').value      = id;
+    document.getElementById('modal-biz-name').textContent = name;
+    document.getElementById('modal-biz-search').value  = '';
+    document.getElementById('modal-biz-dropdown').classList.add('hidden');
+    document.getElementById('modal-biz-selected-name').textContent = name;
+    document.getElementById('modal-biz-selected-label').classList.remove('hidden');
+    if (phone && !document.getElementById('modal-phone').value) {
+      document.getElementById('modal-phone').value = phone;
+    }
+    setTimeout(() => document.getElementById('modal-phone').focus(), 50);
+  }
+
+  // Close biz dropdown when clicking outside the picker
+  document.addEventListener('click', e => {
+    const picker = document.getElementById('modal-biz-picker');
+    if (picker && !picker.contains(e.target)) {
+      document.getElementById('modal-biz-dropdown').classList.add('hidden');
+    }
+  });
+
+  function closeSmsModal() {
+    document.getElementById('sms-modal').classList.add('hidden');
+    document.getElementById('modal-biz-dropdown').classList.add('hidden');
+  }
 
   async function submitSms(e) {
     e.preventDefault();
+    const bizId = document.getElementById('modal-biz-id').value;
+    if (!bizId) {
+      showToast('Επιλέξτε πρώτα επιχείρηση.', 'error');
+      document.getElementById('modal-biz-search').focus();
+      return;
+    }
     const btn = document.getElementById('modal-submit-btn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Αποθήκευση…';
     try {
-      const bizId = document.getElementById('modal-biz-id').value;
       await api.post(`/platform/reminders/sms/${bizId}`, {
         phone_number: document.getElementById('modal-phone').value.trim(),
         reason:       document.getElementById('modal-reason').value,
@@ -499,16 +629,20 @@
     el._t = setTimeout(() => el.classList.add('hidden'), 3500);
   }
 
-  window.switchTab       = switchTab;
-  window.loadUpcoming    = loadUpcoming;
-  window.openSmsModal    = openSmsModal;
-  window.closeSmsModal   = closeSmsModal;
-  window.submitSms       = submitSms;
-  window.deleteSms       = deleteSms;
-  window.viewBizSms      = viewBizSms;
-  window.closeDetailModal = closeDetailModal;
-  window.filterHistory   = filterHistory;
-  window.refresh         = refresh;
+  window.switchTab          = switchTab;
+  window.loadUpcoming       = loadUpcoming;
+  window.openSmsModal       = openSmsModal;
+  window.openSmsModalFree   = openSmsModalFree;
+  window.closeSmsModal      = closeSmsModal;
+  window.submitSms          = submitSms;
+  window.deleteSms          = deleteSms;
+  window.viewBizSms         = viewBizSms;
+  window.closeDetailModal   = closeDetailModal;
+  window.filterHistory      = filterHistory;
+  window.filterBizDropdown  = filterBizDropdown;
+  window.showBizDropdown    = showBizDropdown;
+  window.selectBiz          = selectBiz;
+  window.refresh            = refresh;
 </script>
 </body>
 </html>
