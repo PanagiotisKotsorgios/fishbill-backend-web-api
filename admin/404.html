@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Σελίδα δεν βρέθηκε</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: fadeUp .4s ease-out both; }
+    @keyframes floatFish { 0%,100% { transform:translateX(0); } 50% { transform:translateX(6px); } }
+    .fish-float { animation: floatFish 3s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
+
+  <div class="w-full max-w-md anim">
+
+    <!-- Card -->
+    <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+
+      <!-- Top accent -->
+      <div class="h-1.5 bg-gradient-to-r from-blue-400 via-teal-500 to-cyan-500"></div>
+
+      <div class="p-8 text-center">
+
+        <!-- Logo -->
+        <div class="flex justify-center mb-6">
+          <div class="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center fish-float">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" class="w-10 h-10">
+              <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+              <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+              <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+              <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+              <circle cx="138" cy="60" r="5" fill="#064E60"/>
+              <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Error code -->
+        <div class="text-8xl font-black text-blue-100 leading-none select-none mb-2">404</div>
+
+        <!-- Icon + title -->
+        <div class="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 -mt-2">
+          <i class="fas fa-map-location-dot text-blue-500 text-2xl"></i>
+        </div>
+        <h1 class="text-xl font-bold text-gray-900 mb-2">Σελίδα δεν βρέθηκε</h1>
+        <p class="text-sm text-gray-500 leading-relaxed mb-6">
+          Η σελίδα που ζητήσατε δεν υπάρχει ή έχει μετακινηθεί.<br>
+          Ελέγξτε τη διεύθυνση ή επιστρέψτε στο Dashboard.
+        </p>
+
+        <!-- URL display -->
+        <div class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 mb-6 text-xs text-gray-400 font-mono truncate" id="current-url">—</div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2.5">
+          <a href="dashboard.html"
+            class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors">
+            <i class="fas fa-gauge-high"></i>Επιστροφή στο Dashboard
+          </a>
+          <button onclick="history.back()"
+            class="flex items-center justify-center gap-2 text-gray-600 hover:text-gray-800 text-sm font-semibold px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+            <i class="fas fa-arrow-left"></i>Πίσω
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="text-center text-xs text-gray-400 mt-6">
+      FishBill Admin &bull; Σφάλμα 404 Not Found
+    </p>
+  </div>
+
+  <script>
+    document.getElementById('current-url').textContent = location.href;
+  </script>
+</body>
+</html>

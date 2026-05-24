@@ -291,7 +291,7 @@
   <script src="js/sidebar.js"></script>
   <script>
     requireAuth();
-    if (!requireRole('super_admin')) location.href = 'dashboard.html';
+    requireRole('super_admin');
     buildSidebar();
 
     // ── Privilege definitions ─────────────────────────────────────────────────

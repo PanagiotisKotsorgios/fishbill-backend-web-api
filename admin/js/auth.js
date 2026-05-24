@@ -32,7 +32,7 @@ function requireAuth() {
 function requireRole(...roles) {
   const userRole = getUserRole();
   if (!roles.includes(userRole)) {
-    window.location.href = 'dashboard.html';
+    window.location.href = '403.html';
     return false;
   }
   return true;
