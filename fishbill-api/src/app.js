@@ -95,11 +95,24 @@ const sensitiveAuthLimiter = rateLimit({
   skipSuccessfulRequests: false,
 });
 
+// Token refresh: generous but bounded — prevents token-farming attacks
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Πολλές ανανεώσεις διακριτικού. Δοκιμάστε ξανά σε 15 λεπτά.' },
+});
+
 app.use('/api/', generalLimiter);
-app.use('/api/auth/login',           loginLimiter);
-app.use('/api/auth/admin-login',     loginLimiter);
-app.use('/api/auth/forgot-password', sensitiveAuthLimiter);
-app.use('/api/auth/owner-recovery',  sensitiveAuthLimiter);
+app.use('/api/auth/login',                loginLimiter);
+app.use('/api/auth/admin-login',          loginLimiter);
+app.use('/api/auth/forgot-password',      sensitiveAuthLimiter);
+app.use('/api/auth/owner-recovery',       sensitiveAuthLimiter);
+app.use('/api/auth/reset-password',       sensitiveAuthLimiter);
+app.use('/api/auth/owner-recovery-login', sensitiveAuthLimiter);
+app.use('/api/auth/refresh',              refreshLimiter);
+app.use('/api/admin/otp',                 sensitiveAuthLimiter);
 
 // ── Static files — avatars + weighing-slip images ────────────────────────────
 app.use('/avatars', express.static(path.join(__dirname, '../public/avatars')));

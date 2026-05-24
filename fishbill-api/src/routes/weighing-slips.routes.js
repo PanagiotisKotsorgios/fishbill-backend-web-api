@@ -18,7 +18,12 @@ const { authenticate } = require('../middleware/auth');
 const { validate }     = require('../middleware/validate');
 const emailService = require('../services/email.service');
 
-const ADMIN_NOTIFICATION_EMAIL = 'pkotsorgios654@gmail.com';
+async function getAdminEmail() {
+  try {
+    const cfg = await emailService.loadConfig();
+    return cfg.admin_notification_email || process.env.ADMIN_EMAIL || '';
+  } catch { return process.env.ADMIN_EMAIL || ''; }
+}
 
 const UPLOADS_DIR = path.join(__dirname, '../../public/uploads/weighing-slips');
 
@@ -402,8 +407,9 @@ router.delete('/:id', async (req, res, next) => {
     await pool.execute('DELETE FROM weighing_slips WHERE id = ?', [slip.id]);
 
     // Send admin notification email (fire-and-forget — don't block the response)
-    emailService.sendEmail({
-      to:      ADMIN_NOTIFICATION_EMAIL,
+    const adminEmail = await getAdminEmail();
+    if (adminEmail) emailService.sendEmail({
+      to:      adminEmail,
       toName:  'Admin',
       subject: `Διαγραφή Δελτίου Ζύγισης #${slip.slip_number || slip.id.slice(0,8)}`,
       html: `

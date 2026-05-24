@@ -455,7 +455,7 @@ router.post(
       const emailSvc = require('../services/email.service');
       const adminEmail = req.user.email || process.env.ADMIN_EMAIL;
       const cfg = await emailSvc.loadConfig();
-      const baseUrl = (cfg.web_base_url || process.env.APP_BASE_URL || 'http://localhost/fishbill').replace(/\/admin\/?$/, '').replace(/\/$/, '');
+      const baseUrl = (cfg.web_base_url || process.env.APP_BASE_URL || '').replace(/\/admin\/?$/, '').replace(/\/$/, '');
       const confirmUrl = `${baseUrl}/admin/users.html?confirmDelete=1&userId=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`;
 
       let emailSent = false;

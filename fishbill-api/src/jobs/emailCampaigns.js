@@ -29,7 +29,7 @@ async function sendCampaignEmail(pool, bizId, bizName, subject, htmlBody) {
     if (!owner) return;
 
     const cfg = await emailSvc.loadConfig();
-    const webBaseUrl = (cfg.web_base_url || process.env.APP_BASE_URL || 'http://localhost/fishbill').replace(/\/$/, '');
+    const webBaseUrl = (cfg.web_base_url || process.env.APP_BASE_URL || '').replace(/\/$/, '');
     const html = htmlBody.replace(/__SUBSCRIPTION_URL__/g, `${webBaseUrl}/app/subscription.html`);
 
     await emailSvc.sendEmail({

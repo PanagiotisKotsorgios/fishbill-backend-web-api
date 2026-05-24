@@ -3,7 +3,11 @@
 const axios = require('axios');
 const pool  = require('../config/database');
 
-const APP_BASE_URL = (process.env.APP_BASE_URL || 'http://localhost/fishbill').replace(/\/$/, '');
+const APP_BASE_URL = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
+
+function escHtml(str) {
+  return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 // ─── Load config from DB ─────────────────────────────────────────────────────
 
@@ -199,12 +203,13 @@ async function sendPasswordResetEmail({ to, toName, resetToken, baseUrl, isAccou
 
 async function sendWelcomeEmail({ to, toName, businessName, baseUrl }) {
   const cfg = await loadConfig();
-  const loginUrl = `${normalizeBaseUrl(baseUrl) || getWebBaseUrl(cfg)}/app/`;
+  const loginUrl   = `${normalizeBaseUrl(baseUrl) || getWebBaseUrl(cfg)}/app/`;
+  const supportEmail = cfg.platform_email_from || process.env.ADMIN_EMAIL || 'support@fishbill.gr';
   const html = baseTemplate('Καλώς ήρθατε στο FishBill!', `
     <h1 style="font-size:22px;font-weight:800;color:#0A5568;margin:0 0 12px">Καλώς ήρθατε στο FishBill! 🐟</h1>
     <p style="font-size:15px;color:#3a5560;margin:0 0 16px;line-height:1.65">
-      Γεια σας <strong>${toName || to}</strong>,<br/><br/>
-      Ο λογαριασμός σας για την επιχείρηση <strong>${businessName || ''}</strong> δημιουργήθηκε επιτυχώς.
+      Γεια σας <strong>${escHtml(toName || to)}</strong>,<br/><br/>
+      Ο λογαριασμός σας για την επιχείρηση <strong>${escHtml(businessName || '')}</strong> δημιουργήθηκε επιτυχώς.
       Επιλέξτε το πλάνο που σας ταιριάζει και ξεκινήστε να εκδίδετε παραστατικά άμεσα.
       Με την πρώτη σας πληρωμή <strong>κερδίζετε 1 επιπλέον μήνα δωρεάν</strong>!
     </p>
@@ -216,7 +221,7 @@ async function sendWelcomeEmail({ to, toName, businessName, baseUrl }) {
       </a>
     </div>
     <p style="font-size:13px;color:#8aacb4;margin:0">
-      Για βοήθεια επικοινωνήστε μαζί μας στο support@fishbill.gr
+      Για βοήθεια επικοινωνήστε μαζί μας στο ${escHtml(supportEmail)}
     </p>
   `);
 
@@ -535,16 +540,18 @@ async function sendDailySummaryEmail({ to, toName, bizName, stats }) {
 
 async function sendDirectEmail({ to, toName, subject, messageHtml, senderName }) {
   if (!await isPlatformEmailEnabled('direct')) return;
+  const cfg = await loadConfig();
+  const replyEmail = cfg.platform_email_from || process.env.ADMIN_EMAIL || '';
   const html = baseTemplate(subject, `
     <p style="font-size:13px;color:#9ca3af;margin:0 0 16px;font-style:italic">
-      Μήνυμα από τον διαχειριστή${senderName ? ' ' + senderName : ''} της πλατφόρμας FishBill
+      Μήνυμα από τον διαχειριστή${senderName ? ' ' + escHtml(senderName) : ''} της πλατφόρμας FishBill
     </p>
     <div style="font-size:15px;color:#1a2e35;line-height:1.75;margin-bottom:20px">
       ${messageHtml}
     </div>
     <div style="border-top:1px solid #d5edf2;padding-top:14px;margin-top:20px">
       <p style="font-size:12px;color:#8aacb4;margin:0">
-        Για απορίες απαντήστε σε αυτό το email ή επικοινωνήστε με support@fishbill.gr
+        ${replyEmail ? `Για απορίες απαντήστε σε αυτό το email ή επικοινωνήστε με ${escHtml(replyEmail)}` : 'Για απορίες απαντήστε σε αυτό το email.'}
       </p>
     </div>
   `);
@@ -757,6 +764,7 @@ async function sendAdminOtpEmail(toEmail, code) {
 }
 
 module.exports = {
+  escHtml,
   sendEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,

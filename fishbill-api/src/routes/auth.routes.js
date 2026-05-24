@@ -577,7 +577,7 @@ router.post('/delete-request', authenticate, async (req, res, next) => {
     );
     const u = rows[0];
     const cfg = await emailSvc.loadConfig();
-    const adminEmail = cfg.admin_notification_email || 'pkotsorgios654@gmail.com';
+    const adminEmail = cfg.admin_notification_email || process.env.ADMIN_EMAIL || 'admin@fishbill.gr';
 
     // Log the request to the database for auditing
     await pool.execute(
@@ -768,8 +768,10 @@ router.post('/owner-recovery', async (req, res, next) => {
 
     // Email the recovery token
     const emailCfg = await emailSvc.loadConfig();
-    const webBaseUrl = (emailCfg.web_base_url || process.env.APP_BASE_URL || 'http://localhost/fishbill').replace(/\/$/, '');
+    const webBaseUrl = (emailCfg.web_base_url || process.env.APP_BASE_URL || '').replace(/\/$/, '');
     const recoveryUrl = `${webBaseUrl}/app/recovery-login.html?token=${recoveryToken}&uid=${encodeURIComponent(owner.id)}`;
+    const safeEmail   = emailSvc.escHtml(owner.email);
+    const safeBizName = emailSvc.escHtml(owner.biz_name);
     try {
       await emailSvc.sendEmail({
         to: owner.email,
@@ -778,7 +780,7 @@ router.post('/owner-recovery', async (req, res, next) => {
         html: `<!DOCTYPE html><html><body style="font-family:Inter,sans-serif;padding:32px;background:#f0f7f9">
           <div style="max-width:520px;margin:auto;background:#fff;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(11,114,133,.12)">
             <h2 style="color:#0A5568;margin-bottom:8px">🔐 Ανάκτηση Πρόσβασης FishBill</h2>
-            <p style="color:#374151">Ζητήθηκε ανάκτηση πρόσβασης για τον λογαριασμό <strong>${owner.email}</strong> της επιχείρησης <strong>${owner.biz_name}</strong>.</p>
+            <p style="color:#374151">Ζητήθηκε ανάκτηση πρόσβασης για τον λογαριασμό <strong>${safeEmail}</strong> της επιχείρησης <strong>${safeBizName}</strong>.</p>
             <p style="color:#374151">Πατήστε τον παρακάτω σύνδεσμο για να αποκτήσετε ξανά πρόσβαση:</p>
             <div style="text-align:center;margin:28px 0">
               <a href="${recoveryUrl}" style="display:inline-block;background:#0A5568;color:#fff;text-decoration:none;border-radius:12px;padding:16px 32px;font-size:16px;font-weight:700">

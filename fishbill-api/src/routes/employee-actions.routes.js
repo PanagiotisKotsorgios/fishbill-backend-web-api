@@ -80,7 +80,10 @@ if (!fs.existsSync(dnUploadDir)) fs.mkdirSync(dnUploadDir, { recursive: true });
 const dnPdfUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, dnUploadDir),
-    filename:    (req, file, cb) => cb(null, `${req.params.id}.pdf`),
+    filename:    (req, file, cb) => {
+      const safeId = (req.params.id || '').replace(/[^a-f0-9-]/gi, '').slice(0, 36);
+      cb(null, `${safeId}.pdf`);
+    },
   }),
   limits:     { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {

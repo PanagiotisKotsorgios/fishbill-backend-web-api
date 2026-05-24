@@ -1269,7 +1269,10 @@ if (!fs.existsSync(pdfUploadDir)) fs.mkdirSync(pdfUploadDir, { recursive: true }
 
 const pdfStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, pdfUploadDir),
-  filename:    (req, file, cb) => cb(null, `${req.params.id}.pdf`),
+  filename:    (req, file, cb) => {
+    const safeId = (req.params.id || '').replace(/[^a-f0-9-]/gi, '').slice(0, 36);
+    cb(null, `${safeId}.pdf`);
+  },
 });
 const pdfUpload = multer({
   storage:  pdfStorage,
@@ -1513,7 +1516,10 @@ if (!fs.existsSync(dnUploadDir)) fs.mkdirSync(dnUploadDir, { recursive: true });
 
 const dnPdfStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, dnUploadDir),
-  filename:    (req, file, cb) => cb(null, `${req.params.id}.pdf`),
+  filename:    (req, file, cb) => {
+    const safeId = (req.params.id || '').replace(/[^a-f0-9-]/gi, '').slice(0, 36);
+    cb(null, `${safeId}.pdf`);
+  },
 });
 const dnPdfUpload = multer({
   storage:    dnPdfStorage,
@@ -1736,7 +1742,8 @@ router.patch('/delivery-notes/:id/cancel', async (req, res, next) => {
 router.post('/delivery-notes/:id/upload-pdf', dnPdfUpload.single('pdf'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Δεν επιλέχτηκε αρχείο PDF.' });
-    const publicPath = `/uploads/delivery-notes/${req.params.id}.pdf`;
+    const safeId     = (req.params.id || '').replace(/[^a-f0-9-]/gi, '').slice(0, 36);
+    const publicPath = `/uploads/delivery-notes/${safeId}.pdf`;
     try {
       await pool.execute('UPDATE delivery_notes SET pdf_path = ?, updated_at = NOW() WHERE id = ?', [publicPath, req.params.id]);
     } catch (e) {
