@@ -27,8 +27,6 @@ const NAV_GROUPS = [
     label: 'Λειτουργίες',
     items: [
       { href: 'invoices.html',       icon: 'fa-file-invoice',       label: 'Παραστατικά',         roles: ['super_admin','owner','accountant','captain','employee'] },
-      { href: 'customers.html',      icon: 'fa-users',              label: 'Πελάτες',             roles: ['super_admin','owner','accountant','captain'] },
-      { href: 'products.html',       icon: 'fa-box-open',           label: 'Είδη / Υπηρεσίες',   roles: ['super_admin','owner','accountant','captain'] },
     ],
   },
   {
@@ -461,32 +459,6 @@ function renderSearchResults(data, q) {
             <span style="font-size:12px;font-weight:600;color:#93C5FD">${hl(inv.full_number)}</span>
             <span style="font-size:12px;color:rgba(255,255,255,.5);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${hl(inv.customer_name)||''}</span>
             <span style="font-size:11px;color:rgba(255,255,255,.4)">${inv.total_value ? '€'+parseFloat(inv.total_value).toLocaleString('el-GR',{minimumFractionDigits:2}) : ''}</span>
-          </a>`).join('')}
-      </div>`);
-  }
-
-  if (data.customers?.length) {
-    sections.push(`
-      <div style="padding:4px 10px">
-        <p style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;padding:0 2px;margin-bottom:4px"><i class="fa-solid fa-users" style="margin-right:4px"></i>Πελάτες</p>
-        ${data.customers.map(c => `
-          <a href="customers.html#${c.id}" style="${rowStyle};color:rgba(255,255,255,.75)" ${hoverScript}>
-            <i class="fa-solid fa-user" style="font-size:11px;color:#34D399;flex-shrink:0"></i>
-            <span style="font-size:12px;font-weight:600">${hl(c.name)}</span>
-            <span style="font-size:11px;color:rgba(255,255,255,.35);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${hl(c.afm)||c.city||''}</span>
-          </a>`).join('')}
-      </div>`);
-  }
-
-  if (data.products?.length) {
-    sections.push(`
-      <div style="padding:4px 10px 8px">
-        <p style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;padding:0 2px;margin-bottom:4px"><i class="fa-solid fa-box-open" style="margin-right:4px"></i>Είδη</p>
-        ${data.products.map(p => `
-          <a href="products.html" style="${rowStyle};color:rgba(255,255,255,.75)" ${hoverScript}>
-            <i class="fa-solid fa-cube" style="font-size:11px;color:#FBBF24;flex-shrink:0"></i>
-            <span style="font-size:12px;font-weight:600">${hl(p.name)}</span>
-            <span style="font-size:11px;color:rgba(255,255,255,.35)">${p.code ? hl(p.code) : ''}</span>
           </a>`).join('')}
       </div>`);
   }
