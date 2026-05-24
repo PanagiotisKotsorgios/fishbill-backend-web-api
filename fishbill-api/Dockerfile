@@ -9,6 +9,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy application source
 COPY src/ ./src/
 COPY scripts/ ./scripts/
+COPY migrations/ ./migrations/
 
 # Copy static assets baked into the image (e.g. OSPA form template)
 COPY public/pdfs/ ./public/pdfs/
@@ -35,4 +36,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=3 \
     CMD wget -qO- http://localhost:4000/health || exit 1
 
-CMD ["node", "src/server.js"]
+CMD ["sh", "-c", "node scripts/migrate.js && node src/server.js"]

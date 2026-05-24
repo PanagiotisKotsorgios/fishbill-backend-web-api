@@ -6,6 +6,7 @@ node_modules/
 .env.*
 !.env.example
 !.env.docker.example
+!.env.production.example
 *.pem
 *.key
 *.cert
