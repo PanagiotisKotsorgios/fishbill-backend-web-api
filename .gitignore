@@ -22,8 +22,8 @@ server.log
 server-error.log
 logs/
 
-# Generated PDFs (temp output)
-pdfs/
+# Generated PDFs (temp output) — only ignore the runtime-generated directories
+fishbill-api/pdfs/
 
 # User avatar uploads (binary, user-specific)
 public/avatars/

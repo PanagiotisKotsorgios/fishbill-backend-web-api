@@ -11,14 +11,12 @@ COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY migrations/ ./migrations/
 
-# Copy static assets baked into the image (e.g. OSPA form template)
-COPY public/pdfs/ ./public/pdfs/
-
 # Create writable directories (will be overridden by volume mounts in production)
 RUN mkdir -p \
       uploads/invoices \
       uploads/delivery-notes \
       pdfs \
+      public/pdfs \
       public/avatars \
       public/apk \
       public/uploads/weighing-slips \
