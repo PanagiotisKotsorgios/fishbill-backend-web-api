@@ -33,7 +33,7 @@ USER fishbill
 
 EXPOSE 4000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD wget -qO- http://localhost:4000/health || exit 1
 
 ENTRYPOINT ["./entrypoint.sh"]
