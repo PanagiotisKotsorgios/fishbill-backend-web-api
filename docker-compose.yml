@@ -62,6 +62,8 @@ services:
     restart: unless-stopped
     expose:
       - "80"
+    healthcheck:
+      disable: true
     depends_on:
       - api
 
