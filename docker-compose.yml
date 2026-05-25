@@ -25,7 +25,6 @@ services:
       context: ./fishbill-api
     restart: unless-stopped
     command: ["./entrypoint.sh"]
-    env_file: .env
     environment:
       DB_HOST:                  db
       DB_PORT:                  "3306"
@@ -40,6 +39,10 @@ services:
       ADMIN_EMAIL:              ${ADMIN_EMAIL:-pkotsorgios654@gmail.com}
       JWT_EXPIRES_IN:           ${JWT_EXPIRES_IN:-7d}
       JWT_REFRESH_EXPIRES_IN:   ${JWT_REFRESH_EXPIRES_IN:-30d}
+      DB_PASSWORD:              ${DB_PASSWORD}
+      JWT_SECRET:               ${JWT_SECRET}
+      JWT_REFRESH_SECRET:       ${JWT_REFRESH_SECRET}
+      ENCRYPTION_KEY:           ${ENCRYPTION_KEY}
     depends_on:
       db:
         condition: service_healthy
