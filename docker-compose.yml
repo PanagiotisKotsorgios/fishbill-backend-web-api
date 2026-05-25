@@ -25,10 +25,21 @@ services:
       context: ./fishbill-api
     restart: unless-stopped
     command: ["./entrypoint.sh"]
-    env_file: .env         # Coolify generates .env from its UI; on bare Docker use .env.docker → cp .env.production .env
+    env_file: .env
     environment:
-      DB_HOST: db          # override to reach the db container
-      DB_PORT: "3306"
+      DB_HOST:                  db
+      DB_PORT:                  "3306"
+      NODE_ENV:                 ${NODE_ENV:-production}
+      PORT:                     ${PORT:-4000}
+      DB_NAME:                  ${DB_NAME:-fishbill_db}
+      DB_USER:                  ${DB_USER:-fishbill_user}
+      APP_URL:                  ${APP_URL:-https://master-app.gr}
+      API_URL:                  ${API_URL:-https://master-app.gr/api}
+      APP_BASE_URL:             ${APP_BASE_URL:-https://master-app.gr}
+      CORS_ORIGINS:             ${CORS_ORIGINS:-https://master-app.gr}
+      ADMIN_EMAIL:              ${ADMIN_EMAIL:-pkotsorgios654@gmail.com}
+      JWT_EXPIRES_IN:           ${JWT_EXPIRES_IN:-7d}
+      JWT_REFRESH_EXPIRES_IN:   ${JWT_REFRESH_EXPIRES_IN:-30d}
     depends_on:
       db:
         condition: service_healthy
@@ -52,10 +63,10 @@ services:
       - api
 
 volumes:
-  db_data:          # MySQL data directory
-  api_uploads:      # generated invoice & delivery-note PDFs
-  api_pdfs:         # temp PDF output
-  api_avatars:      # user avatar images
-  api_weighing_slips: # weighing-slip photos
-  api_apk:          # APK files (optional self-hosting)
-  api_backups:      # database backup JSONs
+  db_data:
+  api_uploads:
+  api_pdfs:
+  api_avatars:
+  api_weighing_slips:
+  api_apk:
+  api_backups:
