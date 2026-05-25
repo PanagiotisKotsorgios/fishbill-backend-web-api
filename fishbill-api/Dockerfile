@@ -10,6 +10,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY migrations/ ./migrations/
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
 # Create writable directories (will be overridden by volume mounts in production)
 RUN mkdir -p \
@@ -28,9 +30,6 @@ RUN mkdir -p \
 RUN addgroup -S fishbill && adduser -S fishbill -G fishbill \
  && chown -R fishbill:fishbill /app
 USER fishbill
-
-COPY entrypoint.sh ./
-RUN chmod +x entrypoint.sh
 
 EXPOSE 4000
 
