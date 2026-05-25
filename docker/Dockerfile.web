@@ -20,4 +20,4 @@ COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
-    CMD wget -qO- http://localhost:80/robots.txt || exit 1
+    CMD wget -qO- http://localhost:80/ping 2>&1 | grep -q ok || (echo "HEALTHCHECK FAILED at $(date)" && exit 1)
