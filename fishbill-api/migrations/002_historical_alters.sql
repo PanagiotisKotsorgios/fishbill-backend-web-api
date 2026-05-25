@@ -1,59 +1,93 @@
 -- =============================================================================
 -- FishBill Migration 002 — Historical ALTER statements (idempotent)
--- All statements are safe to re-run on existing databases.
--- Uses IF NOT EXISTS / INFORMATION_SCHEMA guards throughout.
+-- All statements use INFORMATION_SCHEMA guards for MySQL 8.0 compatibility.
+-- MySQL 8.0 does NOT support ADD COLUMN IF NOT EXISTS (MariaDB-only syntax).
 -- Do NOT add USE statements — the runner connects to the correct DB directly.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
 -- users: is_verified column
 -- ---------------------------------------------------------------------------
-ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS is_verified TINYINT(1) NOT NULL DEFAULT 0
-    COMMENT 'Accountant verification status. 0=pending, 1=verified by super_admin.'
-  AFTER is_active;
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'is_verified');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN is_verified TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Accountant verification status. 0=pending, 1=verified by super_admin.' AFTER is_active",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 UPDATE users SET is_verified = 1 WHERE role IN ('super_admin', 'owner') AND is_verified = 0;
 
 -- ---------------------------------------------------------------------------
 -- users: accountant notification columns
 -- ---------------------------------------------------------------------------
-ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS notif_new_invoice  TINYINT(1) NOT NULL DEFAULT 1
-    COMMENT 'Email on new invoice from client',
-  ADD COLUMN IF NOT EXISTS notif_mydata_fail  TINYINT(1) NOT NULL DEFAULT 1
-    COMMENT 'Email on myDATA transmission failure',
-  ADD COLUMN IF NOT EXISTS notif_client_new   TINYINT(1) NOT NULL DEFAULT 1
-    COMMENT 'Email when new client links accountant',
-  ADD COLUMN IF NOT EXISTS notif_subscription TINYINT(1) NOT NULL DEFAULT 0
-    COMMENT 'Email for subscription updates';
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'notif_new_invoice');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN notif_new_invoice TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Email on new invoice from client'",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'notif_mydata_fail');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN notif_mydata_fail TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Email on myDATA transmission failure'",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'notif_client_new');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN notif_client_new TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Email when new client links accountant'",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'notif_subscription');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN notif_subscription TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Email for subscription updates'",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 -- ---------------------------------------------------------------------------
 -- users: verification request tracking
 -- ---------------------------------------------------------------------------
-ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS verification_requested_at DATETIME NULL
-    COMMENT 'When accountant submitted verification request'
-  AFTER is_verified,
-  ADD COLUMN IF NOT EXISTS verification_data JSON NULL
-    COMMENT 'JSON with submitted form data'
-  AFTER verification_requested_at;
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'verification_requested_at');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN verification_requested_at DATETIME NULL COMMENT 'When accountant submitted verification request' AFTER is_verified",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'verification_data');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE users ADD COLUMN verification_data JSON NULL COMMENT 'JSON with submitted form data' AFTER verification_requested_at",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 -- ---------------------------------------------------------------------------
 -- businesses: fisherman_code
 -- ---------------------------------------------------------------------------
-ALTER TABLE businesses
-  ADD COLUMN IF NOT EXISTS fisherman_code CHAR(6) NULL DEFAULT NULL UNIQUE
-    COMMENT '6-digit unique code shown to fisherman';
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'businesses' AND COLUMN_NAME = 'fisherman_code');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE businesses ADD COLUMN fisherman_code CHAR(6) NULL DEFAULT NULL UNIQUE COMMENT '6-digit unique code shown to fisherman'",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 UPDATE businesses
   SET fisherman_code = LPAD(FLOOR(100000 + RAND() * 899999), 6, '0')
   WHERE fisherman_code IS NULL;
 
-CREATE INDEX IF NOT EXISTS idx_businesses_fisherman_code ON businesses (fisherman_code);
+SET @_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'businesses' AND INDEX_NAME = 'idx_businesses_fisherman_code');
+SET @_sql = IF(@_idx = 0,
+  'CREATE INDEX idx_businesses_fisherman_code ON businesses (fisherman_code)',
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 -- ---------------------------------------------------------------------------
--- businesses: etimologiera_username (no IF NOT EXISTS in original — guarded here)
+-- businesses: etimologiera_username
 -- ---------------------------------------------------------------------------
 SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'businesses' AND COLUMN_NAME = 'etimologiera_username');
@@ -89,8 +123,12 @@ PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 -- ---------------------------------------------------------------------------
 -- delivery_notes: client_ref column + unique index
 -- ---------------------------------------------------------------------------
-ALTER TABLE delivery_notes
-  ADD COLUMN IF NOT EXISTS client_ref VARCHAR(100) NULL DEFAULT NULL;
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'delivery_notes' AND COLUMN_NAME = 'client_ref');
+SET @_sql = IF(@_col = 0,
+  "ALTER TABLE delivery_notes ADD COLUMN client_ref VARCHAR(100) NULL DEFAULT NULL",
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 SET @_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'delivery_notes' AND INDEX_NAME = 'idx_dn_biz_client_ref');
@@ -102,9 +140,19 @@ PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 -- ---------------------------------------------------------------------------
 -- business_settings: feature_weighing_slips and feature_ospa
 -- ---------------------------------------------------------------------------
-ALTER TABLE business_settings
-  ADD COLUMN IF NOT EXISTS feature_weighing_slips TINYINT NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS feature_ospa           TINYINT NOT NULL DEFAULT 0;
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'business_settings' AND COLUMN_NAME = 'feature_weighing_slips');
+SET @_sql = IF(@_col = 0,
+  'ALTER TABLE business_settings ADD COLUMN feature_weighing_slips TINYINT NOT NULL DEFAULT 0',
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
+
+SET @_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'business_settings' AND COLUMN_NAME = 'feature_ospa');
+SET @_sql = IF(@_col = 0,
+  'ALTER TABLE business_settings ADD COLUMN feature_ospa TINYINT NOT NULL DEFAULT 0',
+  'SELECT 1');
+PREPARE _stmt FROM @_sql; EXECUTE _stmt; DEALLOCATE PREPARE _stmt;
 
 -- ---------------------------------------------------------------------------
 -- bug_reports table (idempotent)
@@ -128,7 +176,7 @@ CREATE TABLE IF NOT EXISTS bug_reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
--- employee_privileges table (idempotent — live DB uses char(36), not INT)
+-- employee_privileges table (idempotent)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS employee_privileges (
   id          CHAR(36)  NOT NULL DEFAULT (UUID()),
@@ -144,7 +192,7 @@ CREATE TABLE IF NOT EXISTS employee_privileges (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
--- users: 'employee' role in enum (safe MODIFY — only changes enum list)
+-- users: 'employee' role in enum
 -- ---------------------------------------------------------------------------
 SET @_col = (SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role');
