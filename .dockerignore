@@ -34,15 +34,11 @@ database/*.bak
 
 # Documentation & development-only files
 *.md
-hosting-offer-request.md
-fishbill-complete-guide.md
-FishBill_Documentation.md
 *.txt
+!robots.txt
 *.docx
 *.pptx
 *.bat
-TODO.txt
-start-api.bat
 
 # XAMPP/Apache-specific (not used in Docker)
 .htaccess
