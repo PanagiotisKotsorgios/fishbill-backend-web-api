@@ -57,8 +57,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile.web
     restart: unless-stopped
-    ports:
-      - "${WEB_PORT:-80}:80"
+    expose:
+      - "80"
     depends_on:
       - api
 
