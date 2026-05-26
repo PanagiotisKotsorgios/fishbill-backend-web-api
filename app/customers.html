@@ -662,7 +662,7 @@
   async function exportCsv() {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const base  = window.API_BASE || 'http://localhost:4000/api';
+      const base  = window.API_BASE || 'https://master-app.gr/api';
       const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
       const res   = await fetch(`${base}/exports/customers`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error('Σφάλμα εξαγωγής (' + res.status + ')');

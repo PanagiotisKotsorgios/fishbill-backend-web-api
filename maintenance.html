@@ -245,7 +245,7 @@
   (async () => {
     try {
       const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:4000'
+        ? 'https://master-app.gr'
         : '';
       const r = await fetch(API + '/api/status');
       const d = await r.json();
@@ -265,7 +265,7 @@
   setInterval(async () => {
     try {
       const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:4000'
+        ? 'https://master-app.gr'
         : '';
       const r = await fetch(API + '/api/status');
       const d = await r.json();

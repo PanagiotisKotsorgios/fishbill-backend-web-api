@@ -1,6 +1,6 @@
 // PRODUCTION: change API_URL to your live API domain.
 const CONFIG = {
-  API_URL: 'http://localhost:4000/api',
+  API_URL: 'https://master-app.gr/api',
   APP_NAME: 'FishBill',
   VERSION: '1.0.0',
 

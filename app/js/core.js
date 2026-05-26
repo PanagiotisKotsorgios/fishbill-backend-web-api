@@ -1,7 +1,7 @@
 // ── Config ────────────────────────────────────────────────────────────────────
 // PRODUCTION: change these two lines to your live API domain.
-const API_URL  = 'http://localhost:4000/api';
-const API_HOST = 'http://localhost:4000';
+const API_URL  = 'https://master-app.gr/api';
+const API_HOST = 'https://master-app.gr';
 
 // Prefix server-relative paths (e.g. /avatars/...) with the API host
 function assetUrl(path) {
