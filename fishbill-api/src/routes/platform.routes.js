@@ -1297,6 +1297,20 @@ router.post('/invoices/:id/upload-pdf', pdfUpload.single('pdf'), async (req, res
   } catch (err) { next(err); }
 });
 
+// GET /api/platform/invoices/:id/pdf-blob — serve uploaded PDF with no-cache headers (admin)
+router.get('/invoices/:id/pdf-blob', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const safeId = id.replace(/[^a-f0-9-]/gi, '').slice(0, 36);
+    const filePath = path.join(__dirname, '../../uploads/invoices', `${safeId}.pdf`);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'PDF δεν βρέθηκε.' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.sendFile(filePath);
+  } catch (err) { next(err); }
+});
+
 // GET /api/platform/invoices/users-summary — per-business pending + transmitted counts
 router.get('/invoices/users-summary', async (req, res, next) => {
   try {

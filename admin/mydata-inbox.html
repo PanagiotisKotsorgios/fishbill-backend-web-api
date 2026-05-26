@@ -752,7 +752,7 @@
           // Reload list and re-render the detail panel with fresh data so the new PDF is visible
           await loadInvoices(currentPage);
           const fresh = allInvoices.find(x => x.id === invoiceId);
-          if (fresh) { selectedInv = fresh; renderTransmittedDetail(fresh); }
+          if (fresh) { selectedInv = fresh; renderTransmittedDetail(fresh); if (pdfFile) loadInvPdfBlob(fresh.id, true); }
           else hideDetail();
         }
       } catch(e) {
@@ -764,14 +764,16 @@
       }
     }
 
-    async function loadInvPdfBlob(invoiceId) {
+    async function loadInvPdfBlob(invoiceId, bustCache) {
       const wrapper = document.getElementById('inv-pdf-wrap');
       if (!wrapper) return;
       try {
         const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
         const token   = localStorage.getItem('fishbill_token') || '';
-        const resp    = await fetch(`${apiBase}/uploads/invoices/${invoiceId}.pdf`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const cacheBust = bustCache ? `?t=${Date.now()}` : '';
+        const resp    = await fetch(`${apiBase}/api/platform/invoices/${invoiceId}/pdf-blob${cacheBust}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache:   'no-store'
         });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const url = URL.createObjectURL(await resp.blob());
