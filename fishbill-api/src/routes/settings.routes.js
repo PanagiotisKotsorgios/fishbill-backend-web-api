@@ -6,17 +6,6 @@ const { authenticate } = require('../middleware/auth');
 router.use(authenticate);
 
 // ---------------------------------------------------------------------------
-// Self-migration: ensure feature columns exist (idempotent)
-// ---------------------------------------------------------------------------
-;(async () => {
-  try {
-    await pool.execute(`ALTER TABLE business_settings
-      ADD COLUMN IF NOT EXISTS feature_weighing_slips TINYINT NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS feature_ospa           TINYINT NOT NULL DEFAULT 0`);
-  } catch (_) { /* column already exists or DB doesn't support IF NOT EXISTS — safe to ignore */ }
-})();
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

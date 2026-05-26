@@ -62,20 +62,6 @@ function saveBase64Doc(base64Data, businessId, submissionId) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
     console.log('[ospa] table ready');
-
-    // Add feature flags to business_settings if missing
-    for (const col of ['feature_ospa', 'feature_weighing_slips']) {
-      try {
-        await pool.execute(
-          `ALTER TABLE business_settings ADD COLUMN ${col} TINYINT(1) NOT NULL DEFAULT 0`
-        );
-        console.log(`[ospa] added column business_settings.${col}`);
-      } catch (e) {
-        if (!e.message.includes('Duplicate column')) {
-          console.error(`[ospa] alter error (${col}):`, e.message);
-        }
-      }
-    }
   } catch (e) {
     console.error('[ospa] migration error:', e.message);
   }
