@@ -1,4 +1,5 @@
 FROM nginx:alpine
+# cache-bust: 2026-05-26
 
 # Copy all static web assets
 COPY index.html          /var/www/fishbill/
