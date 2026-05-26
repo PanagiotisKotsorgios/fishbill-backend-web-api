@@ -1,6 +1,6 @@
 'use strict';
 const mysql  = require('mysql2/promise');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const { v4: uuid } = require('uuid');
 
 async function seedAdmin() {
