@@ -39,6 +39,7 @@ services:
       JWT_SECRET:               ${JWT_SECRET}
       JWT_REFRESH_SECRET:       ${JWT_REFRESH_SECRET}
       ENCRYPTION_KEY:           ${ENCRYPTION_KEY}
+      ADMIN_PASSWORD:           ${ADMIN_PASSWORD:-}
     depends_on:
       db:
         condition: service_started

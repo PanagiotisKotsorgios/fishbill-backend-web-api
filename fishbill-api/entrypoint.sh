@@ -23,4 +23,5 @@ tryConnect();
 "
 
 node scripts/migrate.js
+node scripts/seed-admin.js
 exec node src/server.js
