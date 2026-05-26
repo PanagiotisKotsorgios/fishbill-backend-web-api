@@ -8,6 +8,10 @@ const logger     = require('./utils/logger');
 
 const app = express();
 
+// Trust Traefik/Coolify reverse proxy — required for express-rate-limit and
+// correct IP detection when running behind a proxy
+app.set('trust proxy', 1);
+
 // ── Security headers (with HSTS + CSP) ───────────────────────────────────────
 app.use(helmet({
   // HTTP Strict Transport Security — tell browsers to only use HTTPS for 1 year
