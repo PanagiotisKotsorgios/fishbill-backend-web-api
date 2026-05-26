@@ -604,7 +604,7 @@
               <i class="fas fa-pen-to-square text-amber-600"></i>
               <span class="font-bold text-amber-900 text-sm">Διόρθωση ΜΑΡΚ / PDF</span>
             </div>
-            ${markFormHtml(inv.id, true)}
+            ${markFormHtml(inv.id, true, inv.mydata_mark)}
           </div>
         </div>`;
       if (inv.pdf_path) loadInvPdfBlob(inv.id);
@@ -657,7 +657,7 @@
         </div>`;
     }
 
-    function markFormHtml(invoiceId, isEdit) {
+    function markFormHtml(invoiceId, isEdit, existingMark) {
       const btnColor = isEdit ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700';
       const btnLabel = isEdit
         ? '<i class="fas fa-rotate mr-2"></i>Ενημέρωση ΜΑΡΚ / PDF'
@@ -672,8 +672,9 @@
           ${stepHeader}
           <div class="${isEdit?'':'ml-9'} space-y-3">
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Αριθμός ΜΑΡΚ <span class="text-red-500">*</span></label>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Αριθμός ΜΑΡΚ ${isEdit?'<span class="text-gray-400 font-normal">(αφήστε κενό για να κρατήσετε τον υπάρχοντα)</span>':'<span class="text-red-500">*</span>'}</label>
               <input type="text" id="mark-input" placeholder="π.χ. 400120250001234"
+                value="${isEdit && existingMark ? existingMark : ''}"
                 class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-mono focus:outline-none focus:border-indigo-400 bg-white" />
             </div>
             <div>
@@ -703,15 +704,25 @@
 
     // ── Submit MARK ────────────────────────────────────────────────────────────
     async function submitMark(invoiceId, isEdit) {
-      const mark    = document.getElementById('mark-input').value.trim();
-      const qrUrl   = document.getElementById('qr-input').value.trim();
-      const pdfFile = document.getElementById('pdf-input')?.files[0];
-      const btn     = document.getElementById('btn-mark');
-      if (!mark) { showToast('Εισάγετε τον αριθμό ΜΑΡΚ', 'error'); return; }
+      const markInput = document.getElementById('mark-input').value.trim();
+      const qrUrl     = document.getElementById('qr-input').value.trim();
+      const pdfFile   = document.getElementById('pdf-input')?.files[0];
+      const btn       = document.getElementById('btn-mark');
+
+      // In edit mode MARK is optional (keep existing if left blank); in new mode it's required
+      if (!isEdit && !markInput) { showToast('Εισάγετε τον αριθμό ΜΑΡΚ', 'error'); return; }
+      if (!isEdit && !markInput && !pdfFile) { showToast('Εισάγετε τον αριθμό ΜΑΡΚ', 'error'); return; }
+
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Αποθήκευση…';
       try {
-        await api.patch(`/platform/invoices/${invoiceId}/mark`, { mark, qr_url: qrUrl||undefined });
+        let updatedMark = markInput;
+        // Only call MARK patch if a mark value is provided
+        if (markInput) {
+          const r = await api.patch(`/platform/invoices/${invoiceId}/mark`, { mark: markInput, qr_url: qrUrl||undefined });
+          updatedMark = r?.data?.invoice?.mydata_mark || markInput;
+        }
+
         if (pdfFile) {
           btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ανέβασμα PDF…';
           const form    = new FormData();
@@ -722,23 +733,28 @@
             { method:'POST', headers:{'Authorization':`Bearer ${token}`}, body:form });
           if (!resp.ok) {
             const err = await resp.json().catch(()=>({}));
-            showToast('ΜΑΡΚ αποθηκεύτηκε αλλά PDF απέτυχε: '+(err.error||resp.status), 'error');
+            showToast('PDF απέτυχε: '+(err.error||resp.status), 'error');
           } else {
-            showToast(`✅ ΜΑΡΚ ${mark} + PDF ανέβηκαν επιτυχώς!`, 'success');
+            showToast(markInput ? `✅ ΜΑΡΚ + PDF ενημερώθηκαν επιτυχώς!` : '✅ PDF ενημερώθηκε επιτυχώς!', 'success');
           }
         } else {
-          showToast(`✅ ΜΑΡΚ ${mark} ${isEdit?'ενημερώθηκε':'καταχωρήθηκε'} επιτυχώς!`, 'success');
+          showToast(`✅ ΜΑΡΚ ${updatedMark} ${isEdit?'ενημερώθηκε':'καταχωρήθηκε'} επιτυχώς!`, 'success');
         }
+
         await loadUserSummaries();
         if (!isEdit) {
           allInvoices = allInvoices.filter(x=>x.id!==invoiceId);
           renderList(allInvoices);
           const b = document.getElementById('badge-pending');
           b.textContent = Math.max(0,(parseInt(b.textContent)||1)-1);
+          hideDetail();
         } else {
+          // Reload list and re-render the detail panel with fresh data so the new PDF is visible
           await loadInvoices(currentPage);
+          const fresh = allInvoices.find(x => x.id === invoiceId);
+          if (fresh) { selectedInv = fresh; renderTransmittedDetail(fresh); }
+          else hideDetail();
         }
-        hideDetail();
       } catch(e) {
         showToast('Σφάλμα: '+e.message, 'error');
         btn.disabled = false;
