@@ -3,280 +3,617 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FishBill – Σύντομα κοντά σας</title>
-  <meta name="description" content="Κάτι νέο έρχεται. Μείνετε συνδεδεμένοι." />
-  <!-- No indexing — we don't want competitors crawling us -->
+  <title>FishBill – Ηλεκτρονική Τιμολόγιση για Ψαράδες</title>
+  <meta name="description" content="FishBill — η πρώτη εφαρμογή ηλεκτρονικής τιμολόγησης φτιαγμένη αποκλειστικά για επαγγελματίες αλιείς. Έκδοση παραστατικών, myDATA, δελτία αποστολής." />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #040d1e;
-      color: #e8edf5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #0D47A1 0%, #1565C0 35%, #1976D2 65%, #1E88E5 85%, #42A5F5 100%);
       min-height: 100vh;
-      position: relative;
+      color: #fff;
+      overflow-x: hidden;
     }
 
-    /* Animated deep sea background */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 50% 0%,   rgba(13,71,161,.55) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 80% 80%,  rgba(0,96,100,.35)  0%, transparent 60%),
-        radial-gradient(ellipse 40% 30% at 20% 90%,  rgba(21,101,192,.25) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Floating particles */
+    /* ── PARTICLES ─────────────────────────────────────────────────────────── */
     .particle {
       position: fixed;
       border-radius: 50%;
-      background: rgba(56,190,201,.15);
-      animation: float linear infinite;
+      background: rgba(255,255,255,.12);
+      animation: floatUp linear infinite;
       pointer-events: none;
       z-index: 0;
     }
-
-    @keyframes float {
-      0%   { transform: translateY(110vh) scale(0); opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: .6; }
-      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    @keyframes floatUp {
+      0%   { transform: translateY(105vh) scale(0); opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: .5; }
+      100% { transform: translateY(-8vh) scale(1); opacity: 0; }
     }
 
-    /* Main card */
-    .card {
+    /* ── LAYOUT ─────────────────────────────────────────────────────────────── */
+    .page {
       position: relative;
       z-index: 1;
-      text-align: center;
-      padding: 64px 48px 56px;
-      max-width: 520px;
-      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 120px;
     }
 
-    /* Fish SVG logo */
-    .logo {
-      display: inline-block;
+    /* ── HERO ────────────────────────────────────────────────────────────────── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding-top: 72px;
+      padding-bottom: 56px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .fish-logo {
       margin-bottom: 28px;
       animation: breathe 4s ease-in-out infinite;
+      filter: drop-shadow(0 8px 24px rgba(255,255,255,.25));
     }
-
     @keyframes breathe {
       0%, 100% { transform: scale(1); }
-      50%       { transform: scale(1.06); }
+      50%       { transform: scale(1.07); }
     }
 
-    /* Brand name */
-    .brand {
-      font-size: clamp(2.2rem, 6vw, 3.2rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      background: linear-gradient(135deg, #38bec9 0%, #7ed6df 40%, #b3e5fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .hero-title {
+      font-size: clamp(3.4rem, 10vw, 5.6rem);
+      font-weight: 900;
+      letter-spacing: 2px;
       line-height: 1;
-      margin-bottom: 14px;
+      color: #fff;
+      margin-bottom: 18px;
+      text-shadow: 0 4px 24px rgba(0,0,0,.18);
     }
 
-    /* Tagline */
-    .tagline {
+    .hero-sub {
+      font-size: clamp(1.15rem, 3.2vw, 1.5rem);
+      color: rgba(255,255,255,.88);
+      line-height: 1.6;
+      margin-bottom: 18px;
+      max-width: 540px;
+    }
+
+    .hero-detail {
       font-size: clamp(.95rem, 2.5vw, 1.1rem);
-      color: rgba(232,237,245,.55);
-      letter-spacing: .05em;
-      font-weight: 400;
-      margin-bottom: 52px;
+      color: rgba(255,255,255,.65);
+      line-height: 1.7;
+      margin-bottom: 48px;
+      max-width: 500px;
     }
 
-    /* Countdown display */
+    /* ── STATUS PILL ─────────────────────────────────────────────────────────── */
     .status-pill {
       display: inline-flex;
       align-items: center;
       gap: 10px;
       padding: 12px 28px;
       border-radius: 999px;
-      background: rgba(56,190,201,.1);
-      border: 1px solid rgba(56,190,201,.25);
-      font-size: .9rem;
-      font-weight: 600;
-      color: #38bec9;
-      letter-spacing: .08em;
+      background: rgba(255,255,255,.15);
+      border: 1.5px solid rgba(255,255,255,.35);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .07em;
       text-transform: uppercase;
-      margin-bottom: 56px;
+      margin-bottom: 52px;
+      backdrop-filter: blur(6px);
     }
-
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 10px; height: 10px;
       border-radius: 50%;
-      background: #38bec9;
+      background: #69F0AE;
       animation: pulse 2s ease-in-out infinite;
+      flex-shrink: 0;
     }
-
     @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: .4; transform: scale(.7); }
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(105,240,174,.4); }
+      50%       { opacity: .7; transform: scale(.8); box-shadow: 0 0 0 6px rgba(105,240,174,0); }
     }
 
-    /* Divider */
-    .divider {
-      width: 40px;
-      height: 1px;
-      background: rgba(232,237,245,.12);
-      margin: 0 auto 28px;
+    /* ── CTA BUTTONS ─────────────────────────────────────────────────────────── */
+    .cta-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 460px;
     }
 
-    /* Login link — subtle, not prominent */
-    .auth-links {
+    .btn-primary {
+      flex: 1;
+      min-width: 180px;
+      padding: 20px 32px;
+      border-radius: 18px;
+      background: #fff;
+      color: #0D47A1;
+      font-size: 1.15rem;
+      font-weight: 800;
+      text-decoration: none;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+      transition: transform .15s, box-shadow .15s;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      font-size: .8rem;
-      color: rgba(232,237,245,.3);
+      gap: 10px;
     }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,.28); }
 
-    .auth-links a {
-      color: rgba(232,237,245,.35);
+    .btn-secondary {
+      flex: 1;
+      min-width: 180px;
+      padding: 20px 32px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.15);
+      border: 2px solid rgba(255,255,255,.5);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
       text-decoration: none;
-      transition: color .2s;
-      letter-spacing: .04em;
-    }
-
-    .auth-links a:hover { color: rgba(232,237,245,.65); }
-
-    .auth-sep {
-      width: 1px;
-      height: 12px;
-      background: rgba(232,237,245,.15);
-    }
-
-    /* Footer legal links */
-    .legal {
-      position: fixed;
-      bottom: 24px;
-      left: 0; right: 0;
+      text-align: center;
+      backdrop-filter: blur(6px);
+      transition: background .15s, transform .15s;
       display: flex;
       align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.25); transform: translateY(-2px); }
+
+    /* ── DIVIDER ─────────────────────────────────────────────────────────────── */
+    .wave-divider {
+      width: 100%;
+      max-width: 720px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+      margin: 0 auto 64px;
+    }
+
+    /* ── FEATURES ────────────────────────────────────────────────────────────── */
+    .features {
+      width: 100%;
+      max-width: 860px;
+      margin-bottom: 64px;
+    }
+
+    .features-title {
+      text-align: center;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .features-sub {
+      text-align: center;
+      font-size: clamp(.95rem, 2.5vw, 1.1rem);
+      color: rgba(255,255,255,.65);
+      margin-bottom: 40px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .feat-card {
+      background: rgba(255,255,255,.12);
+      border: 1.5px solid rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: 28px 24px;
+      backdrop-filter: blur(8px);
+      transition: background .2s, transform .2s;
+    }
+    .feat-card:hover { background: rgba(255,255,255,.18); transform: translateY(-3px); }
+
+    .feat-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .feat-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feat-desc {
+      font-size: .95rem;
+      color: rgba(255,255,255,.7);
+      line-height: 1.6;
+    }
+
+    /* ── STATS ───────────────────────────────────────────────────────────────── */
+    .stats {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
       justify-content: center;
       gap: 16px;
-      z-index: 2;
       flex-wrap: wrap;
-      padding: 0 20px;
+      margin-bottom: 64px;
     }
 
-    .legal a {
-      font-size: .72rem;
-      color: rgba(232,237,245,.2);
+    .stat-box {
+      flex: 1;
+      min-width: 140px;
+      background: rgba(255,255,255,.12);
+      border: 1.5px solid rgba(255,255,255,.2);
+      border-radius: 18px;
+      padding: 24px 16px;
+      text-align: center;
+      backdrop-filter: blur(6px);
+    }
+
+    .stat-number {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: .88rem;
+      color: rgba(255,255,255,.65);
+      font-weight: 500;
+    }
+
+    /* ── CONTACT STRIP ───────────────────────────────────────────────────────── */
+    .contact-strip {
+      width: 100%;
+      max-width: 680px;
+      background: rgba(255,255,255,.12);
+      border: 1.5px solid rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: 32px 28px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      margin-bottom: 64px;
+    }
+
+    .contact-strip h3 {
+      font-size: clamp(1.2rem, 3vw, 1.6rem);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .contact-strip p {
+      font-size: clamp(.95rem, 2.4vw, 1.05rem);
+      color: rgba(255,255,255,.72);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+
+    .contact-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.18);
+      border: 1.5px solid rgba(255,255,255,.3);
+      color: #fff;
+      font-size: .98rem;
+      font-weight: 600;
       text-decoration: none;
-      letter-spacing: .04em;
-      transition: color .2s;
+      transition: background .15s;
+    }
+    .contact-link:hover { background: rgba(255,255,255,.28); }
+
+    /* ── FOOTER ──────────────────────────────────────────────────────────────── */
+    footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 10;
+      background: rgba(13, 71, 161, .85);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,.12);
+      padding: 14px 20px;
     }
 
-    .legal a:hover { color: rgba(232,237,245,.45); }
-
-    .legal-sep {
-      width: 2px;
-      height: 2px;
-      border-radius: 50%;
-      background: rgba(232,237,245,.15);
+    .footer-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    @media (max-width: 480px) {
-      .card { padding: 48px 24px 44px; }
+    .footer-brand {
+      font-size: .95rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.75);
+      white-space: nowrap;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: rgba(255,255,255,.65);
+      text-decoration: none;
+      font-size: .88rem;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 8px;
+      transition: color .15s, background .15s;
+      white-space: nowrap;
+    }
+    .footer-links a:hover { color: #fff; background: rgba(255,255,255,.12); }
+
+    .footer-sep {
+      width: 1px; height: 14px;
+      background: rgba(255,255,255,.18);
+      flex-shrink: 0;
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .hero { padding-top: 52px; padding-bottom: 40px; }
+      .cta-row { flex-direction: column; }
+      .btn-primary, .btn-secondary { min-width: unset; width: 100%; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats { flex-direction: column; }
+      .stat-box { min-width: unset; }
+      .footer-inner { justify-content: center; }
+      .footer-brand { display: none; }
+      .footer-links a { font-size: .82rem; padding: 5px 8px; }
+    }
+
+    @media (max-width: 380px) {
+      .hero-title { font-size: 2.8rem; }
+      .footer-links { gap: 2px; }
+      .footer-sep { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Floating particles -->
-  <div class="particle" style="width:4px;height:4px;left:15%;animation-duration:18s;animation-delay:-3s;"></div>
-  <div class="particle" style="width:3px;height:3px;left:32%;animation-duration:22s;animation-delay:-8s;"></div>
-  <div class="particle" style="width:5px;height:5px;left:55%;animation-duration:16s;animation-delay:-1s;"></div>
-  <div class="particle" style="width:3px;height:3px;left:70%;animation-duration:24s;animation-delay:-12s;"></div>
-  <div class="particle" style="width:4px;height:4px;left:85%;animation-duration:19s;animation-delay:-6s;"></div>
-  <div class="particle" style="width:2px;height:2px;left:42%;animation-duration:28s;animation-delay:-15s;"></div>
-  <div class="particle" style="width:6px;height:6px;left:8%;animation-duration:21s;animation-delay:-9s;"></div>
+  <!-- Particles -->
+  <div class="particle" style="width:5px;height:5px;left:10%;animation-duration:20s;animation-delay:-2s;"></div>
+  <div class="particle" style="width:3px;height:3px;left:28%;animation-duration:26s;animation-delay:-10s;"></div>
+  <div class="particle" style="width:6px;height:6px;left:52%;animation-duration:17s;animation-delay:-5s;"></div>
+  <div class="particle" style="width:4px;height:4px;left:68%;animation-duration:23s;animation-delay:-14s;"></div>
+  <div class="particle" style="width:3px;height:3px;left:82%;animation-duration:19s;animation-delay:-7s;"></div>
+  <div class="particle" style="width:5px;height:5px;left:40%;animation-duration:28s;animation-delay:-18s;"></div>
+  <div class="particle" style="width:4px;height:4px;left:6%;animation-duration:22s;animation-delay:-11s;"></div>
+  <div class="particle" style="width:3px;height:3px;left:92%;animation-duration:24s;animation-delay:-3s;"></div>
 
-  <div class="card">
+  <div class="page">
 
-    <!-- Fish logo SVG -->
-    <div class="logo">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="90" height="60">
-        <path fill="#0A5568" d="M38,60 L5,32 L18,60 L5,88 Z"/>
-        <path fill="#0B7285" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
-        <path fill="#38BEC9" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
-        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
-        <circle cx="138" cy="60" r="5"  fill="#064E60"/>
-        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
-      </svg>
+    <!-- ── HERO ── -->
+    <section class="hero">
+
+      <div class="fish-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="160" height="107">
+          <path fill="#FFFFFF" fill-opacity=".15" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+          <path fill="#FFFFFF" fill-opacity=".25" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+          <path fill="#FFFFFF" fill-opacity=".55" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+          <circle cx="138" cy="60" r="11" fill="#FFFFFF" fill-opacity=".9"/>
+          <circle cx="138" cy="60" r="5.5" fill="#0D47A1"/>
+          <circle cx="136" cy="57" r="2.4" fill="#FFFFFF"/>
+        </svg>
+      </div>
+
+      <h1 class="hero-title">FishBill</h1>
+
+      <p class="hero-sub">Ηλεκτρονική Τιμολόγιση<br>για Επαγγελματίες Ψαράδες</p>
+
+      <p class="hero-detail">
+        Η πρώτη εφαρμογή φτιαγμένη αποκλειστικά για αλιείς —
+        έκδοση παραστατικών, σύνδεση με myDATA, δελτία αποστολής
+        και πολλά ακόμη, απευθείας από το κινητό σας.
+      </p>
+
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        Η εφαρμογή είναι διαθέσιμη
+      </div>
+
+      <div class="cta-row">
+        <a id="loginLink" href="app/index.html" data-path="app/index.html" class="btn-primary">
+          <i class="fas fa-right-to-bracket"></i> Σύνδεση
+        </a>
+        <a id="regLink" href="app/index.html#register" data-path="app/index.html#register" class="btn-secondary">
+          <i class="fas fa-user-plus"></i> Εγγραφή
+        </a>
+      </div>
+    </section>
+
+    <!-- ── DIVIDER ── -->
+    <div class="wave-divider"></div>
+
+    <!-- ── FEATURES ── -->
+    <section class="features">
+      <h2 class="features-title">Όλα όσα χρειάζεστε</h2>
+      <p class="features-sub">Από την έκδοση τιμολογίου μέχρι την υποβολή στην ΑΑΔΕ — σε μία εφαρμογή.</p>
+
+      <div class="features-grid">
+        <div class="feat-card">
+          <div class="feat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+          <div class="feat-title">Τιμολόγια &amp; Αποδείξεις</div>
+          <div class="feat-desc">Εκδώστε παραστατικά σε δευτερόλεπτα. Αυτόματη αρίθμηση, υπολογισμός ΦΠΑ και άμεση αποστολή στον πελάτη.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon"><i class="fas fa-network-wired"></i></div>
+          <div class="feat-title">Σύνδεση myDATA</div>
+          <div class="feat-desc">Αυτόματη διαβίβαση παραστατικών στην ΑΑΔΕ μέσω myDATA. Λήψη ΜΑΡΚ και QR κωδικού χωρίς χειροκίνητες ενέργειες.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon"><i class="fas fa-truck"></i></div>
+          <div class="feat-title">Δελτία Αποστολής</div>
+          <div class="feat-desc">Δημιουργήστε και διαβιβάστε δελτία αποστολής άμεσα. Πλήρης συμμόρφωση με την ισχύουσα φορολογική νομοθεσία.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon"><i class="fas fa-weight-scale"></i></div>
+          <div class="feat-title">Δελτία Ζύγισης</div>
+          <div class="feat-desc">Καταγράψτε και διαχειριστείτε δελτία ζύγισης αλιευμάτων. Είδος, βάρος, τιμή — όλα οργανωμένα και αποθηκευμένα.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon"><i class="fas fa-mobile-screen-button"></i></div>
+          <div class="feat-title">Εφαρμογή Android</div>
+          <div class="feat-desc">Διαθέσιμη εφαρμογή για Android. Εργαστείτε από οπουδήποτε — ακόμα και χωρίς σύνδεση στο διαδίκτυο.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon"><i class="fas fa-shield-halved"></i></div>
+          <div class="feat-title">Ασφάλεια &amp; GDPR</div>
+          <div class="feat-desc">Τα δεδομένα σας προστατεύονται με κρυπτογράφηση. Πλήρης συμμόρφωση με τον Κανονισμό GDPR.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STATS ── -->
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-number" id="stat-fishermen">—</div>
+        <div class="stat-label"><i class="fas fa-anchor" style="margin-right:5px;opacity:.7;"></i>Εγγεγραμμένοι Αλιείς</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="stat-invoices">—</div>
+        <div class="stat-label"><i class="fas fa-file-invoice" style="margin-right:5px;opacity:.7;"></i>Παραστατικά Εκδοθέντα</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">98%</div>
+        <div class="stat-label"><i class="fas fa-circle-check" style="margin-right:5px;opacity:.7;"></i>Επιτυχής Διαβίβαση</div>
+      </div>
     </div>
 
-    <div class="brand">FishBill</div>
-    <div class="tagline">Κάτι νέο έρχεται στον κλάδο.</div>
-
-    <div class="status-pill">
-      <span class="status-dot"></span>
-      Σύντομα κοντά σας
+    <!-- ── CONTACT ── -->
+    <div class="contact-strip">
+      <h3><i class="fas fa-headset" style="margin-right:10px;opacity:.85;"></i>Υποστήριξη &amp; Επικοινωνία</h3>
+      <p>Έχετε απορίες ή χρειάζεστε βοήθεια; Είμαστε εδώ για εσάς.<br>Επικοινωνήστε μαζί μας και θα σας απαντήσουμε άμεσα.</p>
+      <div class="contact-links">
+        <a href="mailto:info@master-app.gr" class="contact-link">
+          <i class="fas fa-envelope"></i> info@master-app.gr
+        </a>
+        <a href="https://master-app.gr/app/index.html" data-path="app/index.html" class="contact-link">
+          <i class="fas fa-right-to-bracket"></i> Σύνδεση στην Εφαρμογή
+        </a>
+      </div>
     </div>
 
-    <div class="divider"></div>
+  </div><!-- /.page -->
 
-    <div class="auth-links">
-      <a id="loginLink" href="app/index.html" data-path="app/index.html">Σύνδεση</a>
-      <div class="auth-sep"></div>
-      <a id="regLink" href="app/index.html#register" data-path="app/index.html#register">Εγγραφή</a>
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-brand">
+        <i class="fas fa-fish" style="margin-right:6px;"></i>FishBill &copy; 2025
+      </span>
+      <nav class="footer-links">
+        <a href="legal/terms.html" data-path="legal/terms.html">
+          <i class="fas fa-file-contract"></i> Όροι Χρήσης
+        </a>
+        <div class="footer-sep"></div>
+        <a href="legal/privacy.html" data-path="legal/privacy.html">
+          <i class="fas fa-user-shield"></i> Απόρρητο
+        </a>
+        <div class="footer-sep"></div>
+        <a href="legal/gdpr.html" data-path="legal/gdpr.html">
+          <i class="fas fa-lock"></i> GDPR
+        </a>
+        <div class="footer-sep"></div>
+        <a href="legal/cookies.html" data-path="legal/cookies.html">
+          <i class="fas fa-cookie-bite"></i> Cookies
+        </a>
+        <div class="footer-sep"></div>
+        <a href="legal/disclaimer.html" data-path="legal/disclaimer.html">
+          <i class="fas fa-circle-info"></i> Αποποίηση
+        </a>
+      </nav>
     </div>
-
-  </div>
-
-  <!-- Legal footer — always visible -->
-  <footer class="legal" id="legalFooter">
-    <a href="legal/terms.html"      data-path="legal/terms.html">Όροι Χρήσης</a>
-    <div class="legal-sep"></div>
-    <a href="legal/privacy.html"    data-path="legal/privacy.html">Πολιτική Απορρήτου</a>
-    <div class="legal-sep"></div>
-    <a href="legal/gdpr.html"       data-path="legal/gdpr.html">GDPR</a>
-    <div class="legal-sep"></div>
-    <a href="legal/cookies.html"    data-path="legal/cookies.html">Cookies</a>
-    <div class="legal-sep"></div>
-    <a href="legal/disclaimer.html" data-path="legal/disclaimer.html">Αποποίηση</a>
   </footer>
 
   <script>
-    // Derive API host from current page hostname, port 4000
-    var _apiBase = window.location.protocol + '//' + window.location.hostname + ':4000';
+    // ── Live stats ──────────────────────────────────────────────────────────
+    (function() {
+      var apiBase = window.location.protocol + '//' + window.location.hostname;
+      if (window.location.port && window.location.port !== '80' && window.location.port !== '443')
+        apiBase += ':' + window.location.port;
 
-    // Build a clean base from current URL (strips the filename, keeps the folder path)
-    function _buildBase(webBaseUrl) {
-      if (webBaseUrl) return webBaseUrl.replace(/\/$/, '');
-      var p = window.location.pathname.replace(/\/[^\/]*$/, '');
-      return window.location.origin + (p || '');
-    }
+      fetch(apiBase + '/api/public/stats', { signal: AbortSignal.timeout(4000) })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+          if (!d) return;
+          var fmt = function(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n); };
+          if (d.fishermen)   document.getElementById('stat-fishermen').textContent  = fmt(d.fishermen);
+          if (d.invoices)    document.getElementById('stat-invoices').textContent   = fmt(d.invoices);
+        })
+        .catch(function() {});
+    })();
 
-    // Apply the resolved base URL to every [data-path] anchor
-    function _applyBase(base) {
-      document.querySelectorAll('[data-path]').forEach(function(el) {
-        var p = el.getAttribute('data-path');
-        el.href = base + '/' + p;
-      });
-    }
+    // ── URL base resolution ─────────────────────────────────────────────────
+    (function() {
+      var _apiBase = window.location.protocol + '//' + window.location.hostname;
+      if (window.location.port && window.location.port !== '80' && window.location.port !== '443')
+        _apiBase += ':' + window.location.port + ':4000';
+      else
+        _apiBase += ':4000';
 
-    // Try to get the admin-configured web_base_url, fall back to derived value
-    fetch(_apiBase + '/api/public/config', { signal: AbortSignal.timeout(3000) })
-      .then(function(r) { return r.ok ? r.json() : null; })
-      .then(function(cfg) { _applyBase(_buildBase(cfg && cfg.web_base_url || null)); })
-      .catch(function()  { _applyBase(_buildBase(null)); });
+      function _buildBase(webBaseUrl) {
+        if (webBaseUrl) return webBaseUrl.replace(/\/$/, '');
+        var p = window.location.pathname.replace(/\/[^\/]*$/, '');
+        return window.location.origin + (p || '');
+      }
+
+      function _applyBase(base) {
+        document.querySelectorAll('[data-path]').forEach(function(el) {
+          var p = el.getAttribute('data-path');
+          el.href = base + '/' + p;
+        });
+      }
+
+      fetch(_apiBase + '/api/public/config', { signal: AbortSignal.timeout(3000) })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(cfg) { _applyBase(_buildBase(cfg && cfg.web_base_url || null)); })
+        .catch(function() { _applyBase(_buildBase(null)); });
+    })();
   </script>
 
 </body>
