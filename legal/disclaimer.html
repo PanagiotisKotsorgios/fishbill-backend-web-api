@@ -222,6 +222,23 @@
       h2 { font-size: 1rem; }
       .provider-box { flex-direction: column; gap: 8px; }
     }
+
+    /* ── ENTRANCE ANIMATIONS ─────────────────────────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(32px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .header        { animation: fadeDown .6s ease-out both; }
+    .legal-card    { animation: fadeUp  .7s ease-out .25s both; }
+    .footer        { animation: fadeIn  .6s ease-out .55s both; }
   </style>
 </head>
 <body>
