@@ -183,7 +183,7 @@ router.patch('/me/avatar', async (req, res, next) => {
 
     fs.writeFileSync(path.join(uploadsDir, filename), buffer);
 
-    const avatar_url = `/avatars/${filename}`;
+    const avatar_url = `${req.protocol}://${req.hostname}/avatars/${filename}`;
     await pool.execute(
       'UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?',
       [avatar_url, req.user.id]

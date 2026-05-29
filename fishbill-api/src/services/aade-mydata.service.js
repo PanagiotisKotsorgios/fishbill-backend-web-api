@@ -48,9 +48,42 @@ function fmt(num) {
   return parseFloat(num || 0).toFixed(2);
 }
 
+// Greek UI label → myDATA ENUM (per AADE technical spec)
+const MOVE_PURPOSE_MAP = {
+  'Πώληση':                    'sale',
+  'Αγορά':                     'purchase',
+  'Επιστροφή':                 'return',
+  'Φύλαξη / Αποθήκευση':      'storage',
+  'Μεταφορά / Διανομή':       'distribution',
+  'Παραγωγή':                  'production',
+  'Δωρεά':                     'donation',
+  'Ιδιοχρησιμοποίηση':        'ownUse',
+  'Ενδοκοινοτική Μεταφορά':   'intraCommunity',
+  'Ζύγιση':                    'weighing',
+};
+
+// Greek unit label → ISO 3-letter code (UN/CEFACT)
+const UNIT_MAP = {
+  'kg':    'KGM',
+  'κιλά':  'KGM',
+  'γρ.':   'GRM',
+  'τόν.':  'TNE',
+  'lt':    'LTR',
+  'τεμ.':  'C62',
+  'κιβ.':  'BX',
+};
+
+function toIsoUnit(unit) {
+  return UNIT_MAP[unit] || UNIT_MAP[(unit || '').toLowerCase()] || 'KGM';
+}
+
+function toMovePurpose(purpose) {
+  return MOVE_PURPOSE_MAP[purpose] || 'sale';
+}
+
 function buildDeliveryNoteXml(note, lines, biz, customer) {
   const issueDate    = (note.issue_date || '').slice(0, 10);
-  const dispatchDate = issueDate;
+  const dispatchDate = (note.dispatch_date || note.issue_date || '').slice(0, 10);
   const dispatchTime = note.dispatch_time || '00:00:00';
 
   // Loading address — business premises
@@ -84,16 +117,13 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
   const vehicleXml = note.vehicle_plate
     ? `<vehicleNumber>${esc(note.vehicle_plate)}</vehicleNumber>` : '';
 
+  // Type 9.3 lines: description + quantity + unit only (no values/VAT per AADE spec)
   const linesXml = lines.map((l, idx) => `
     <invoiceDetails>
       <lineNumber>${idx + 1}</lineNumber>
-      <netValue>${fmt(l.net_amount || l.net_value || 0)}</netValue>
-      <vatCategory>8</vatCategory>
-      <vatAmount>0.00</vatAmount>
-      <incomeClassification>
-        <classificationCategory>category3</classificationCategory>
-        <amount>0.00</amount>
-      </incomeClassification>
+      <itemDescription>${esc(l.description || '')}</itemDescription>
+      <quantity>${parseFloat(l.quantity || 0)}</quantity>
+      <measurementUnit>${toIsoUnit(l.unit)}</measurementUnit>
     </invoiceDetails>`).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -113,7 +143,7 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
       <dispatchDate>${dispatchDate}</dispatchDate>
       <dispatchTime>${dispatchTime}</dispatchTime>
       ${vehicleXml}
-      <movePurpose>1</movePurpose>
+      <movePurpose>${toMovePurpose(note.transport_purpose)}</movePurpose>
       <otherDeliveryNoteHeader>
         <loadingAddress>
           <street>${loadStreet}</street>
@@ -140,10 +170,6 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
       <totalOtherTaxesAmount>0.00</totalOtherTaxesAmount>
       <totalDeductionsAmount>0.00</totalDeductionsAmount>
       <totalGrossValue>0.00</totalGrossValue>
-      <incomeClassification>
-        <classificationCategory>category3</classificationCategory>
-        <amount>0.00</amount>
-      </incomeClassification>
     </invoiceSummary>
   </invoice>
 </InvoicesDoc>`;
