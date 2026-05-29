@@ -408,9 +408,64 @@ router.post('/', validate(createSchema), async (req, res, next) => {
       [noteId]
     );
 
-    res.status(201).json({ data: { ...created, lines: createdLines } });
+    // ── Auto-transmit directly to AADE myDATA ─────────────────────────────────
+    let transmitResult = null;
+    let transmitError  = null;
+    try {
+      const [[bizRow]] = await pool.execute(
+        'SELECT afm, name, address, city, postal_code FROM businesses WHERE id = ? LIMIT 1',
+        [business_id]
+      );
+      const biz = {
+        afm:         bizRow.afm,
+        name:        bizRow.name,
+        address:     bizRow.address,
+        city:        bizRow.city,
+        postal_code: bizRow.postal_code,
+      };
+      const customer = {
+        name:        created.recipient_name,
+        afm:         created.recipient_afm    || '000000000',
+        address:     created.recipient_address || '',
+        city:        created.recipient_city    || '',
+        postal:      created.recipient_postal  || '',
+        postal_code: created.recipient_postal  || '',
+      };
+      const aadeMydata = require('../services/aade-mydata.service');
+      transmitResult = await aadeMydata.sendDeliveryNote(created, createdLines, biz, customer, business_id);
+      await pool.execute(
+        `UPDATE delivery_notes
+         SET status = 'transmitted', mydata_mark = ?, mydata_uid = ?,
+             mydata_response = ?, transmitted_at = NOW(), updated_at = NOW()
+         WHERE id = ?`,
+        [
+          transmitResult.mark,
+          transmitResult.uid || null,
+          JSON.stringify({ mark: transmitResult.mark, uid: transmitResult.uid, env: transmitResult.testMode ? 'TEST' : 'PROD' }),
+          noteId,
+        ]
+      );
+      created.status      = 'transmitted';
+      created.mydata_mark = transmitResult.mark;
+      console.log(`[auto-transmit] DN ${noteId} → MARK ${transmitResult.mark}${transmitResult.testMode ? ' (TEST)' : ''}`);
+    } catch (aadeErr) {
+      transmitError = aadeErr.message || String(aadeErr);
+      await pool.execute(
+        "UPDATE delivery_notes SET status = 'failed', mydata_response = ?, updated_at = NOW() WHERE id = ?",
+        [JSON.stringify({ error: transmitError }), noteId]
+      ).catch(() => {});
+      created.status = 'failed';
+      console.error(`[auto-transmit] DN ${noteId} failed:`, transmitError);
+    }
 
     const fullNumber = `${created.series}${created.number}`;
+
+    res.status(201).json({
+      data: { ...created, lines: createdLines },
+      transmit: transmitResult
+        ? { success: true, mark: transmitResult.mark, uid: transmitResult.uid || null, testMode: transmitResult.testMode }
+        : { success: false, error: transmitError },
+    });
 
     // Fire-and-forget: notify owner (user) of new delivery note
     fireNotif(business_id, 'notif_invoice_created', emailSvc.sendDeliveryNoteCreatedNotif, {
@@ -420,86 +475,6 @@ router.post('/', validate(createSchema), async (req, res, next) => {
         recipient_name: created.recipient_name,
       },
     });
-
-    // Fire-and-forget: notify admin to process in Epsilon Smart
-    (async () => {
-      try {
-        const [[biz]] = await pool.execute(
-          'SELECT name, afm FROM businesses WHERE id = ? LIMIT 1', [business_id]
-        );
-        const cfg = await emailSvc.loadConfig();
-        const adminEmail = cfg.admin_notification_email || process.env.ADMIN_EMAIL;
-        await emailSvc.sendAdminDeliveryNoteReadyEmail({
-          note: { ...created, full_number: fullNumber },
-          businessName: biz?.name || '',
-          businessAfm:  biz?.afm  || '',
-          adminEmail,
-        });
-      } catch (e) {
-        console.error('[create delivery note] admin email error:', e.message);
-      }
-    })();
-
-    // Fire-and-forget: notify assigned employees with admin_delivery_notes privilege
-    (async () => {
-      try {
-        const [employees] = await pool.execute(
-          `SELECT u.email, u.full_name
-           FROM employee_businesses eb
-           JOIN users u ON u.id = eb.employee_id AND u.is_active = 1
-           JOIN employee_privileges ep ON ep.user_id = u.id
-           WHERE eb.business_id = ?
-             AND ep.privileges LIKE '%"admin_delivery_notes"%'`,
-          [business_id]
-        );
-        if (!employees.length) return;
-        const [[biz]] = await pool.execute('SELECT name, afm FROM businesses WHERE id = ? LIMIT 1', [business_id]).catch(() => [[null]]);
-        const bizName = biz?.name || business_id;
-        const cfg = await emailSvc.loadConfig();
-        const fromName = cfg.platform_name || 'FishBill';
-        const now = new Date().toLocaleString('el-GR', { timeZone: 'Europe/Athens' });
-        for (const emp of employees) {
-          await emailSvc.sendEmail({
-            to:      emp.email,
-            toName:  emp.full_name,
-            subject: `🚚 Νέο Δελτίο Αποστολής — ${bizName}`,
-            html: `
-              <div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;background:#f9fafb;padding:24px 16px">
-                <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
-                  <div style="background:linear-gradient(135deg,#0A5568,#0B7285);padding:20px 28px">
-                    <div style="font-size:20px;font-weight:800;color:#fff">🐟 FishBill</div>
-                    <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">${fromName}</div>
-                  </div>
-                  <div style="padding:28px">
-                    <h2 style="color:#0A5568;margin:0 0 12px;font-size:18px">🚚 Νέο Δελτίο Αποστολής</h2>
-                    <p style="color:#374151;font-size:14px;margin:0 0 16px">Γεια ${emp.full_name},</p>
-                    <p style="color:#374151;font-size:14px;margin:0 0 16px">
-                      Η επιχείρηση <strong>${bizName}</strong> δημιούργησε νέο Δελτίο Αποστολής που χρήζει διαβίβασης.
-                    </p>
-                    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
-                      <tr style="background:#f0f9fc"><td style="padding:8px 14px;color:#666;font-weight:600;border:1px solid #d5edf2;width:130px">Αρ. Δελτίου</td>
-                        <td style="padding:8px 14px;border:1px solid #d5edf2;font-weight:700">${fullNumber}</td></tr>
-                      <tr><td style="padding:8px 14px;color:#666;font-weight:600;border:1px solid #d5edf2">Επιχείρηση</td>
-                        <td style="padding:8px 14px;border:1px solid #d5edf2">${bizName} (ΑΦΜ: ${biz?.afm || '—'})</td></tr>
-                      <tr style="background:#f0f9fc"><td style="padding:8px 14px;color:#666;font-weight:600;border:1px solid #d5edf2">Παραλήπτης</td>
-                        <td style="padding:8px 14px;border:1px solid #d5edf2">${created.recipient_name || '—'}</td></tr>
-                      <tr><td style="padding:8px 14px;color:#666;font-weight:600;border:1px solid #d5edf2">Ώρα</td>
-                        <td style="padding:8px 14px;border:1px solid #d5edf2">${now}</td></tr>
-                    </table>
-                    <p style="color:#6b7280;font-size:13px;margin:0">Συνδεθείτε στο admin panel → Δελτία Αποστολής για διαβίβαση στην ΑΑΔΕ.</p>
-                  </div>
-                  <div style="background:#f5fbfc;padding:14px 28px;text-align:center;border-top:1px solid #d5edf2">
-                    <p style="margin:0;font-size:12px;color:#8aacb4">&copy; 2026 FishBill</p>
-                  </div>
-                </div>
-              </div>`,
-            _type: 'employee_dn_notif',
-          }).catch(() => {});
-        }
-      } catch (e) {
-        console.error('[create delivery note] employee email error:', e.message);
-      }
-    })();
   } catch (err) {
     await conn.rollback();
     next(err);

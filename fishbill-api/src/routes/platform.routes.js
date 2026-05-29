@@ -1606,7 +1606,7 @@ router.get('/delivery-notes/pending', async (req, res, next) => {
               dn.recipient_name, dn.recipient_afm, dn.recipient_city,
               dn.vehicle_plate, dn.dispatch_location, dn.delivery_location,
               dn.loading_place, dn.transport_purpose, dn.for_weighing,
-              dn.notes, dn.status, dn.mydata_mark, dn.pdf_path, dn.created_at,
+              dn.notes, dn.status, dn.mydata_mark, dn.mydata_response, dn.pdf_path, dn.created_at,
               b.id AS business_id, b.name AS business_name, b.afm AS business_afm
        FROM delivery_notes dn
        JOIN businesses b ON b.id = dn.business_id

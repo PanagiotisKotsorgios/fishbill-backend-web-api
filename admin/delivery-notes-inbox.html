@@ -41,22 +41,17 @@
       <!-- Header -->
       <div class="anim flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 class="text-2xl font-extrabold text-gray-900">Δελτία Αποστολής</h1>
-          <p class="text-sm text-gray-400 mt-0.5">Χειροκίνητη επεξεργασία Δελτίων Αποστολής μέσω TIMOLOGIO (ΑΑΔΕ)</p>
+          <h1 class="text-2xl font-extrabold text-gray-900">Δελτία Αποστολής — myDATA</h1>
+          <p class="text-sm text-gray-400 mt-0.5">Άμεση διαβίβαση στην ΑΑΔΕ. Παρακολούθηση αποτελεσμάτων &amp; επανάληψη αποτυχιών.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <div id="global-pending-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
             <i class="fas fa-bell bell-badge"></i>
-            <span id="global-pending-text"></span> εκκρεμή
+            <span id="global-pending-text"></span> αποτυχ.
           </div>
-          <a href="https://www.timologio.gr" target="_blank"
-             class="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-sm">
-            <i class="fas fa-arrow-up-right-from-square"></i>TIMOLOGIO ΑΑΔΕ
-          </a>
-          <a href="https://app.epsilonsmart.gr" target="_blank"
-             class="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-sm">
-            <i class="fas fa-arrow-up-right-from-square"></i>Epsilon Smart
-          </a>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+            <i class="fas fa-satellite-dish"></i> Άμεση ΑAΔΕ
+          </div>
           <button onclick="dnRefresh()" class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
             <i class="fas fa-rotate-right mr-1"></i>Ανανέωση
           </button>
@@ -112,9 +107,9 @@
           <!-- Tabs -->
           <div class="flex border-b border-gray-100">
             <button id="tab-pending" onclick="dnSwitchTab('pending')"
-              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50">
-              <i class="fas fa-clock mr-1"></i>Εκκρεμή
-              <span id="badge-pending" class="ml-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold"></span>
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-red-500 text-red-700 bg-red-50">
+              <i class="fas fa-triangle-exclamation mr-1"></i>Απέτυχαν
+              <span id="badge-pending" class="ml-1 px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold"></span>
             </button>
             <button id="tab-done" onclick="dnSwitchTab('done')"
               class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700">
@@ -164,7 +159,7 @@
         <div id="detail-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-300 anim" style="animation-delay:.13s; min-width:0">
           <i class="fas fa-truck text-5xl mb-3"></i>
           <p class="text-sm font-semibold">Επιλέξτε Δελτίο Αποστολής</p>
-          <p class="text-xs mt-1">για διαχείριση & διαβίβαση</p>
+          <p class="text-xs mt-1">για παρακολούθηση &amp; επανάληψη αποτυχιών</p>
         </div>
 
       </div>
@@ -243,7 +238,7 @@
     function dnRenderStats(pending, transmitted, cancelled) {
       var total = pending + transmitted + cancelled;
       document.getElementById('stats-row').innerHTML = [
-        { icon:'⏳', label:'Εκκρεμή',       value: pending,     cls:'text-orange-600' },
+        { icon:'❌', label:'Απέτυχαν',       value: pending,     cls:'text-red-600'    },
         { icon:'✅', label:'Διαβιβάστηκαν', value: transmitted, cls:'text-emerald-600'},
         { icon:'🚫', label:'Ακυρωμένα',     value: cancelled,   cls:'text-gray-500'   },
         { icon:'📋', label:'Σύνολο',         value: total,       cls:'text-indigo-600' },
@@ -319,7 +314,7 @@
             '<p class="text-xs font-bold text-gray-800 truncate leading-tight">' + u.business_name + '</p>' +
             '<p class="text-xs text-gray-400 truncate">' + (u.owner_email||u.business_afm||'') + '</p>' +
             '<div class="flex items-center gap-1.5 mt-1 flex-wrap">' +
-              (hasPending ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">' + pending + ' εκκρ.</span>' : '') +
+              (hasPending ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">' + pending + ' αποτ.</span>' : '') +
               (transmitted > 0 ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">' + transmitted + ' ✓</span>' : '') +
               (cancelled > 0 ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">' + cancelled + ' ακυρ.</span>' : '') +
             '</div>' +
@@ -382,7 +377,7 @@
       dnHideDetail();
 
       if (tab === 'pending') {
-        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50';
+        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-red-500 text-red-700 bg-red-50';
         document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
         document.getElementById('sort-select').value = 'date_asc';
         document.getElementById('sort-opt-primary').textContent = 'Παλαιότερα πρώτα';
@@ -430,7 +425,7 @@
     function dnRenderList(rows) {
       if (!rows.length) {
         var msg = dnCurrentTab === 'pending'
-          ? '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Όλα έχουν ΜΑΡΚ!</p>'
+          ? '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Κανένα αποτυχημένο!</p><p class="text-xs text-gray-400 mt-1">Όλες οι διαβιβάσεις ήταν επιτυχείς.</p>'
           : '<i class="fas fa-inbox text-5xl mb-3"></i><p class="font-semibold text-sm">Δεν βρέθηκαν δελτία</p>';
         document.getElementById('dn-list').innerHTML =
           '<div class="flex flex-col items-center justify-center py-14 text-gray-300">' + msg + '</div>';
@@ -494,71 +489,66 @@
       document.getElementById('detail-placeholder').classList.remove('hidden');
     }
 
-    // ── Pending detail ─────────────────────────────────────────────────────────
+    // ── Failed/Pending detail ──────────────────────────────────────────────────
     function dnRenderPendingDetail(dn) {
+      // Parse error from mydata_response if available
+      var errMsg = '';
+      if (dn.mydata_response) {
+        try {
+          var resp = typeof dn.mydata_response === 'string' ? JSON.parse(dn.mydata_response) : dn.mydata_response;
+          errMsg = resp.error || '';
+        } catch(_) {}
+      }
+
       document.getElementById('detail-panel').innerHTML =
         '<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">' +
           dnSummaryHtml(dn) +
-          // Auto-transmit
+
+          // Error details
+          (errMsg
+            ? '<div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                  '<i class="fas fa-triangle-exclamation text-red-600"></i>' +
+                  '<span class="font-bold text-red-900 text-sm">Σφάλμα Διαβίβασης ΑΑΔΕ</span>' +
+                '</div>' +
+                '<p class="text-xs text-red-700 ml-6 font-mono break-all">' + errMsg + '</p>' +
+              '</div>'
+            : '') +
+
+          // Retry button
           '<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">' +
-            '<div class="flex items-center gap-2 mb-1">' +
-              '<i class="fas fa-satellite-dish text-blue-600"></i>' +
-              '<span class="font-bold text-blue-900 text-sm">Αυτόματη Διαβίβαση στην ΑΑΔΕ</span>' +
+            '<div class="flex items-center gap-2 mb-2">' +
+              '<i class="fas fa-rotate-right text-blue-600"></i>' +
+              '<span class="font-bold text-blue-900 text-sm">Επανάληψη Διαβίβασης στην ΑΑΔΕ</span>' +
             '</div>' +
-            '<p class="text-xs text-blue-700 mb-3 ml-6">Χρησιμοποιεί τα διαπιστευτήρια της επιχείρησης ή τα κεντρικά admin credentials (e-timologiera, myDATA τύπος 9.3).</p>' +
+            '<p class="text-xs text-blue-700 mb-3 ml-6">Το δελτίο θα σταλεί ξανά απευθείας στο myDATA. Θα λάβετε ΜΑΡΚ επιβεβαίωσης.</p>' +
             '<button onclick="dnTransmitNote(\'' + dn.id + '\')" id="btn-transmit"' +
               ' class="ml-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">' +
-              '<i class="fas fa-paper-plane"></i>Διαβίβαση στην ΑΑΔΕ</button>' +
+              '<i class="fas fa-paper-plane"></i>Αποστολή στην ΑΑΔΕ</button>' +
           '</div>' +
-          // Manual MARK
+
+          // Manual MARK override (fallback if AADE API is down)
           '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
-            '<p class="font-bold text-gray-700 text-sm mb-3"><i class="fas fa-keyboard mr-1"></i>Ή καταχωρήστε ΜΑΡΚ χειροκίνητα</p>' +
+            '<div class="flex items-center gap-2 mb-2">' +
+              '<i class="fas fa-keyboard text-gray-500"></i>' +
+              '<span class="font-bold text-gray-700 text-sm">Χειροκίνητη Καταχώρηση ΜΑΡΚ</span>' +
+              '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">Fallback</span>' +
+            '</div>' +
+            '<p class="text-xs text-gray-500 mb-3">Μόνο εάν το API της ΑΑΔΕ είναι εκτός λειτουργίας και έχετε λάβει ΜΑΡΚ με άλλο τρόπο.</p>' +
             '<div class="space-y-2">' +
               '<input type="text" id="mark-input-new" placeholder="π.χ. 400120260001234"' +
                 ' class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-mono focus:outline-none focus:border-indigo-400 bg-white" />' +
               '<button onclick="dnSubmitMark(\'' + dn.id + '\', false)"' +
-                ' class="w-full py-2.5 rounded-xl font-extrabold text-white text-sm bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">' +
+                ' class="w-full py-2.5 rounded-xl font-extrabold text-white text-sm bg-gray-600 hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">' +
                 '<i class="fas fa-circle-check"></i>Καταχώρηση ΜΑΡΚ</button>' +
             '</div>' +
           '</div>' +
-          // Uploaded PDF preview (if already uploaded)
-          (dn.pdf_path
-            ? '<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-3">' +
-                '<div class="flex items-center gap-2 mb-2">' +
-                  '<i class="fas fa-file-pdf text-red-500"></i>' +
-                  '<span class="font-bold text-emerald-900 text-sm">Ανεβασμένο PDF</span>' +
-                  '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold"><i class="fas fa-check mr-1"></i>Ανέβηκε</span>' +
-                '</div>' +
-                '<div id="dn-cur-pdf-wrap" class="rounded-xl overflow-hidden border border-emerald-200 bg-gray-50 flex items-center justify-center" style="height:380px">' +
-                  '<div class="animate-spin rounded-full h-7 w-7 border-b-2 border-emerald-600"></div>' +
-                '</div>' +
-              '</div>'
-            : '') +
-          // PDF upload form
-          '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
-            '<div class="flex items-center gap-2 mb-3">' +
-              '<i class="fas fa-file-pdf text-red-500"></i>' +
-              '<span class="font-bold text-gray-800 text-sm">' + (dn.pdf_path ? 'Αντικατάσταση PDF' : 'Ανέβασμα PDF Δελτίου') + '</span>' +
-            '</div>' +
-            (dn.pdf_path ? '' : '<p class="text-xs text-gray-500 mb-3">Ανεβάστε το επίσημο PDF που δημιουργήσατε στο TIMOLOGIO/Epsilon Smart. Ο χρήστης θα μπορεί να το κατεβάσει από την εφαρμογή.</p>') +
-            '<label class="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-200 bg-white cursor-pointer hover:border-red-400 transition-colors">' +
-              '<i class="fas fa-file-pdf text-red-400 text-lg flex-shrink-0"></i>' +
-              '<span id="pdf-label-pend" class="text-sm text-gray-400 truncate min-w-0">Επιλέξτε PDF…</span>' +
-              '<input type="file" id="pdf-input-pend" accept="application/pdf" class="hidden" onchange="dnOnPdfSelected(this,\'pdf-label-pend\')" />' +
-            '</label>' +
-            '<div id="pdf-preview-pend" class="hidden mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50" style="height:320px">' +
-              '<iframe id="pdf-frame-pend" src="" class="w-full h-full border-0" allow="fullscreen"></iframe>' +
-            '</div>' +
-            '<button onclick="dnUploadPdf(\'' + dn.id + '\',\'pdf-input-pend\')"' +
-              ' class="mt-2 w-full py-2 rounded-xl bg-gray-700 text-white text-xs font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">' +
-              '<i class="fas fa-cloud-upload-alt"></i>' + (dn.pdf_path ? 'Ανέβασμα νέου PDF' : 'Ανέβασμα PDF') + '</button>' +
-          '</div>' +
+
           // Cancel
           '<button onclick="dnCancelNote(\'' + dn.id + '\')"' +
             ' class="w-full py-2 rounded-xl border border-red-200 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">' +
             '<i class="fas fa-ban"></i>Ακύρωση Δελτίου</button>' +
         '</div>';
-      if (dn.pdf_path) dnLoadUploadedPdf(dn.id);
     }
 
     // ── Transmitted detail ─────────────────────────────────────────────────────
