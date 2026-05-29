@@ -86,15 +86,15 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
   const dispatchDate = (note.dispatch_date || note.issue_date || '').slice(0, 10);
   const dispatchTime = note.dispatch_time || '00:00:00';
 
-  // Loading address — business premises
-  const loadStreet = esc(biz.address || '-');
-  const loadPostal = esc(biz.postal_code || '00000');
-  const loadCity   = esc(biz.city || '-');
+  // Loading address — business premises (omit street/postal/city if blank, no placeholder '-')
+  const loadStreet = biz.address ? esc(biz.address) : null;
+  const loadPostal = esc(biz.postal_code || '');
+  const loadCity   = esc(biz.city || '');
 
-  // Delivery address — recipient
-  const delStreet = esc(customer.address || '-');
-  const delPostal = esc(customer.postal_code || customer.postal || '00000');
-  const delCity   = esc(customer.city || '-');
+  // Delivery address — recipient (omit street if blank, no placeholder '-')
+  const delStreet = customer.address ? esc(customer.address) : null;
+  const delPostal = esc(customer.postal_code || customer.postal || '');
+  const delCity   = esc(customer.city || '');
 
   const counterpartAfm = customer.afm && customer.afm !== '000000000' ? customer.afm : null;
 
@@ -105,9 +105,7 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
       <country>GR</country>
       <branch>0</branch>
       <name>${esc(customer.name)}</name>
-      <address>
-        <street>${delStreet}</street>
-        <number>-</number>
+      <address>${delStreet ? `\n        <street>${delStreet}</street>` : ''}
         <postalCode>${delPostal}</postalCode>
         <city>${delCity}</city>
       </address>
@@ -145,15 +143,11 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
       ${vehicleXml}
       <movePurpose>${toMovePurpose(note.transport_purpose)}</movePurpose>
       <otherDeliveryNoteHeader>
-        <loadingAddress>
-          <street>${loadStreet}</street>
-          <number>-</number>
+        <loadingAddress>${loadStreet ? `\n          <street>${loadStreet}</street>` : ''}
           <postalCode>${loadPostal}</postalCode>
           <city>${loadCity}</city>
         </loadingAddress>
-        <deliveryAddress>
-          <street>${delStreet}</street>
-          <number>-</number>
+        <deliveryAddress>${delStreet ? `\n          <street>${delStreet}</street>` : ''}
           <postalCode>${delPostal}</postalCode>
           <city>${delCity}</city>
         </deliveryAddress>
