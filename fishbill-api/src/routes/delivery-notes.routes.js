@@ -235,6 +235,17 @@ router.post('/', validate(createSchema), async (req, res, next) => {
       vehicle_plate, for_weighing, notes, status, lines, client_ref,
     } = req.body;
 
+    // ── AFM format validation (9 digits, basic regex; "000000000" is allowed) ─
+    if (recipient_afm && recipient_afm !== '000000000') {
+      if (!/^[0-9]{9}$/.test(recipient_afm)) {
+        await conn.rollback();
+        return res.status(400).json({
+          error: `Μη έγκυρη μορφή ΑΦΜ παραλήπτη: "${recipient_afm}". Το ΑΦΜ πρέπει να αποτελείται από 9 ψηφία.`,
+          error_code: 'INVALID_AFM_FORMAT',
+        });
+      }
+    }
+
     // ── Idempotency check (MUST run before limit check) ───────────────────────
     // If the Android client retried after a network timeout, return the already-
     // created note instead of inserting a duplicate or hitting the monthly limit.
@@ -516,14 +527,49 @@ router.patch('/:id/cancel', async (req, res, next) => {
     if (!note) return res.status(404).json({ error: 'Δελτίο αποστολής δεν βρέθηκε.' });
     if (note.status === 'cancelled') return res.status(400).json({ error: 'Ήδη ακυρωμένο.' });
 
+    // ── AADE cancellation (only if the note was transmitted and has a MARK) ──
+    let aadeCancelMark = null;
+    let aadeCancelError = null;
+    if (note.mydata_mark) {
+      try {
+        const aadeMydata = require('../services/aade-mydata.service');
+        const cancelResult = await aadeMydata.cancelDeliveryNote(
+          note.mydata_mark, note.biz_afm, business_id
+        );
+        aadeCancelMark = cancelResult.cancellationMark;
+        console.log(`[cancel DN] AADE cancellation OK — mark: ${note.mydata_mark}, cancellationMark: ${aadeCancelMark}`);
+      } catch (aadeErr) {
+        aadeCancelError = aadeErr.message;
+        console.error(`[cancel DN] AADE cancellation failed for mark ${note.mydata_mark}:`, aadeCancelError);
+        // Do NOT block the local cancellation — record the error in mydata_response
+      }
+    }
+
     await pool.execute(
-      'UPDATE delivery_notes SET status = ?, updated_at = NOW() WHERE id = ?',
-      ['cancelled', note.id]
+      `UPDATE delivery_notes
+       SET status = 'cancelled',
+           mydata_response = JSON_MERGE_PATCH(COALESCE(mydata_response, '{}'),
+             ${aadeCancelMark
+               ? `'${JSON.stringify({ cancellationMark: aadeCancelMark })}'`
+               : aadeCancelError
+               ? `'${JSON.stringify({ cancelError: aadeCancelError })}'`
+               : "'{}'"
+             }),
+           updated_at = NOW()
+       WHERE id = ?`,
+      [note.id]
     );
 
-    res.json({ data: { message: 'Το Δελτίο Αποστολής ακυρώθηκε.' } });
+    res.json({
+      data: {
+        message:           'Το Δελτίο Αποστολής ακυρώθηκε.',
+        aade_cancelled:    !!aadeCancelMark,
+        cancellation_mark: aadeCancelMark,
+        aade_error:        aadeCancelError,
+      },
+    });
 
-    // Fire-and-forget: notify admin to cancel in Epsilon Smart
+    // Fire-and-forget: owner email notification
     (async () => {
       try {
         const cfg = await emailSvc.loadConfig();

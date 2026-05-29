@@ -7,8 +7,10 @@
 const axios = require('axios');
 const pool  = require('../config/database');
 
-const AADE_PROD = 'https://mydatapi.aade.gr/MYDATA/SendInvoices';
-const AADE_DEV  = 'https://mydataapidev.aade.gr/MYDATA/SendInvoices';
+const AADE_PROD        = 'https://mydatapi.aade.gr/MYDATA/SendInvoices';
+const AADE_DEV         = 'https://mydataapidev.aade.gr/MYDATA/SendInvoices';
+const AADE_CANCEL_PROD = 'https://mydatapi.aade.gr/MYDATA/CancelInvoice';
+const AADE_CANCEL_DEV  = 'https://mydataapidev.aade.gr/MYDATA/CancelInvoice';
 
 async function isTestMode() {
   try {
@@ -48,18 +50,19 @@ function fmt(num) {
   return parseFloat(num || 0).toFixed(2);
 }
 
-// Greek UI label → myDATA ENUM (per AADE technical spec)
+// Greek UI label → AADE myDATA movePurpose integer codes (per AADE technical spec v1.0.9+)
+// https://www.aade.gr/sites/default/files/2023-12/myDATA_API_Documentation_v1.0.9_official.pdf
 const MOVE_PURPOSE_MAP = {
-  'Πώληση':                    'sale',
-  'Αγορά':                     'purchase',
-  'Επιστροφή':                 'return',
-  'Φύλαξη / Αποθήκευση':      'storage',
-  'Μεταφορά / Διανομή':       'distribution',
-  'Παραγωγή':                  'production',
-  'Δωρεά':                     'donation',
-  'Ιδιοχρησιμοποίηση':        'ownUse',
-  'Ενδοκοινοτική Μεταφορά':   'intraCommunity',
-  'Ζύγιση':                    'weighing',
+  'Πώληση':                    1,   // Sale
+  'Αγορά':                     2,   // Purchase
+  'Επιστροφή':                 3,   // Return
+  'Φύλαξη / Αποθήκευση':      9,   // Storage
+  'Μεταφορά / Διανομή':       5,   // Distribution
+  'Παραγωγή':                  8,   // Production
+  'Δωρεά':                     5,   // Distribution / Free of charge
+  'Ιδιοχρησιμοποίηση':        10,  // Own use
+  'Ενδοκοινοτική Μεταφορά':   6,   // Intra-community transfer
+  'Ζύγιση':                    7,   // Weighing
 };
 
 // Greek unit label → ISO 3-letter code (UN/CEFACT)
@@ -81,23 +84,36 @@ function toMovePurpose(purpose) {
   return MOVE_PURPOSE_MAP[purpose] || 'sale';
 }
 
+/**
+ * Build an AddressType XML block.
+ * Returns null if postalCode or city is missing (AADE XSD requires both).
+ * street is always optional.
+ */
+function buildAddressXml(tag, street, postalCode, city) {
+  const p = (postalCode || '').trim();
+  const c = (city       || '').trim();
+  if (!p || !c) return null;  // both required by AADE XSD — omit whole block if either missing
+  const streetLine = street ? `\n          <street>${esc(street)}</street>` : '';
+  return `<${tag}>${streetLine}
+          <postalCode>${esc(p)}</postalCode>
+          <city>${esc(c)}</city>
+        </${tag}>`;
+}
+
 function buildDeliveryNoteXml(note, lines, biz, customer) {
   const issueDate    = (note.issue_date || '').slice(0, 10);
   const dispatchDate = (note.dispatch_date || note.issue_date || '').slice(0, 10);
   const dispatchTime = note.dispatch_time || '00:00:00';
 
-  // Loading address — business premises (omit street/postal/city if blank, no placeholder '-')
-  const loadStreet = biz.address ? esc(biz.address) : null;
-  const loadPostal = esc(biz.postal_code || '');
-  const loadCity   = esc(biz.city || '');
-
-  // Delivery address — recipient (omit street if blank, no placeholder '-')
-  const delStreet = customer.address ? esc(customer.address) : null;
-  const delPostal = esc(customer.postal_code || customer.postal || '');
-  const delCity   = esc(customer.city || '');
-
   const counterpartAfm = customer.afm && customer.afm !== '000000000' ? customer.afm : null;
 
+  // Counterpart address: only include if postalCode AND city are present
+  const counterpartAddrXml = buildAddressXml(
+    'address',
+    customer.address,
+    customer.postal_code || customer.postal,
+    customer.city
+  );
   const counterpartXml = counterpartAfm
     ? `
     <counterpart>
@@ -105,15 +121,26 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
       <country>GR</country>
       <branch>0</branch>
       <name>${esc(customer.name)}</name>
-      <address>${delStreet ? `\n        <street>${delStreet}</street>` : ''}
-        <postalCode>${delPostal}</postalCode>
-        <city>${delCity}</city>
-      </address>
+      ${counterpartAddrXml || ''}
     </counterpart>`
     : '';
 
   const vehicleXml = note.vehicle_plate
     ? `<vehicleNumber>${esc(note.vehicle_plate)}</vehicleNumber>` : '';
+
+  // movePurpose must be integer per AADE spec; default to 1 (Sale) if unrecognised
+  const movePurposeCode = toMovePurpose(note.transport_purpose);
+
+  // Address blocks: only rendered when postalCode + city are both present
+  const loadingAddrXml  = buildAddressXml('loadingAddress',  biz.address,       biz.postal_code,                     biz.city);
+  const deliveryAddrXml = buildAddressXml('deliveryAddress', customer.address,  customer.postal_code || customer.postal, customer.city);
+
+  if (!loadingAddrXml) {
+    console.warn('[aade-mydata] loadingAddress omitted — business missing postalCode or city');
+  }
+  if (!deliveryAddrXml) {
+    console.warn('[aade-mydata] deliveryAddress omitted — recipient missing postalCode or city');
+  }
 
   // Type 9.3 lines: description + quantity + unit only (no values/VAT per AADE spec)
   const linesXml = lines.map((l, idx) => `
@@ -141,16 +168,10 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
       <dispatchDate>${dispatchDate}</dispatchDate>
       <dispatchTime>${dispatchTime}</dispatchTime>
       ${vehicleXml}
-      <movePurpose>${toMovePurpose(note.transport_purpose)}</movePurpose>
+      <movePurpose>${movePurposeCode}</movePurpose>
       <otherDeliveryNoteHeader>
-        <loadingAddress>${loadStreet ? `\n          <street>${loadStreet}</street>` : ''}
-          <postalCode>${loadPostal}</postalCode>
-          <city>${loadCity}</city>
-        </loadingAddress>
-        <deliveryAddress>${delStreet ? `\n          <street>${delStreet}</street>` : ''}
-          <postalCode>${delPostal}</postalCode>
-          <city>${delCity}</city>
-        </deliveryAddress>
+        ${loadingAddrXml  || ''}
+        ${deliveryAddrXml || ''}
         <startShippingBranch>0</startShippingBranch>
         <completeShippingBranch>0</completeShippingBranch>
       </otherDeliveryNoteHeader>
@@ -236,4 +257,52 @@ async function sendDeliveryNote(note, lines, biz, customer, businessId) {
   return { mark: result.mark, uid: result.uid, testMode };
 }
 
-module.exports = { sendDeliveryNote, buildDeliveryNoteXml, getCredentials };
+/**
+ * Cancels a previously transmitted delivery note by its AADE MARK.
+ * Calls GET /MYDATA/CancelInvoice?mark={MARK}&entityVatNumber={AFM}
+ * Returns { success: true, cancellationMark } or throws.
+ */
+async function cancelDeliveryNote(mark, businessAfm, businessId) {
+  if (!mark) throw new Error('Δεν υπάρχει ΜΑΡΚ για ακύρωση στην ΑΑΔΕ.');
+  const creds    = await getCredentials(businessId);
+  const testMode = await isTestMode();
+  const baseUrl  = testMode ? AADE_CANCEL_DEV : AADE_CANCEL_PROD;
+
+  let responseXml;
+  try {
+    const response = await axios.get(baseUrl, {
+      params:  { mark, entityVatNumber: businessAfm },
+      headers: {
+        'aade-user-id':              creds.userId,
+        'Ocp-Apim-Subscription-Key': creds.subscriptionKey,
+      },
+      timeout:      30000,
+      responseType: 'text',
+    });
+    responseXml = response.data;
+  } catch (err) {
+    if (err.response) {
+      responseXml = typeof err.response.data === 'string' ? err.response.data : '';
+      const parsed = parseMark(responseXml);
+      throw new Error(parsed.errors?.join(', ') || `ΑΑΔΕ ακύρωση σφάλμα ${err.response.status}`);
+    }
+    throw new Error(`Αδυναμία σύνδεσης με ΑΑΔΕ myDATA: ${err.message}`);
+  }
+
+  // Response contains a cancellationMark (different tag from SendInvoices)
+  const cancelMarkMatch = responseXml.match(/<cancellationMark>(\d+)<\/cancellationMark>/);
+  const statusMatch     = responseXml.match(/<statusCode>([^<]+)<\/statusCode>/);
+
+  if (cancelMarkMatch && statusMatch?.[1] === 'Success') {
+    return { success: true, cancellationMark: cancelMarkMatch[1], testMode };
+  }
+
+  const errorMessages = [];
+  const errorRegex = /<message>([^<]+)<\/message>/g;
+  let m;
+  while ((m = errorRegex.exec(responseXml)) !== null) errorMessages.push(m[1]);
+
+  throw new Error(errorMessages.join(', ') || `ΑΑΔΕ απόρριψη ακύρωσης: ${responseXml.slice(0, 300)}`);
+}
+
+module.exports = { sendDeliveryNote, cancelDeliveryNote, buildDeliveryNoteXml, getCredentials };
