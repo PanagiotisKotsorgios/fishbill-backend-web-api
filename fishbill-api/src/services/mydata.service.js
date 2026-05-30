@@ -44,6 +44,7 @@ async function savePlatformConfig({ userId, subscriptionKey, environment }) {
     ['mydata_user_id',          userId],
     ['mydata_subscription_key', subscriptionKey],
     ['mydata_environment',      environment || 'test'],
+    ['mydata_test_mode',        environment === 'production' ? '0' : '1'],
   ];
   for (const [k, v] of pairs) {
     await pool.execute(
