@@ -17,6 +17,9 @@
     .dn-row-done         { cursor:pointer; transition:background .15s; }
     .dn-row-done:hover   { background:#f0fdf4; }
     .dn-row-done.selected { background:#dcfce7; border-left:3px solid #16a34a; }
+    .dn-row-cancelled         { cursor:pointer; transition:background .15s; }
+    .dn-row-cancelled:hover   { background:#f9fafb; }
+    .dn-row-cancelled.selected { background:#f1f5f9; border-left:3px solid #94a3b8; }
     .user-card       { cursor:pointer; transition:all .15s; border-left:3px solid transparent; }
     .user-card:hover { background:#f8faff; border-left-color:#c7d2fe; }
     .user-card.active { background:#eef2ff; border-left-color:#4f46e5; }
@@ -115,6 +118,11 @@
               class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700">
               <i class="fas fa-circle-check mr-1"></i>Διαβιβάστηκαν
               <span id="badge-done" class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold"></span>
+            </button>
+            <button id="tab-cancelled" onclick="dnSwitchTab('cancelled')"
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+              <i class="fas fa-ban mr-1"></i>Ακυρωμένα
+              <span id="badge-cancelled" class="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-bold"></span>
             </button>
           </div>
 
@@ -370,20 +378,27 @@
     }
 
     // ── Tabs ───────────────────────────────────────────────────────────────────
+    var TAB_INACTIVE = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
     function dnSwitchTab(tab) {
       dnCurrentTab  = tab;
       dnCurrentPage = 1;
       dnSelected    = null;
       dnHideDetail();
 
+      document.getElementById('tab-pending').className   = TAB_INACTIVE;
+      document.getElementById('tab-done').className      = TAB_INACTIVE;
+      document.getElementById('tab-cancelled').className = TAB_INACTIVE;
+
       if (tab === 'pending') {
         document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-red-500 text-red-700 bg-red-50';
-        document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
         document.getElementById('sort-select').value = 'date_asc';
         document.getElementById('sort-opt-primary').textContent = 'Παλαιότερα πρώτα';
+      } else if (tab === 'done') {
+        document.getElementById('tab-done').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50';
+        document.getElementById('sort-select').value = 'date_desc';
+        document.getElementById('sort-opt-primary').textContent = 'Νεότερα πρώτα';
       } else {
-        document.getElementById('tab-done').className    = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50';
-        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        document.getElementById('tab-cancelled').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-slate-500 text-slate-700 bg-slate-50';
         document.getElementById('sort-select').value = 'date_desc';
         document.getElementById('sort-opt-primary').textContent = 'Νεότερα πρώτα';
       }
@@ -396,9 +411,8 @@
       document.getElementById('dn-list').innerHTML =
         '<div class="flex justify-center py-10"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div></div>';
 
-      var endpoint = dnCurrentTab === 'pending'
-        ? _dnBase + '/pending'
-        : _dnBase + '/transmitted';
+      var endpointMap = { pending: '/pending', done: '/transmitted', cancelled: '/cancelled' };
+      var endpoint = _dnBase + (endpointMap[dnCurrentTab] || '/pending');
 
       var params = { page: dnCurrentPage, limit: dnLimit };
       if (dnSelectedBizId) params.business_id = dnSelectedBizId;
@@ -411,7 +425,8 @@
       try {
         var res = await api.get(endpoint, params);
         dnAllNotes = res.data || [];
-        var badgeEl = document.getElementById(dnCurrentTab === 'pending' ? 'badge-pending' : 'badge-done');
+        var badgeMap = { pending: 'badge-pending', done: 'badge-done', cancelled: 'badge-cancelled' };
+        var badgeEl = document.getElementById(badgeMap[dnCurrentTab]);
         if (badgeEl) badgeEl.textContent = res.total;
         dnRenderList(dnAllNotes);
         renderPagination('dn-pagination', res.total, dnCurrentPage, dnLimit, dnLoadNotes, function(l) { dnLimit = l; dnLoadNotes(1); });
@@ -424,23 +439,37 @@
     // ── Render list ────────────────────────────────────────────────────────────
     function dnRenderList(rows) {
       if (!rows.length) {
-        var msg = dnCurrentTab === 'pending'
-          ? '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Κανένα αποτυχημένο!</p><p class="text-xs text-gray-400 mt-1">Όλες οι διαβιβάσεις ήταν επιτυχείς.</p>'
-          : '<i class="fas fa-inbox text-5xl mb-3"></i><p class="font-semibold text-sm">Δεν βρέθηκαν δελτία</p>';
+        var emptyMap = {
+          pending:   '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Κανένα αποτυχημένο!</p><p class="text-xs text-gray-400 mt-1">Όλες οι διαβιβάσεις ήταν επιτυχείς.</p>',
+          done:      '<i class="fas fa-inbox text-5xl mb-3"></i><p class="font-semibold text-sm">Δεν βρέθηκαν διαβιβασμένα δελτία</p>',
+          cancelled: '<i class="fas fa-ban text-5xl mb-3 text-gray-300"></i><p class="font-semibold text-sm">Δεν βρέθηκαν ακυρωμένα δελτία</p>',
+        };
         document.getElementById('dn-list').innerHTML =
-          '<div class="flex flex-col items-center justify-center py-14 text-gray-300">' + msg + '</div>';
+          '<div class="flex flex-col items-center justify-center py-14 text-gray-300">' + (emptyMap[dnCurrentTab]||emptyMap.done) + '</div>';
         return;
       }
-      var isPending = dnCurrentTab === 'pending';
       document.getElementById('dn-list').innerHTML = rows.map(function(dn) {
-        var statusBadge = isPending
-          ? dnStatusChip(dn.status)
-          : '<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold"><i class="fas fa-check mr-0.5"></i>' + (dn.mydata_mark||'').slice(0,14) + '…</span>';
-        var rowCls = isPending ? 'dn-row' : 'dn-row-done';
+        var statusBadge, rowCls;
+        if (dnCurrentTab === 'pending') {
+          statusBadge = dnStatusChip(dn.status);
+          rowCls = 'dn-row';
+        } else if (dnCurrentTab === 'done') {
+          statusBadge = '<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold"><i class="fas fa-check mr-0.5"></i>' + (dn.mydata_mark||'').slice(0,14) + '…</span>';
+          rowCls = 'dn-row-done';
+        } else {
+          var cancelMark = '';
+          if (dn.mydata_response) {
+            try { var r = typeof dn.mydata_response === 'string' ? JSON.parse(dn.mydata_response) : dn.mydata_response; cancelMark = r.cancellationMark || ''; } catch(_) {}
+          }
+          statusBadge = '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold"><i class="fas fa-ban mr-0.5"></i>Ακυρώθηκε' + (cancelMark ? ' · ' + String(cancelMark).slice(0,10) + '…' : '') + '</span>';
+          rowCls = 'dn-row-cancelled';
+        }
         var selected = dnSelected && dnSelected.id === dn.id ? ' selected' : '';
+        var iconBg = dnCurrentTab === 'cancelled' ? 'bg-gray-100' : 'bg-blue-100';
+        var iconColor = dnCurrentTab === 'cancelled' ? 'text-gray-400' : 'text-blue-600';
         return '<div class="' + rowCls + selected + ' px-3 py-2.5 flex items-center gap-2.5" onclick="dnSelectNote(\'' + dn.id + '\')">' +
-          '<div class="flex-shrink-0 w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center">' +
-            '<i class="fas fa-truck text-blue-600 text-xs"></i></div>' +
+          '<div class="flex-shrink-0 w-6 h-6 rounded-lg ' + iconBg + ' flex items-center justify-center">' +
+            '<i class="fas fa-truck ' + iconColor + ' text-xs"></i></div>' +
           '<div class="flex-1 min-w-0">' +
             '<div class="flex items-center gap-1.5 flex-wrap">' +
               '<span class="font-bold text-gray-900 text-xs">' + (dn.full_number||dn.id.slice(0,8)) + '</span>' +
@@ -466,7 +495,7 @@
       dnSelected = dnAllNotes.find(function(x){ return x.id === id; });
       if (!dnSelected) return;
 
-      document.querySelectorAll('.dn-row, .dn-row-done').forEach(function(el){ el.classList.remove('selected'); });
+      document.querySelectorAll('.dn-row, .dn-row-done, .dn-row-cancelled').forEach(function(el){ el.classList.remove('selected'); });
       event.currentTarget.classList.add('selected');
 
       document.getElementById('detail-placeholder').classList.add('hidden');
@@ -476,8 +505,10 @@
 
       if (dnCurrentTab === 'pending') {
         dnRenderPendingDetail(dnSelected);
-      } else {
+      } else if (dnCurrentTab === 'done') {
         dnRenderTransmittedDetail(dnSelected);
+      } else {
+        dnRenderCancelledDetail(dnSelected);
       }
     }
 
@@ -666,6 +697,58 @@
             '<p class="text-xs text-gray-500">Αδυναμία φόρτωσης PDF (' + e.message + ')</p>' +
           '</div>';
       }
+    }
+
+    // ── Cancelled detail ───────────────────────────────────────────────────────
+    function dnRenderCancelledDetail(dn) {
+      var cancelMark = '', cancelReason = '';
+      if (dn.mydata_response) {
+        try {
+          var resp = typeof dn.mydata_response === 'string' ? JSON.parse(dn.mydata_response) : dn.mydata_response;
+          cancelMark   = resp.cancellationMark || '';
+          cancelReason = resp.error || '';
+        } catch(_) {}
+      }
+      document.getElementById('detail-panel').innerHTML =
+        '<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">' +
+          dnSummaryHtml(dn) +
+          // Cancellation info
+          '<div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-3">' +
+            '<div class="flex items-center gap-2 mb-3">' +
+              '<i class="fas fa-ban text-slate-500"></i>' +
+              '<span class="font-bold text-slate-800 text-sm">Στοιχεία Ακύρωσης</span>' +
+            '</div>' +
+            '<div class="ml-6 grid grid-cols-2 gap-2 text-xs">' +
+              '<div class="bg-white rounded-lg p-2.5 border border-slate-100 col-span-2">' +
+                '<p class="text-slate-400 mb-0.5">Αρχικός ΜΑΡΚ</p>' +
+                '<p class="font-bold font-mono text-gray-800 text-sm break-all">' + (dn.mydata_mark || '—') + '</p>' +
+              '</div>' +
+              (cancelMark
+                ? '<div class="bg-white rounded-lg p-2.5 border border-slate-100 col-span-2">' +
+                    '<p class="text-slate-400 mb-0.5">ΜΑΡΚ Ακύρωσης</p>' +
+                    '<p class="font-bold font-mono text-gray-800 text-sm break-all">' + cancelMark + '</p>' +
+                  '</div>'
+                : '') +
+              '<div class="bg-white rounded-lg p-2.5 border border-slate-100">' +
+                '<p class="text-slate-400 mb-0.5">Ακυρώθηκε</p>' +
+                '<p class="font-bold text-gray-800">' + fmtDateTime(dn.updated_at) + '</p>' +
+              '</div>' +
+              '<div class="bg-white rounded-lg p-2.5 border border-slate-100">' +
+                '<p class="text-slate-400 mb-0.5">Αρ. Δελτίου</p>' +
+                '<p class="font-bold text-gray-800 font-mono">' + (dn.full_number || '—') + '</p>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          (cancelReason
+            ? '<div class="bg-amber-50 border border-amber-200 rounded-xl p-4">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                  '<i class="fas fa-info-circle text-amber-600"></i>' +
+                  '<span class="font-bold text-amber-900 text-sm">Σφάλμα / Αιτιολογία</span>' +
+                '</div>' +
+                '<p class="text-xs text-amber-700 ml-6 font-mono break-all">' + cancelReason + '</p>' +
+              '</div>'
+            : '') +
+        '</div>';
     }
 
     // ── Summary HTML helper ────────────────────────────────────────────────────

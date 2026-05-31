@@ -1663,6 +1663,52 @@ router.get('/delivery-notes/transmitted', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/platform/delivery-notes/cancelled — cancelled delivery notes
+router.get('/delivery-notes/cancelled', async (req, res, next) => {
+  try {
+    const page       = Math.max(1, parseInt(req.query.page) || 1);
+    const limit      = Math.min(100, parseInt(req.query.limit) || 30);
+    const offset     = (page - 1) * limit;
+    const businessId = req.query.business_id || null;
+    const search     = req.query.search ? `%${req.query.search}%` : null;
+    const month      = req.query.month || null;
+    const sort       = req.query.sort || 'date_desc';
+
+    let where   = `WHERE dn.status = 'cancelled'`;
+    const params = [];
+    if (businessId) { where += ` AND dn.business_id = ?`; params.push(businessId); }
+    if (search)     { where += ` AND (CONCAT(dn.series, dn.number) LIKE ? OR dn.recipient_name LIKE ? OR b.name LIKE ? OR dn.mydata_mark LIKE ?)`; params.push(search, search, search, search); }
+    if (month)      { where += ` AND DATE_FORMAT(dn.issue_date, '%Y-%m') = ?`; params.push(month); }
+
+    const orderMap = {
+      date_desc: 'dn.updated_at DESC, dn.created_at DESC',
+      date_asc:  'dn.updated_at ASC,  dn.created_at ASC',
+      business:  'b.name ASC, dn.updated_at DESC',
+    };
+    const orderBy = orderMap[sort] || 'dn.updated_at DESC, dn.created_at DESC';
+
+    const [[{ total }]] = await pool.execute(
+      `SELECT COUNT(*) AS total FROM delivery_notes dn JOIN businesses b ON b.id = dn.business_id ${where}`, params
+    );
+    const [rows] = await pool.execute(
+      `SELECT dn.id, dn.series, dn.number, CONCAT(dn.series, dn.number) AS full_number,
+              dn.issue_date, dn.dispatch_date, dn.dispatch_time,
+              dn.recipient_name, dn.recipient_afm, dn.recipient_city,
+              dn.vehicle_plate, dn.dispatch_location, dn.delivery_location,
+              dn.loading_place, dn.transport_purpose, dn.for_weighing,
+              dn.notes, dn.status, dn.mydata_mark, dn.mydata_uid, dn.mydata_response,
+              dn.transmitted_at, dn.pdf_path, dn.created_at, dn.updated_at,
+              b.id AS business_id, b.name AS business_name, b.afm AS business_afm
+       FROM delivery_notes dn
+       JOIN businesses b ON b.id = dn.business_id
+       ${where}
+       ORDER BY ${orderBy}
+       LIMIT ${limit} OFFSET ${offset}`, params
+    );
+    res.json({ data: rows, total: parseInt(total), page, limit });
+  } catch (err) { next(err); }
+});
+
 // PATCH /api/platform/delivery-notes/:id/mark — set MARK manually (super_admin)
 router.patch('/delivery-notes/:id/mark', async (req, res, next) => {
   try {
