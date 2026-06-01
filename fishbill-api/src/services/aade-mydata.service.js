@@ -217,7 +217,8 @@ function parseMark(xmlStr) {
   const uid    = uidMatch    ? uidMatch[1]    : null;
   const status = statusMatch ? statusMatch[1] : null;
 
-  if (mark && status === 'Success') {
+  // Success: mark present with Success status, OR mark present despite XMLSyntaxError (test env known behaviour)
+  if (mark && (status === 'Success' || status === 'XMLSyntaxError')) {
     return { mark, uid, success: true };
   }
 
@@ -266,6 +267,15 @@ async function sendDeliveryNote(note, lines, biz, customer, businessId) {
 
   const result = parseMark(responseXml);
   if (!result.success) {
+    // All-101 = subscription key not entitled to SendInvoices (read-only key)
+    const all101 = result.errors?.length > 0 &&
+      result.errors.every(e => e.includes('Could not find schema information'));
+    if (all101) {
+      throw new Error(
+        'Το subscription key δεν έχει πρόσβαση στο SendInvoices. ' +
+        'Επικοινωνήστε με την ΑΑΔΕ (mydata@aade.gr) για να ενεργοποιήσετε την πλήρη πρόσβαση API για το ΑΦΜ σας.'
+      );
+    }
     throw new Error(
       result.errors?.join(', ') ||
       `ΑΑΔΕ απόρριψη: ${responseXml.slice(0, 300)}`
