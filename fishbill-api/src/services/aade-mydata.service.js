@@ -52,6 +52,19 @@ function fmt(num) {
   return parseFloat(num || 0).toFixed(2);
 }
 
+// MySQL2 returns DATE/DATETIME as JS Date objects when dateStrings is not set.
+// Use local getters to avoid UTC-offset shifting the date by one day.
+function fmtDate(d) {
+  if (!d) return '';
+  if (d instanceof Date) {
+    const y   = d.getFullYear();
+    const m   = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return String(d).slice(0, 10);
+}
+
 // Greek UI label → AADE myDATA movePurpose integer codes (per AADE technical spec v1.0.9+)
 // https://www.aade.gr/sites/default/files/2023-12/myDATA_API_Documentation_v1.0.9_official.pdf
 const MOVE_PURPOSE_MAP = {
@@ -103,9 +116,8 @@ function buildAddressXml(tag, street, postalCode, city) {
 }
 
 function buildDeliveryNoteXml(note, lines, biz, customer) {
-  const issueDate    = note.issue_date    ? String(note.issue_date).slice(0, 10) : '';
-  const dispatchDate = (note.dispatch_date || note.issue_date)
-    ? String(note.dispatch_date || note.issue_date).slice(0, 10) : '';
+  const issueDate    = fmtDate(note.issue_date);
+  const dispatchDate = fmtDate(note.dispatch_date || note.issue_date);
   const dispatchTime = note.dispatch_time || '00:00:00';
 
   const counterpartAfm = customer.afm && customer.afm !== '000000000' ? customer.afm : null;
@@ -194,7 +206,9 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
 }
 
 function parseMark(xmlStr) {
-  const markMatch   = xmlStr.match(/<invoiceRegistrationNumber>(\d+)<\/invoiceRegistrationNumber>/);
+  // AADE v2.0+ uses <invoiceMark>; older v1.x used <invoiceRegistrationNumber>
+  const markMatch   = xmlStr.match(/<invoiceMark>(\d+)<\/invoiceMark>/) ||
+                      xmlStr.match(/<invoiceRegistrationNumber>(\d+)<\/invoiceRegistrationNumber>/);
   const uidMatch    = xmlStr.match(/<invoiceUid>([^<]+)<\/invoiceUid>/);
   const statusMatch = xmlStr.match(/<statusCode>([^<]+)<\/statusCode>/);
 
