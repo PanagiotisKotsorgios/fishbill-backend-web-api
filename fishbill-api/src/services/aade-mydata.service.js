@@ -22,20 +22,19 @@ async function isTestMode() {
   } catch { return false; }
 }
 
-async function getCredentials() {
+async function getCredentials(businessId) {
   const [rows] = await pool.execute(
-    `SELECT setting_key, setting_value FROM platform_settings
-     WHERE setting_key IN ('mydata_user_id', 'mydata_subscription_key') LIMIT 2`
+    'SELECT mydata_user_id, mydata_subscription_key FROM businesses WHERE id = ? LIMIT 1',
+    [businessId]
   );
-  const cfg = {};
-  for (const r of rows) cfg[r.setting_key] = r.setting_value;
-  if (!cfg.mydata_user_id || !cfg.mydata_subscription_key) {
+  const biz = rows[0] || {};
+  if (!biz.mydata_user_id || !biz.mydata_subscription_key) {
     throw new Error(
-      'Δεν έχουν οριστεί τα διαπιστευτήρια myDATA ΑΑΔΕ. ' +
-      'Μεταβείτε στο Admin → myDATA για να εισάγετε το UserID και το Subscription Key.'
+      'Δεν έχουν οριστεί τα διαπιστευτήρια myDATA ΑΑΔΕ για αυτή την επιχείρηση. ' +
+      'Μεταβείτε στις Ρυθμίσεις → myDATA για να εισάγετε το UserID και το Subscription Key.'
     );
   }
-  return { userId: cfg.mydata_user_id, subscriptionKey: cfg.mydata_subscription_key };
+  return { userId: biz.mydata_user_id, subscriptionKey: biz.mydata_subscription_key };
 }
 
 function esc(str) {
@@ -237,7 +236,7 @@ function parseMark(xmlStr) {
  * Returns { mark, uid, testMode }.
  */
 async function sendDeliveryNote(note, lines, biz, customer, businessId) {
-  const creds    = await getCredentials();
+  const creds    = await getCredentials(businessId);
   const testMode = await isTestMode();
   const url      = testMode ? AADE_DEV : AADE_PROD;
   const xml      = buildDeliveryNoteXml(note, lines, biz, customer);
@@ -283,7 +282,7 @@ async function sendDeliveryNote(note, lines, biz, customer, businessId) {
  */
 async function cancelDeliveryNote(mark, businessAfm, businessId) {
   if (!mark) throw new Error('Δεν υπάρχει ΜΑΡΚ για ακύρωση στην ΑΑΔΕ.');
-  const creds    = await getCredentials();
+  const creds    = await getCredentials(businessId);
   const testMode = await isTestMode();
   const baseUrl  = testMode ? AADE_CANCEL_DEV : AADE_CANCEL_PROD;
 
