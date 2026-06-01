@@ -103,8 +103,9 @@ function buildAddressXml(tag, street, postalCode, city) {
 }
 
 function buildDeliveryNoteXml(note, lines, biz, customer) {
-  const issueDate    = (note.issue_date || '').slice(0, 10);
-  const dispatchDate = (note.dispatch_date || note.issue_date || '').slice(0, 10);
+  const issueDate    = note.issue_date    ? String(note.issue_date).slice(0, 10) : '';
+  const dispatchDate = (note.dispatch_date || note.issue_date)
+    ? String(note.dispatch_date || note.issue_date).slice(0, 10) : '';
   const dispatchTime = note.dispatch_time || '00:00:00';
 
   const counterpartAfm = customer.afm && customer.afm !== '000000000' ? customer.afm : null;
