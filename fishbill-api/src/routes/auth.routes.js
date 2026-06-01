@@ -627,10 +627,9 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res,
       [email]
     );
 
-    // Always return the same message to prevent email enumeration.
-    const notFoundResponse = { data: { message: 'Αν το email υπάρχει στο σύστημα, θα λάβετε σύνδεσμο επαναφοράς.' } };
-
-    if (!rows.length) return res.json(notFoundResponse);
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Δεν βρέθηκε χρήστης με αυτό το email στο σύστημά μας.' });
+    }
 
     const user = rows[0];
     const resetToken = uuidv4();
