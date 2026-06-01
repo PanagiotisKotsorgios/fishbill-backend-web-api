@@ -167,7 +167,9 @@ function buildDeliveryNoteXml(note, lines, biz, customer) {
     </invoiceDetails>`).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<InvoicesDoc xmlns="http://www.aade.gr/myDATA/invoice/v1.0_Income/myDATA-invoice-v1.0_Income-schema.xsd">
+<InvoicesDoc xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns="https://www.aade.gr/myDATA/invoice/v1.0">
   <invoice>
     <issuer>
       <vatNumber>${esc(biz.afm)}</vatNumber>
