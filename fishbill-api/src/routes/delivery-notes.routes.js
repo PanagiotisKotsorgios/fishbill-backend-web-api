@@ -419,63 +419,10 @@ router.post('/', validate(createSchema), async (req, res, next) => {
       [noteId]
     );
 
-    // ── Auto-transmit directly to AADE myDATA ─────────────────────────────────
-    let transmitResult = null;
-    let transmitError  = null;
-    try {
-      const [[bizRow]] = await pool.execute(
-        'SELECT afm, name, address, city, postal_code FROM businesses WHERE id = ? LIMIT 1',
-        [business_id]
-      );
-      const biz = {
-        afm:         bizRow.afm,
-        name:        bizRow.name,
-        address:     bizRow.address,
-        city:        bizRow.city,
-        postal_code: bizRow.postal_code,
-      };
-      const customer = {
-        name:        created.recipient_name,
-        afm:         created.recipient_afm    || '000000000',
-        address:     created.recipient_address || '',
-        city:        created.recipient_city    || '',
-        postal:      created.recipient_postal  || '',
-        postal_code: created.recipient_postal  || '',
-      };
-      const aadeMydata = require('../services/aade-mydata.service');
-      transmitResult = await aadeMydata.sendDeliveryNote(created, createdLines, biz, customer, business_id);
-      await pool.execute(
-        `UPDATE delivery_notes
-         SET status = 'transmitted', mydata_mark = ?, mydata_uid = ?,
-             mydata_response = ?, transmitted_at = NOW(), updated_at = NOW()
-         WHERE id = ?`,
-        [
-          transmitResult.mark,
-          transmitResult.uid || null,
-          JSON.stringify({ mark: transmitResult.mark, uid: transmitResult.uid, env: transmitResult.testMode ? 'TEST' : 'PROD' }),
-          noteId,
-        ]
-      );
-      created.status      = 'transmitted';
-      created.mydata_mark = transmitResult.mark;
-      console.log(`[auto-transmit] DN ${noteId} → MARK ${transmitResult.mark}${transmitResult.testMode ? ' (TEST)' : ''}`);
-    } catch (aadeErr) {
-      transmitError = aadeErr.message || String(aadeErr);
-      await pool.execute(
-        "UPDATE delivery_notes SET status = 'failed', mydata_response = ?, updated_at = NOW() WHERE id = ?",
-        [JSON.stringify({ error: transmitError }), noteId]
-      ).catch(() => {});
-      created.status = 'failed';
-      console.error(`[auto-transmit] DN ${noteId} failed:`, transmitError);
-    }
-
     const fullNumber = `${created.series}${created.number}`;
 
     res.status(201).json({
       data: { ...created, lines: createdLines },
-      transmit: transmitResult
-        ? { success: true, mark: transmitResult.mark, uid: transmitResult.uid || null, testMode: transmitResult.testMode }
-        : { success: false, error: transmitError },
     });
 
     // Fire-and-forget: notify owner (user) of new delivery note
@@ -486,6 +433,25 @@ router.post('/', validate(createSchema), async (req, res, next) => {
         recipient_name: created.recipient_name,
       },
     });
+
+    // Fire-and-forget: notify admin to process delivery note manually via timologio.aade.gr
+    (async () => {
+      try {
+        const [[bizRow]] = await pool.execute(
+          'SELECT name, afm FROM businesses WHERE id = ? LIMIT 1',
+          [business_id]
+        );
+        if (bizRow) {
+          await emailSvc.sendAdminDeliveryNoteReadyEmail({
+            note:         { full_number: fullNumber, issue_date: created.issue_date, recipient_name: created.recipient_name },
+            businessName: bizRow.name,
+            businessAfm:  bizRow.afm,
+          });
+        }
+      } catch (e) {
+        console.error('[delivery-notes] admin notification error:', e.message);
+      }
+    })();
   } catch (err) {
     await conn.rollback();
     next(err);

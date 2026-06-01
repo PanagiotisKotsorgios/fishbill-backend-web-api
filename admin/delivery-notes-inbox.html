@@ -45,15 +45,15 @@
       <div class="anim flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 class="text-2xl font-extrabold text-gray-900">Δελτία Αποστολής — myDATA</h1>
-          <p class="text-sm text-gray-400 mt-0.5">Άμεση διαβίβαση στην ΑΑΔΕ. Παρακολούθηση αποτελεσμάτων &amp; επανάληψη αποτυχιών.</p>
+          <p class="text-sm text-gray-400 mt-0.5">Λήψη νέων δελτίων, χειροκίνητη επεξεργασία &amp; καταχώρηση ΜΑΡΚ από timologio.aade.gr.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <div id="global-pending-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+          <div id="global-pending-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold">
             <i class="fas fa-bell bell-badge"></i>
-            <span id="global-pending-text"></span> αποτυχ.
+            <span id="global-pending-text"></span> εκκρ.
           </div>
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-            <i class="fas fa-satellite-dish"></i> Άμεση ΑAΔΕ
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold">
+            <i class="fas fa-keyboard"></i> Χειροκίνητη Επεξεργασία
           </div>
           <button onclick="dnRefresh()" class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
             <i class="fas fa-rotate-right mr-1"></i>Ανανέωση
@@ -110,9 +110,9 @@
           <!-- Tabs -->
           <div class="flex border-b border-gray-100">
             <button id="tab-pending" onclick="dnSwitchTab('pending')"
-              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-red-500 text-red-700 bg-red-50">
-              <i class="fas fa-triangle-exclamation mr-1"></i>Απέτυχαν
-              <span id="badge-pending" class="ml-1 px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold"></span>
+              class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-orange-500 text-orange-700 bg-orange-50">
+              <i class="fas fa-hourglass-half mr-1"></i>Εκκρεμή
+              <span id="badge-pending" class="ml-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold"></span>
             </button>
             <button id="tab-done" onclick="dnSwitchTab('done')"
               class="flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700">
@@ -167,7 +167,7 @@
         <div id="detail-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-300 anim" style="animation-delay:.13s; min-width:0">
           <i class="fas fa-truck text-5xl mb-3"></i>
           <p class="text-sm font-semibold">Επιλέξτε Δελτίο Αποστολής</p>
-          <p class="text-xs mt-1">για παρακολούθηση &amp; επανάληψη αποτυχιών</p>
+          <p class="text-xs mt-1">για καταχώρηση ΜΑΡΚ &amp; ανέβασμα PDF</p>
         </div>
 
       </div>
@@ -246,7 +246,7 @@
     function dnRenderStats(pending, transmitted, cancelled) {
       var total = pending + transmitted + cancelled;
       document.getElementById('stats-row').innerHTML = [
-        { icon:'❌', label:'Απέτυχαν',       value: pending,     cls:'text-red-600'    },
+        { icon:'⏳', label:'Εκκρεμή',         value: pending,     cls:'text-orange-600' },
         { icon:'✅', label:'Διαβιβάστηκαν', value: transmitted, cls:'text-emerald-600'},
         { icon:'🚫', label:'Ακυρωμένα',     value: cancelled,   cls:'text-gray-500'   },
         { icon:'📋', label:'Σύνολο',         value: total,       cls:'text-indigo-600' },
@@ -316,13 +316,13 @@
         var isActive    = dnSelectedBizId === u.business_id;
         return '<div id="user-card-' + u.business_id + '" onclick="dnSelectUser(\'' + u.business_id + '\')"' +
           ' class="user-card ' + (isActive?'active':'') + ' px-3 py-2.5 flex items-start gap-2.5 relative">' +
-          (hasPending ? '<div class="absolute top-2 right-2"><i class="fas fa-bell text-red-500 text-xs bell-badge"></i></div>' : '') +
-          '<div class="w-8 h-8 rounded-lg ' + (hasPending?'bg-red-100':'bg-gray-100') + ' flex items-center justify-center flex-shrink-0 text-xs font-extrabold ' + (hasPending?'text-red-600':'text-gray-500') + '">' + initials + '</div>' +
+          (hasPending ? '<div class="absolute top-2 right-2"><i class="fas fa-bell text-orange-500 text-xs bell-badge"></i></div>' : '') +
+          '<div class="w-8 h-8 rounded-lg ' + (hasPending?'bg-orange-100':'bg-gray-100') + ' flex items-center justify-center flex-shrink-0 text-xs font-extrabold ' + (hasPending?'text-orange-600':'text-gray-500') + '">' + initials + '</div>' +
           '<div class="flex-1 min-w-0 pr-4">' +
             '<p class="text-xs font-bold text-gray-800 truncate leading-tight">' + u.business_name + '</p>' +
             '<p class="text-xs text-gray-400 truncate">' + (u.owner_email||u.business_afm||'') + '</p>' +
             '<div class="flex items-center gap-1.5 mt-1 flex-wrap">' +
-              (hasPending ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">' + pending + ' αποτ.</span>' : '') +
+              (hasPending ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold">' + pending + ' εκκρ.</span>' : '') +
               (transmitted > 0 ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">' + transmitted + ' ✓</span>' : '') +
               (cancelled > 0 ? '<span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">' + cancelled + ' ακυρ.</span>' : '') +
             '</div>' +
@@ -390,7 +390,7 @@
       document.getElementById('tab-cancelled').className = TAB_INACTIVE;
 
       if (tab === 'pending') {
-        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-red-500 text-red-700 bg-red-50';
+        document.getElementById('tab-pending').className = 'flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 border-orange-500 text-orange-700 bg-orange-50';
         document.getElementById('sort-select').value = 'date_asc';
         document.getElementById('sort-opt-primary').textContent = 'Παλαιότερα πρώτα';
       } else if (tab === 'done') {
@@ -440,7 +440,7 @@
     function dnRenderList(rows) {
       if (!rows.length) {
         var emptyMap = {
-          pending:   '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Κανένα αποτυχημένο!</p><p class="text-xs text-gray-400 mt-1">Όλες οι διαβιβάσεις ήταν επιτυχείς.</p>',
+          pending:   '<i class="fas fa-circle-check text-5xl mb-3 text-emerald-300"></i><p class="font-semibold text-emerald-500 text-sm">Κανένα εκκρεμές δελτίο!</p><p class="text-xs text-gray-400 mt-1">Όλα τα δελτία έχουν ΜΑΡΚ.</p>',
           done:      '<i class="fas fa-inbox text-5xl mb-3"></i><p class="font-semibold text-sm">Δεν βρέθηκαν διαβιβασμένα δελτία</p>',
           cancelled: '<i class="fas fa-ban text-5xl mb-3 text-gray-300"></i><p class="font-semibold text-sm">Δεν βρέθηκαν ακυρωμένα δελτία</p>',
         };
@@ -535,45 +535,45 @@
         '<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">' +
           dnSummaryHtml(dn) +
 
-          // Error details
-          (errMsg
-            ? '<div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">' +
-                '<div class="flex items-center gap-2 mb-2">' +
-                  '<i class="fas fa-triangle-exclamation text-red-600"></i>' +
-                  '<span class="font-bold text-red-900 text-sm">Σφάλμα Διαβίβασης ΑΑΔΕ</span>' +
-                '</div>' +
-                '<p class="text-xs text-red-700 ml-6 font-mono break-all">' + errMsg + '</p>' +
-              '</div>'
-            : '') +
+          // Primary action: manual MARK entry
+          '<div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-3">' +
+            '<div class="flex items-center gap-2 mb-2">' +
+              '<i class="fas fa-keyboard text-indigo-600"></i>' +
+              '<span class="font-bold text-indigo-900 text-sm">Καταχώρηση ΜΑΡΚ</span>' +
+            '</div>' +
+            '<p class="text-xs text-indigo-700 mb-3 ml-6">Δημιουργήστε το δελτίο στο <a href="https://www.timologio.gr" target="_blank" class="font-bold underline">timologio.aade.gr</a> ή στο Epsilon Smart και εισάγετε τον ΜΑΡΚ που λάβατε.</p>' +
+            '<div class="space-y-2">' +
+              '<input type="text" id="mark-input-new" placeholder="π.χ. 400120260001234"' +
+                ' class="w-full px-3 py-2.5 rounded-xl border-2 border-indigo-200 text-sm font-mono focus:outline-none focus:border-indigo-500 bg-white" />' +
+              '<button onclick="dnSubmitMark(\'' + dn.id + '\', false)"' +
+                ' class="w-full py-2.5 rounded-xl font-extrabold text-white text-sm bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">' +
+                '<i class="fas fa-circle-check"></i>Καταχώρηση ΜΑΡΚ</button>' +
+            '</div>' +
+          '</div>' +
 
-          // Retry button
+          // Secondary: direct AADE transmit (if per-business credentials are configured)
           '<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">' +
             '<div class="flex items-center gap-2 mb-2">' +
-              '<i class="fas fa-rotate-right text-blue-600"></i>' +
-              '<span class="font-bold text-blue-900 text-sm">Επανάληψη Διαβίβασης στην ΑΑΔΕ</span>' +
+              '<i class="fas fa-paper-plane text-blue-500"></i>' +
+              '<span class="font-bold text-blue-900 text-sm">Αυτόματη Διαβίβαση ΑΑΔΕ</span>' +
+              '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">Προαιρετικό</span>' +
             '</div>' +
-            '<p class="text-xs text-blue-700 mb-3 ml-6">Το δελτίο θα σταλεί ξανά απευθείας στο myDATA. Θα λάβετε ΜΑΡΚ επιβεβαίωσης.</p>' +
+            '<p class="text-xs text-blue-600 mb-3 ml-6">Απαιτεί ρύθμιση myDATA credentials στο προφίλ της επιχείρησης.</p>' +
             '<button onclick="dnTransmitNote(\'' + dn.id + '\')" id="btn-transmit"' +
               ' class="ml-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">' +
               '<i class="fas fa-paper-plane"></i>Αποστολή στην ΑΑΔΕ</button>' +
           '</div>' +
 
-          // Manual MARK override (fallback if AADE API is down)
-          '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3">' +
-            '<div class="flex items-center gap-2 mb-2">' +
-              '<i class="fas fa-keyboard text-gray-500"></i>' +
-              '<span class="font-bold text-gray-700 text-sm">Χειροκίνητη Καταχώρηση ΜΑΡΚ</span>' +
-              '<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">Fallback</span>' +
-            '</div>' +
-            '<p class="text-xs text-gray-500 mb-3">Μόνο εάν το API της ΑΑΔΕ είναι εκτός λειτουργίας και έχετε λάβει ΜΑΡΚ με άλλο τρόπο.</p>' +
-            '<div class="space-y-2">' +
-              '<input type="text" id="mark-input-new" placeholder="π.χ. 400120260001234"' +
-                ' class="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-mono focus:outline-none focus:border-indigo-400 bg-white" />' +
-              '<button onclick="dnSubmitMark(\'' + dn.id + '\', false)"' +
-                ' class="w-full py-2.5 rounded-xl font-extrabold text-white text-sm bg-gray-600 hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">' +
-                '<i class="fas fa-circle-check"></i>Καταχώρηση ΜΑΡΚ</button>' +
-            '</div>' +
-          '</div>' +
+          // Error details (if any)
+          (errMsg
+            ? '<div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                  '<i class="fas fa-triangle-exclamation text-red-600"></i>' +
+                  '<span class="font-bold text-red-900 text-sm">Τελευταίο Σφάλμα ΑΑΔΕ</span>' +
+                '</div>' +
+                '<p class="text-xs text-red-700 ml-6 font-mono break-all">' + errMsg + '</p>' +
+              '</div>'
+            : '') +
 
           // Cancel
           '<button onclick="dnCancelNote(\'' + dn.id + '\')"' +
