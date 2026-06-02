@@ -679,11 +679,14 @@
     async function dnLoadUploadedPdf(id) {
       var wrapper = document.getElementById('dn-cur-pdf-wrap');
       if (!wrapper) return;
+      wrapper.style.height = '380px';
+      wrapper.innerHTML = '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-7 w-7 border-b-2 border-emerald-600"></div></div>';
       try {
         var token   = localStorage.getItem('fishbill_token') || '';
         var apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api').replace(/\/api$/, '');
-        var resp    = await fetch(apiBase + '/uploads/delivery-notes/' + id + '.pdf', {
-          headers: { 'Authorization': 'Bearer ' + token }
+        var resp    = await fetch(apiBase + '/uploads/delivery-notes/' + id + '.pdf?t=' + Date.now(), {
+          headers: { 'Authorization': 'Bearer ' + token },
+          cache: 'no-store'
         });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         var url = URL.createObjectURL(await resp.blob());
@@ -845,6 +848,8 @@
           throw new Error(err.error || resp.status);
         }
         dnShowToast('✅ PDF ανέβηκε επιτυχώς!', 'success');
+        // Reload the preview with the new PDF (cache-busted)
+        dnLoadUploadedPdf(id);
       } catch(e) {
         dnShowToast('Σφάλμα ανεβάσματος PDF: ' + e.message, 'error');
       }
