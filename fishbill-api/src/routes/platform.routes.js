@@ -323,6 +323,16 @@ router.post('/subscriptions/:bizId/activate', async (req, res, next) => {
       await pool.execute(`UPDATE businesses SET ${safeSet.join(', ')} WHERE id = ?`, safeParams);
     }
 
+    // Auto-enable OSPA + weighing slips — included in every pro plan activation
+    try {
+      await pool.execute(
+        `INSERT INTO business_settings (business_id, feature_ospa, feature_weighing_slips)
+         VALUES (?, 1, 1)
+         ON DUPLICATE KEY UPDATE feature_ospa = 1, feature_weighing_slips = 1`,
+        [bizId]
+      );
+    } catch (_) {}
+
     const cycleLabel = { monthly: 'μηνιαία', semi_annual: '6μηνη', annual: 'ετήσια' }[validCycle] || '';
     const bonusNote  = isFirst ? ' (+1 μήνας bonus πρώτης εγγραφής)' : '';
     res.json({ data: { message: `Subscription activated (${cycleLabel || monthCount + 'μ'})${bonusNote}.`, months: monthCount, billing_cycle: validCycle || 'monthly', bonus_applied: isFirst } });
