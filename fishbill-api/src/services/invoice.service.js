@@ -90,8 +90,6 @@ async function calculateAndSaveInvoice(invoiceId) {
  * @param {object} invoice - invoice row from the database
  */
 async function transmit(invoice) {
-  const etim = require('./etimologiera.service');
-
   try {
     const [lineRows] = await pool.execute(
       `SELECT * FROM invoice_lines WHERE invoice_id = ? ORDER BY line_number`,
@@ -116,10 +114,29 @@ async function transmit(invoice) {
       );
       customer = custRows[0] || {};
     }
-    // Fallback: invoice may store customer_name / customer_afm directly
     if (!customer.name && invoice.customer_name) customer.name = invoice.customer_name;
     if (!customer.afm  && invoice.customer_afm)  customer.afm  = invoice.customer_afm;
 
+    // ── Choose provider: Wrapp (if enabled) or e-Timologiera ─────────────────
+    if (biz.wrapp_enabled === 1) {
+      const wrapp  = require('./wrapp.service');
+      const result = await wrapp.transmitInvoice(invoice, lineRows, biz, customer);
+
+      await pool.execute(
+        `UPDATE invoices SET status='transmitted', mydata_mark=?, mydata_qr=?,
+         wrapp_invoice_id=?, last_error=NULL, updated_at=NOW() WHERE id=?`,
+        [result.mark, result.qrUrl || null, result.wrapp_invoice_id, invoice.id]
+      ).catch(() => {});
+      await pool.execute(
+        `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)
+         VALUES (?, ?, 'success', ?, NOW(), NOW())`,
+        [invoice.id, invoice.business_id, `MARK: ${result.mark} | WRAPP_ID: ${result.wrapp_invoice_id} | PROVIDER: wrapp`]
+      ).catch(() => {});
+      return { success: true, mark: result.mark, qrUrl: result.qrUrl };
+    }
+
+    // ── e-Timologiera path ────────────────────────────────────────────────────
+    const etim    = require('./etimologiera.service');
     const payload = buildEtimPayload(invoice, lineRows, biz, customer);
     const etResult = await etim.sendInvoice(payload, invoice.business_id);
 

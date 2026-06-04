@@ -1996,4 +1996,107 @@ router.put('/payment-settings', authenticate, requireSuperAdmin, async (req, res
   } catch (err) { next(err); }
 });
 
+// ── GET /api/platform/wrapp/settings — read Wrapp platform settings ───────────
+router.get('/wrapp/settings', async (req, res, next) => {
+  try {
+    const KEYS = ['wrapp_partner_api_key', 'wrapp_base_url', 'wrapp_webhook_endpoint'];
+    const [rows] = await pool.execute(
+      `SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN (${KEYS.map(() => '?').join(',')})`,
+      KEYS
+    );
+    const map = {};
+    rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+    res.json({ data: map });
+  } catch (err) { next(err); }
+});
+
+// ── PUT /api/platform/wrapp/settings — save Wrapp platform settings ───────────
+router.put('/wrapp/settings', async (req, res, next) => {
+  try {
+    const ALLOWED = ['wrapp_partner_api_key', 'wrapp_base_url', 'wrapp_webhook_endpoint'];
+    for (const key of ALLOWED) {
+      const val = req.body[key];
+      if (val === undefined) continue;
+      await pool.execute(
+        `INSERT INTO platform_settings (setting_key, setting_value)
+         VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [key, String(val)]
+      );
+    }
+    res.json({ data: { message: 'Ρυθμίσεις Wrapp αποθηκεύτηκαν.' } });
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/platform/wrapp/status/:bizId — check Wrapp subscription status ──
+router.get('/wrapp/status/:bizId', async (req, res, next) => {
+  try {
+    const [[biz]] = await pool.execute(
+      `SELECT wrapp_enabled, wrapp_api_key, wrapp_user_id,
+              wrapp_billing_book_dn_id, wrapp_billing_book_inv_id
+       FROM businesses WHERE id = ? LIMIT 1`,
+      [req.params.bizId]
+    );
+    if (!biz) return res.status(404).json({ error: 'Επιχείρηση δεν βρέθηκε.' });
+
+    let subscriptionActive = null;
+    if (biz.wrapp_api_key) {
+      try {
+        const wrapp = require('../services/wrapp.service');
+        const status = await wrapp.checkUserStatus(req.params.bizId);
+        subscriptionActive = status.active_subscription;
+      } catch (_) {}
+    }
+
+    res.json({
+      data: {
+        wrapp_enabled:             biz.wrapp_enabled === 1,
+        has_api_key:               !!biz.wrapp_api_key,
+        wrapp_user_id:             biz.wrapp_user_id || null,
+        billing_book_dn_id:        biz.wrapp_billing_book_dn_id || null,
+        billing_book_inv_id:       biz.wrapp_billing_book_inv_id || null,
+        subscription_active:       subscriptionActive,
+      },
+    });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/wrapp/initiate-onboarding/:bizId ──────────────────────
+router.post('/wrapp/initiate-onboarding/:bizId', async (req, res, next) => {
+  try {
+    const wrapp  = require('../services/wrapp.service');
+    const result = await wrapp.initiateOnboarding(req.params.bizId);
+    res.json({ data: result });
+  } catch (err) { next(err); }
+});
+
+// ── PATCH /api/platform/wrapp/toggle/:bizId — enable/disable Wrapp ───────────
+router.patch('/wrapp/toggle/:bizId', async (req, res, next) => {
+  try {
+    const enabled = req.body.enabled ? 1 : 0;
+    await pool.execute(
+      'UPDATE businesses SET wrapp_enabled = ?, updated_at = NOW() WHERE id = ?',
+      [enabled, req.params.bizId]
+    );
+    if (!enabled) {
+      const wrapp = require('../services/wrapp.service');
+      wrapp.invalidateCache(req.params.bizId);
+    }
+    res.json({ data: { message: enabled ? 'Wrapp ενεργοποιήθηκε.' : 'Wrapp απενεργοποιήθηκε.' } });
+  } catch (err) { next(err); }
+});
+
+// ── DELETE /api/platform/wrapp/clear-billing-cache/:bizId ────────────────────
+router.delete('/wrapp/clear-billing-cache/:bizId', async (req, res, next) => {
+  try {
+    await pool.execute(
+      `UPDATE businesses SET wrapp_billing_book_dn_id = NULL, wrapp_billing_book_inv_id = NULL,
+       updated_at = NOW() WHERE id = ?`,
+      [req.params.bizId]
+    );
+    const wrapp = require('../services/wrapp.service');
+    wrapp.invalidateCache(req.params.bizId);
+    res.json({ data: { message: 'Cache billing books εκκαθαρίστηκε.' } });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

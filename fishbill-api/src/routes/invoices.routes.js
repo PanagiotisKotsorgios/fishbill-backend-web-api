@@ -55,7 +55,7 @@ function fireNotif(bizId, flag, fn, extraArgs) {
   })();
 }
 
-// ── Self-migration: extra invoice credits ─────────────────────────────────────
+// ── Self-migration: extra invoice credits + Wrapp columns ────────────────────
 (async () => {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -68,6 +68,9 @@ function fireNotif(bizId, flag, fn, extraArgs) {
       else console.warn('[invoices] extra_invoice_credits migration failed:', e.message);
     }
   }
+  // Wrapp invoice ID column on invoices
+  await pool.execute(`ALTER TABLE invoices ADD COLUMN wrapp_invoice_id VARCHAR(255) NULL`)
+    .catch(e => { if (e.errno !== 1060) console.warn('[invoices] wrapp_invoice_id migration:', e.message); });
 })();
 
 router.use(authenticate);

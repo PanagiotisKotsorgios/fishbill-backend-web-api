@@ -18,6 +18,24 @@ const pdfService = require('../services/pdf.service');
 
 // ── Self-migrations ───────────────────────────────────────────────────────────
 (async () => {
+  // Wrapp columns on businesses
+  for (const col of [
+    `ALTER TABLE businesses ADD COLUMN wrapp_api_key VARCHAR(255) NULL`,
+    `ALTER TABLE businesses ADD COLUMN wrapp_user_id VARCHAR(255) NULL`,
+    `ALTER TABLE businesses ADD COLUMN wrapp_enabled TINYINT(1) NOT NULL DEFAULT 0`,
+    `ALTER TABLE businesses ADD COLUMN wrapp_billing_book_dn_id VARCHAR(255) NULL`,
+    `ALTER TABLE businesses ADD COLUMN wrapp_billing_book_inv_id VARCHAR(255) NULL`,
+  ]) {
+    await pool.execute(col).catch(e => { if (e.errno !== 1060) console.warn('[DN migration]', e.message); });
+  }
+  // Wrapp columns on delivery_notes
+  for (const col of [
+    `ALTER TABLE delivery_notes ADD COLUMN wrapp_invoice_id VARCHAR(255) NULL`,
+    `ALTER TABLE delivery_notes ADD COLUMN wrapp_mark VARCHAR(255) NULL`,
+  ]) {
+    await pool.execute(col).catch(e => { if (e.errno !== 1060) console.warn('[DN migration]', e.message); });
+  }
+
   try {
     await pool.execute(
       `ALTER TABLE delivery_notes ADD COLUMN client_ref VARCHAR(100) NULL`
@@ -493,20 +511,32 @@ router.patch('/:id/cancel', async (req, res, next) => {
     if (!note) return res.status(404).json({ error: 'Δελτίο αποστολής δεν βρέθηκε.' });
     if (note.status === 'cancelled') return res.status(400).json({ error: 'Ήδη ακυρωμένο.' });
 
-    // ── AADE cancellation (only if the note was transmitted and has a MARK) ──
+    // ── Cancellation: Wrapp or direct AADE ───────────────────────────────────
     let aadeCancelMark = null;
     let aadeCancelError = null;
-    if (note.mydata_mark) {
+    if (note.mydata_mark || note.wrapp_invoice_id) {
+      const [[bizRow]] = await pool.execute(
+        'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [business_id]
+      );
+      const useWrapp = bizRow?.wrapp_enabled === 1 && note.wrapp_invoice_id;
+
       try {
-        const aadeMydata = require('../services/aade-mydata.service');
-        const cancelResult = await aadeMydata.cancelDeliveryNote(
-          note.mydata_mark, note.biz_afm, business_id
-        );
-        aadeCancelMark = cancelResult.cancellationMark;
-        console.log(`[cancel DN] AADE cancellation OK — mark: ${note.mydata_mark}, cancellationMark: ${aadeCancelMark}`);
-      } catch (aadeErr) {
-        aadeCancelError = aadeErr.message;
-        console.error(`[cancel DN] AADE cancellation failed for mark ${note.mydata_mark}:`, aadeCancelError);
+        if (useWrapp) {
+          const wrapp = require('../services/wrapp.service');
+          const cancelResult = await wrapp.cancelDeliveryNote(note.wrapp_invoice_id, business_id);
+          aadeCancelMark = cancelResult.mark;
+          console.log(`[cancel DN] Wrapp cancellation OK — wrapp_id: ${note.wrapp_invoice_id}, mark: ${aadeCancelMark}`);
+        } else if (note.mydata_mark) {
+          const aadeMydata = require('../services/aade-mydata.service');
+          const cancelResult = await aadeMydata.cancelDeliveryNote(
+            note.mydata_mark, note.biz_afm, business_id
+          );
+          aadeCancelMark = cancelResult.cancellationMark;
+          console.log(`[cancel DN] AADE cancellation OK — mark: ${note.mydata_mark}, cancellationMark: ${aadeCancelMark}`);
+        }
+      } catch (cancelErr) {
+        aadeCancelError = cancelErr.message;
+        console.error(`[cancel DN] Cancellation failed:`, aadeCancelError);
         // Do NOT block the local cancellation — record the error in mydata_response
       }
     }
@@ -589,6 +619,39 @@ router.post('/:id/transmit', async (req, res, next) => {
       postal:      note.recipient_postal  || '',
       postal_code: note.recipient_postal  || '',
     };
+
+    // ── Choose provider: Wrapp (if enabled) or direct AADE ───────────────────
+    const [[bizRow]] = await pool.execute(
+      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [business_id]
+    );
+    const useWrapp = bizRow?.wrapp_enabled === 1;
+
+    if (useWrapp) {
+      const wrapp = require('../services/wrapp.service');
+      const result = await wrapp.transmitDeliveryNote(note, lines, biz);
+
+      await pool.execute(
+        `UPDATE delivery_notes
+         SET status = 'transmitted', mydata_mark = ?, mydata_uid = ?,
+             wrapp_invoice_id = ?, wrapp_mark = ?,
+             mydata_response = ?, transmitted_at = NOW(), updated_at = NOW()
+         WHERE id = ?`,
+        [
+          result.mark, result.uid || null,
+          result.wrapp_invoice_id, result.mark,
+          JSON.stringify({ mark: result.mark, uid: result.uid, wrapp_id: result.wrapp_invoice_id, provider: 'wrapp' }),
+          note.id,
+        ]
+      );
+
+      return res.json({
+        data: {
+          message: 'Διαβιβάστηκε επιτυχώς μέσω Wrapp.',
+          mark:    result.mark,
+          uid:     result.uid,
+        },
+      });
+    }
 
     const aadeMydata = require('../services/aade-mydata.service');
     const result = await aadeMydata.sendDeliveryNote(note, lines, biz, customer, business_id);

@@ -768,6 +768,38 @@
               </div>
               <p class="text-xs text-amber-600 mt-3"><i class="fas fa-triangle-exclamation mr-1"></i>Μόνο ένας τρόπος μπορεί να είναι ενεργός ταυτόχρονα.</p>
             </div>
+
+            <!-- Wrapp Partner API Settings -->
+            <div class="bg-indigo-50 rounded-xl border border-indigo-200 p-5 mt-5">
+              <div class="flex items-center gap-2 mb-1">
+                <i class="fas fa-handshake text-indigo-600"></i>
+                <p class="text-sm font-bold text-gray-800">Wrapp — ΥΠΑΗΕΣ Ρυθμίσεις Πλατφόρμας</p>
+              </div>
+              <p class="text-xs text-gray-500 mb-4">Τα partner-level credentials από τη Wrapp. Χρησιμοποιούνται για την εγγραφή ψαράδων (onboarding).</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Partner API Key</label>
+                  <div class="relative">
+                    <input id="wrapp-partner-key" type="password" class="input-field pr-10" placeholder="jiLSMFpb5V6YG3…" />
+                    <button type="button" onclick="toggleSmsPwd('wrapp-partner-key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fas fa-eye text-sm"></i></button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Base URL</label>
+                  <select id="wrapp-base-url" class="input-field">
+                    <option value="https://wrapp.ai">Production — wrapp.ai</option>
+                    <option value="https://staging.wrapp.ai">Staging — staging.wrapp.ai</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1.5">Webhook Endpoint (η URL μας)</label>
+                  <input id="wrapp-webhook-endpoint" type="text" class="input-field" placeholder="https://master-app.gr/api/wrapp/webhook" />
+                </div>
+              </div>
+              <button onclick="saveWrappSettings()" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                <i class="fas fa-floppy-disk"></i>Αποθήκευση Wrapp
+              </button>
+            </div>
           </div>
 
         </div><!-- /p-6 -->
@@ -1394,6 +1426,7 @@
         if (s.sms_provider) { const el = document.getElementById('p-sms_provider'); if (el) { el.value = s.sms_provider; onSmsProviderChange(); } }
         if (s.sms_from) { const el = document.getElementById('p-sms_from'); if (el) el.value = s.sms_from; }
       } catch(e) { console.warn('Could not load mydata/sms settings', e); }
+      loadWrappSettings();
     }
 
     async function saveMydataSettings() {
@@ -1432,6 +1465,41 @@
       } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
     }
 
+    async function loadWrappSettings() {
+      try {
+        const token   = localStorage.getItem('fishbill_token') || '';
+        const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api');
+        const resp    = await fetch(`${apiBase}/platform/wrapp/settings`, {
+          headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store',
+        });
+        if (!resp.ok) return;
+        const d = (await resp.json()).data || {};
+        if (d.wrapp_base_url) { const el = document.getElementById('wrapp-base-url'); if (el) el.value = d.wrapp_base_url; }
+        if (d.wrapp_webhook_endpoint) { const el = document.getElementById('wrapp-webhook-endpoint'); if (el) el.value = d.wrapp_webhook_endpoint; }
+      } catch(e) { console.warn('Could not load wrapp settings', e); }
+    }
+
+    async function saveWrappSettings() {
+      const body = {
+        wrapp_base_url:         document.getElementById('wrapp-base-url')?.value?.trim() || '',
+        wrapp_webhook_endpoint: document.getElementById('wrapp-webhook-endpoint')?.value?.trim() || '',
+      };
+      const key = document.getElementById('wrapp-partner-key')?.value?.trim();
+      if (key) body.wrapp_partner_api_key = key;
+      try {
+        const token   = localStorage.getItem('fishbill_token') || '';
+        const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api');
+        const resp    = await fetch(`${apiBase}/platform/wrapp/settings`, {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        toast('✓ Ρυθμίσεις Wrapp αποθηκεύτηκαν!');
+        if (key) document.getElementById('wrapp-partner-key').value = '';
+      } catch(e) { toast(`Σφάλμα: ${e.message}`, 'err'); }
+    }
+
     window.toggleSmsFields = toggleSmsFields;
     window.onSmsProviderChange = onSmsProviderChange;
     window.toggleSmsPwd = toggleSmsPwd;
@@ -1441,6 +1509,7 @@
     window.saveMydataSettings = saveMydataSettings;
     window.saveMydataProvider = saveMydataProvider;
     window.testMydataProvider = testMydataProvider;
+    window.saveWrappSettings = saveWrappSettings;
   </script>
 </body>
 </html>

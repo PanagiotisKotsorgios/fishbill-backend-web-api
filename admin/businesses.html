@@ -303,6 +303,34 @@
     </div>
   </div>
 
+  <!-- Wrapp myDATA Integration -->
+  <div class="px-5 mt-6" id="wrapp-section">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Wrapp — myDATA ΥΠΑΗΕΣ</p>
+    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3">
+      <div id="wrapp-status-badge" class="text-xs font-semibold text-gray-500">Φόρτωση κατάστασης…</div>
+      <!-- Toggle -->
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-semibold text-gray-800">Ενεργοποίηση Wrapp</p>
+          <p class="text-xs text-gray-500 mt-0.5">Διαβίβαση παραστατικών μέσω Wrapp (ΥΠΑΗΕΣ)</p>
+        </div>
+        <button id="wrapp-toggle-btn" onclick="wrappToggle()" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none bg-gray-300">
+          <span id="wrapp-toggle-dot" class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform translate-x-1"></span>
+        </button>
+      </div>
+      <!-- Onboarding -->
+      <button onclick="wrappInitiateOnboarding()" id="btn-wrapp-onboard"
+        class="w-full py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+        <i class="fa-solid fa-arrow-up-right-from-square mr-1.5"></i>Εκκίνηση Εγγραφής Wrapp
+      </button>
+      <!-- Clear billing book cache -->
+      <button onclick="wrappClearCache()"
+        class="w-full py-2 bg-white border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-50 transition-colors">
+        <i class="fa-solid fa-trash-can mr-1"></i>Εκκαθάριση Cache Billing Books
+      </button>
+    </div>
+  </div>
+
   <!-- Payment history -->
   <div class="px-5 mt-6">
     <div class="flex items-center justify-between mb-3">
@@ -842,6 +870,7 @@
     loadFeatures();
     loadPayments();
     loadMydataStatus();
+    loadWrappStatus();
   }
 
   async function loadMydataStatus() {
@@ -879,6 +908,114 @@
       alert('Σφάλμα: ' + e.message);
     } finally {
       btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-satellite-dish mr-1.5"></i>Αποθήκευση myDATA';
+    }
+  }
+
+  // ── Wrapp helpers ─────────────────────────────────────────────────────────
+  let _wrappEnabled = false;
+
+  async function loadWrappStatus() {
+    const badge = document.getElementById('wrapp-status-badge');
+    badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Φόρτωση…';
+    try {
+      const token   = localStorage.getItem('fishbill_token') || '';
+      const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api');
+      const resp    = await fetch(`${apiBase}/platform/wrapp/status/${_featBizId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store',
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const d = (await resp.json()).data || {};
+      _wrappEnabled = d.wrapp_enabled || false;
+
+      // Update toggle
+      const btn = document.getElementById('wrapp-toggle-btn');
+      const dot = document.getElementById('wrapp-toggle-dot');
+      if (_wrappEnabled) {
+        btn.classList.replace('bg-gray-300', 'bg-indigo-600');
+        dot.classList.replace('translate-x-1', 'translate-x-6');
+      } else {
+        btn.classList.replace('bg-indigo-600', 'bg-gray-300');
+        dot.classList.replace('translate-x-6', 'translate-x-1');
+      }
+
+      // Status badge text
+      if (!d.has_api_key) {
+        badge.innerHTML = '<span class="text-orange-500"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Δεν έχει ολοκληρωθεί η εγγραφή Wrapp</span>';
+      } else if (!d.wrapp_enabled) {
+        badge.innerHTML = '<span class="text-gray-500"><i class="fa-solid fa-pause mr-1"></i>Απενεργοποιημένο · API Key υπάρχει</span>';
+      } else if (d.subscription_active === true) {
+        badge.innerHTML = '<span class="text-green-600"><i class="fa-solid fa-circle-check mr-1"></i>Ενεργό — Συνδρομή Wrapp ενεργή</span>';
+      } else if (d.subscription_active === false) {
+        badge.innerHTML = '<span class="text-orange-500"><i class="fa-solid fa-clock mr-1"></i>Ενεργό — Συνδρομή Wrapp ανενεργή</span>';
+      } else {
+        badge.innerHTML = '<span class="text-indigo-600"><i class="fa-solid fa-circle-check mr-1"></i>Ενεργό</span>';
+      }
+
+      // Show/hide onboarding button
+      document.getElementById('btn-wrapp-onboard').textContent = d.has_api_key
+        ? '↩ Επανεκκίνηση Εγγραφής Wrapp'
+        : '↗ Εκκίνηση Εγγραφής Wrapp';
+    } catch(e) {
+      badge.innerHTML = `<span class="text-gray-400">${e.message}</span>`;
+    }
+  }
+
+  async function wrappToggle() {
+    const newEnabled = !_wrappEnabled;
+    const btn = document.getElementById('wrapp-toggle-btn');
+    btn.disabled = true;
+    try {
+      const token   = localStorage.getItem('fishbill_token') || '';
+      const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api');
+      const resp    = await fetch(`${apiBase}/platform/wrapp/toggle/${_featBizId}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newEnabled }),
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      await loadWrappStatus();
+    } catch(e) {
+      alert('Σφάλμα: ' + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function wrappInitiateOnboarding() {
+    const btn = document.getElementById('btn-wrapp-onboard');
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Ανακατεύθυνση…';
+    try {
+      const token   = localStorage.getItem('fishbill_token') || '';
+      const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api');
+      const resp    = await fetch(`${apiBase}/platform/wrapp/initiate-onboarding/${_featBizId}`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      const body = await resp.json();
+      if (!resp.ok) throw new Error(body.error || 'HTTP ' + resp.status);
+      const loginUrl = body.data?.login_url;
+      if (!loginUrl) throw new Error('Δεν επεστράφη login_url από Wrapp.');
+      window.open(loginUrl, '_blank');
+    } catch(e) {
+      alert('Σφάλμα εκκίνησης Wrapp: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square mr-1.5"></i>Εκκίνηση Εγγραφής Wrapp';
+    }
+  }
+
+  async function wrappClearCache() {
+    if (!confirm('Να εκκαθαριστούν τα cached billing book IDs; Θα επαναφορτωθούν αυτόματα στην επόμενη διαβίβαση.')) return;
+    try {
+      const token   = localStorage.getItem('fishbill_token') || '';
+      const apiBase = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:4000/api');
+      const resp    = await fetch(`${apiBase}/platform/wrapp/clear-billing-cache/${_featBizId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      alert('Cache εκκαθαρίστηκε.');
+    } catch(e) {
+      alert('Σφάλμα: ' + e.message);
     }
   }
 

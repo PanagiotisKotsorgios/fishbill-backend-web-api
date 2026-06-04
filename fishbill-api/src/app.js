@@ -195,6 +195,34 @@ app.get('/api/status', async (req, res) => {
   } catch { res.json({ maintenance: false, message: '' }); }
 });
 
+// ── Wrapp Partner webhook (no auth — called by Wrapp servers after onboarding) ─
+// POST /api/wrapp/webhook  { wrapp_user_id, partner_user_id (=business_id), api_key }
+app.post('/api/wrapp/webhook', async (req, res) => {
+  try {
+    const { wrapp_user_id, partner_user_id, api_key } = req.body || {};
+    if (!partner_user_id || !api_key) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    const pool  = require('./config/database');
+    const wrapp = require('./services/wrapp.service');
+
+    // Save credentials to the matching business
+    await pool.execute(
+      `UPDATE businesses
+       SET wrapp_api_key = ?, wrapp_user_id = ?, wrapp_enabled = 1, updated_at = NOW()
+       WHERE id = ?`,
+      [api_key, wrapp_user_id || null, partner_user_id]
+    );
+    wrapp.invalidateCache(partner_user_id);
+
+    console.log(`[wrapp webhook] Credentials saved for business ${partner_user_id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[wrapp webhook] Error:', err.message);
+    res.status(500).json({ error: 'Internal error.' });
+  }
+});
+
 // ── Health check (with DB ping) ───────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   const start = Date.now();
