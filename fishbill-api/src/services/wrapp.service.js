@@ -35,7 +35,7 @@ async function getBusinessCredentials(businessId) {
   const [[biz]] = await pool.execute(
     `SELECT wrapp_api_key, wrapp_user_id, wrapp_enabled,
             wrapp_billing_book_dn_id, wrapp_billing_book_inv_id,
-            email, name, afm, address, city, postal_code
+            email, name, afm, address, city, postal_code, phone
      FROM businesses WHERE id = ? LIMIT 1`,
     [businessId]
   );
