@@ -156,12 +156,12 @@
 
     const PRICING = {
       basic:      { monthly: 8,   semi_annual: 35,  annual: 60  },
-      pro:        { monthly: 12,  semi_annual: 65,  annual: 120 },
+      pro:        { monthly: 12,  semi_annual: 65,  annual: 65  },
       enterprise: { monthly: 30,  semi_annual: 130, annual: 240 },
     };
     const CYCLE_MONTHS  = { monthly: 1, semi_annual: 6, annual: 12 };
     const CYCLE_LABELS  = { monthly: 'Μηνιαίο', semi_annual: 'Εξαμηνιαίο', annual: 'Ετήσιο' };
-    const PLAN_LABELS   = { trial: 'Trial', basic: 'Basic', pro: 'Pro', enterprise: 'Enterprise' };
+    const PLAN_LABELS   = { trial: 'Trial', basic: 'Basic', pro: 'FishBill Pro', enterprise: 'Enterprise' };
     const PLAN_COLORS   = {
       trial:      'bg-gray-100 text-gray-600',
       basic:      'bg-blue-100 text-blue-700',
@@ -442,13 +442,13 @@
             </div>
             <div class="bg-gray-50 rounded-xl p-3">
               <p class="text-xs text-gray-400 mb-1">Add-ons</p>
-              ${hasOspa     ? `<p class="text-xs font-semibold text-indigo-700">✓ OSPA (+€${10 * cycleMonths})</p>`   : '<p class="text-xs text-gray-300">✗ OSPA</p>'}
-              ${hasWeighing ? `<p class="text-xs font-semibold text-teal-700">✓ Δελτία Ζύγισης (+€${2 * cycleMonths})</p>` : '<p class="text-xs text-gray-300">✗ Δελτία Ζύγισης</p>'}
+              ${hasOspa     ? '<p class="text-xs font-semibold text-indigo-700">✓ OSPA — συμπεριλαμβάνεται</p>'         : '<p class="text-xs text-gray-300">✗ OSPA</p>'}
+              ${hasWeighing ? '<p class="text-xs font-semibold text-teal-700">✓ Δελτία Ζύγισης — συμπεριλαμβάνεται</p>' : '<p class="text-xs text-gray-300">✗ Δελτία Ζύγισης</p>'}
             </div>
             <div class="bg-blue-50 rounded-xl p-3">
               <p class="text-xs text-gray-400 mb-1">Συνολικό ποσό</p>
               <p class="font-extrabold text-2xl text-blue-700">€${totalExpected}</p>
-              <p class="text-xs text-gray-400">πλάνο €${basePrice}${addonTotal > 0 ? ` + add-ons €${addonTotal}` : ''}</p>
+              <p class="text-xs text-gray-400">FishBill Pro · Ετήσιο</p>
             </div>
           </div>
         </div>` : ''}
@@ -459,21 +459,15 @@
           <div class="space-y-3" id="action-form">
             ${!active ? `
             <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1">Πλάνο</label>
-                <select id="act-plan" onchange="updateActPreview()" class="w-full px-3 py-2 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400">
-                  <option value="basic"      ${r.plan==='basic'      ?'selected':''}>Basic</option>
-                  <option value="pro"        ${r.plan==='pro'        ?'selected':''}>Pro</option>
-                  <option value="enterprise" ${r.plan==='enterprise' ?'selected':''}>Enterprise</option>
-                </select>
+              <div class="bg-gray-50 rounded-xl px-3 py-2">
+                <p class="text-xs text-gray-400 mb-0.5">Πλάνο</p>
+                <p class="font-bold text-purple-700 text-sm">FishBill Pro</p>
+                <input type="hidden" id="act-plan" value="pro">
               </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1">Κύκλος</label>
-                <select id="act-cycle" onchange="updateActPreview()" class="w-full px-3 py-2 rounded-xl border-2 border-gray-100 bg-gray-50 text-sm focus:outline-none focus:border-blue-400">
-                  <option value="monthly"    ${r.billing_cycle==='monthly'    ?'selected':''}>Μηνιαίο</option>
-                  <option value="semi_annual"${r.billing_cycle==='semi_annual'?'selected':''}>Εξαμηνιαίο</option>
-                  <option value="annual"     ${r.billing_cycle==='annual'     ?'selected':''}>Ετήσιο</option>
-                </select>
+              <div class="bg-gray-50 rounded-xl px-3 py-2">
+                <p class="text-xs text-gray-400 mb-0.5">Κύκλος</p>
+                <p class="font-bold text-gray-800 text-sm">Ετήσιο</p>
+                <input type="hidden" id="act-cycle" value="annual">
               </div>
             </div>
             <div id="act-preview" class="text-sm font-semibold text-blue-700 bg-blue-50 rounded-xl px-3 py-2"></div>
@@ -684,21 +678,12 @@
     function updateActPreview() {
       const el = document.getElementById('act-preview');
       if (!el || !selectedBiz) return;
-      const plan  = document.getElementById('act-plan')?.value;
-      const cycle = document.getElementById('act-cycle')?.value;
-      if (!plan || !cycle) return;
-      const baseP  = PRICING[plan]?.[cycle] ?? 0;
-      const months = CYCLE_MONTHS[cycle] ?? 1;
-      const hasO   = parseInt(selectedBiz.addon_ospa)    === 1;
-      const hasW   = parseInt(selectedBiz.addon_weighing) === 1;
-      const addons = (hasO ? 10 * months : 0) + (hasW ? 2 * months : 0);
-      const total  = baseP + addons;
-      let preview  = `Χρέωση: €${baseP}`;
-      if (addons > 0) preview += ` + add-ons €${addons} = €${total} σύνολο`;
-      preview += ` · ${months} μήνες · ${CYCLE_LABELS[cycle]}`;
-      el.textContent = preview;
+      const plan  = document.getElementById('act-plan')?.value || 'pro';
+      const cycle = document.getElementById('act-cycle')?.value || 'annual';
+      const baseP  = PRICING[plan]?.[cycle] ?? 65;
+      el.textContent = `Χρέωση: €${baseP} · Ετήσιο · OSPA & Ζύγιση συμπεριλαμβάνονται`;
       const expEl = document.getElementById('act-expected');
-      if (expEl) expEl.value = total;
+      if (expEl) expEl.value = baseP;
       updatePayPreview();
     }
 
@@ -726,12 +711,12 @@
     async function doActivate() {
       if (!selectedBiz) return;
       const btn   = document.getElementById('btn-activate');
-      const plan  = document.getElementById('act-plan')?.value || selectedBiz.plan;
-      const cycle = document.getElementById('act-cycle')?.value || selectedBiz.billing_cycle;
-      const months = CYCLE_MONTHS[cycle] ?? 1;
+      const plan  = 'pro';
+      const cycle = 'annual';
+      const months = 12;
       const paid   = parseFloat(document.getElementById('act-paid')?.value) || 0;
       const expRaw = document.getElementById('act-expected')?.value;
-      const exp    = expRaw ? parseFloat(expRaw) : (PRICING[plan]?.[cycle] ?? 0);
+      const exp    = expRaw ? parseFloat(expRaw) : 65;
       const partial = document.getElementById('act-partial')?.checked || false;
       const payType = document.getElementById('act-type')?.value || 'manual';
       btn.disabled = true; btn.textContent = '…';
@@ -741,7 +726,7 @@
           try {
             await api.post(`/platform/subscriptions/${selectedBiz.id}/record-payment`, {
               amount: paid, expected_amount: exp || undefined,
-              description: `Ενεργοποίηση ${plan} (${CYCLE_LABELS[cycle]}) — ${months} μήνες`,
+              description: `Ενεργοποίηση FishBill Pro — Ετήσιο`,
               payment_type: payType, allow_partial: partial,
             });
           } catch(pe) { showToast('Ενεργοποιήθηκε, αλλά η πληρωμή δεν καταχωρήθηκε: ' + pe.message, 'error'); reload(); return; }

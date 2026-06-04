@@ -831,10 +831,10 @@
 
   // ── Features & Payments Drawer ────────────────────────────────────────────────
 
-  const PLAN_PRICES = { trial: 0, basic: 8, pro: 12, enterprise: 30 };
+  const PLAN_PRICES = { trial: 0, basic: 8, pro: 65, enterprise: 30 };
   const ADDON_DEFS  = [
-    { key: 'feature_weighing_slips', label: 'Δελτία Ζύγισης', price: 2,  icon: 'fa-scale-balanced',    color: 'teal',   desc: 'Καταγραφή και παρακολούθηση ζυγίσεων αλιευμάτων' },
-    { key: 'feature_ospa',           label: 'OSPA',           price: 10, icon: 'fa-file-circle-check', color: 'indigo', desc: 'Υποβολές στον Οργανισμό Συλλογικής Προστασίας Αλιέων' },
+    { key: 'feature_weighing_slips', label: 'Δελτία Ζύγισης', price: 0, icon: 'fa-scale-balanced',    color: 'teal',   desc: 'Καταγραφή και παρακολούθηση ζυγίσεων αλιευμάτων' },
+    { key: 'feature_ospa',           label: 'OSPA',           price: 0, icon: 'fa-file-circle-check', color: 'indigo', desc: 'Υποβολές στον Οργανισμό Συλλογικής Προστασίας Αλιέων' },
   ];
   const PAY_STATUS_LABELS = { paid: 'Πληρώθηκε', pending: 'Εκκρεμεί', failed: 'Απέτυχε', refunded: 'Επεστράφη' };
   const PAY_TYPE_LABELS   = { subscription: 'Συνδρομή', addon: 'Add-on', manual: 'Χειροκίνητο' };
@@ -1063,13 +1063,11 @@
 
   function updateBillingBar(features) {
     const planPrice = PLAN_PRICES[_featBizPlan] || 0;
-    const addonTotal = features.filter(f => f.enabled).reduce((s, f) => s + f.price, 0);
-    const total = planPrice + addonTotal;
     const bar = document.getElementById('feat-billing-bar');
     bar.classList.remove('hidden');
-    document.getElementById('feat-total-cost').textContent = `€${total}`;
-    const parts = [`Πλάνο ${planLabels[_featBizPlan]} €${planPrice}`];
-    features.filter(f => f.enabled).forEach(f => parts.push(`${f.label} +€${f.price}`));
+    document.getElementById('feat-total-cost').textContent = `€${planPrice}`;
+    const parts = [`Πλάνο ${planLabels[_featBizPlan]} €${planPrice}/έτος`];
+    features.filter(f => f.enabled).forEach(f => parts.push(`${f.label} συμπεριλαμβάνεται`));
     document.getElementById('feat-cost-breakdown').textContent = parts.join(' · ');
   }
 
@@ -1135,10 +1133,9 @@
       // Pre-fill description with plan + active addons
       const planName = planLabels[_featBizPlan] || _featBizPlan;
       const activeAddons = _currentFeatures.filter(f => f.enabled).map(f => f.label).join(', ');
-      const planPrice  = PLAN_PRICES[_featBizPlan] || 0;
-      const addonPrice = _currentFeatures.filter(f => f.enabled).reduce((s, f) => s + f.price, 0);
-      document.getElementById('pay-amount').value = (planPrice + addonPrice) || '';
-      document.getElementById('pay-desc').value = `Συνδρομή ${planName}${activeAddons ? ' + ' + activeAddons : ''}`;
+      const planPrice = PLAN_PRICES[_featBizPlan] || 0;
+      document.getElementById('pay-amount').value = planPrice || '';
+      document.getElementById('pay-desc').value = `Συνδρομή ${planName}${activeAddons ? ' (περιλ. ' + activeAddons + ')' : ''}`;
       document.getElementById('pay-type').value = 'subscription';
       document.getElementById('pay-status').value = 'paid';
       document.getElementById('pay-notes').value = '';
