@@ -8,7 +8,7 @@ router.use(authenticate);
 
 const VALID_PLANS  = ['basic', 'pro', 'enterprise'];
 const VALID_CYCLES = ['monthly', 'semi_annual', 'annual'];
-const PLAN_LIMITS  = { basic: 30, pro: 50, enterprise: -1, trial: -1 };
+const PLAN_LIMITS  = { basic: 30, pro: 125, enterprise: -1, trial: -1 };
 const WEIGHING_SLIPS_ADDON_MONTHLY = 2;
 
 // Pricing table: plan → cycle → total amount in EUR
