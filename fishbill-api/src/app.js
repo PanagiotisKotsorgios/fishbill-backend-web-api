@@ -214,8 +214,42 @@ app.post('/api/wrapp/webhook', async (req, res) => {
       [api_key, wrapp_user_id || null, partner_user_id]
     );
     wrapp.invalidateCache(partner_user_id);
-
     console.log(`[wrapp webhook] Credentials saved for business ${partner_user_id}`);
+
+    // Auto-activate FishBill subscription — Wrapp onboarding = contract signed + paid
+    try {
+      const [[bizRow]] = await pool.execute(
+        'SELECT subscription_active, COALESCE(is_first_subscription, 1) AS is_first FROM businesses WHERE id = ? LIMIT 1',
+        [partner_user_id]
+      );
+      if (bizRow && !bizRow.subscription_active) {
+        const isFirst    = bizRow.is_first === 1;
+        const monthCount = 12 + (isFirst ? 1 : 0); // +1 bonus month for first subscription
+        const endDate    = new Date();
+        endDate.setMonth(endDate.getMonth() + monthCount);
+
+        await pool.execute(
+          `UPDATE businesses
+           SET subscription_active = 1, plan = 'pro', billing_cycle = 'annual',
+               subscription_ends_at = ?, is_first_subscription = 0, updated_at = NOW()
+           WHERE id = ? AND subscription_active = 0`,
+          [endDate, partner_user_id]
+        );
+
+        // Enable OSPA + weighing slips (included in pro plan)
+        await pool.execute(
+          `INSERT INTO business_settings (business_id, feature_ospa, feature_weighing_slips)
+           VALUES (?, 1, 1)
+           ON DUPLICATE KEY UPDATE feature_ospa = 1, feature_weighing_slips = 1`,
+          [partner_user_id]
+        );
+
+        console.log(`[wrapp webhook] Subscription auto-activated for business ${partner_user_id} (${monthCount} months, first=${isFirst})`);
+      }
+    } catch (activateErr) {
+      console.error('[wrapp webhook] Auto-activate error:', activateErr.message);
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error('[wrapp webhook] Error:', err.message);
