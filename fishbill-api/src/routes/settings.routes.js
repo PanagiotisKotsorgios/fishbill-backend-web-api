@@ -497,4 +497,51 @@ router.patch('/appearance', async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET  /api/settings/wrapp/status
+// POST /api/settings/wrapp/initiate-onboarding
+// ---------------------------------------------------------------------------
+router.get('/wrapp/status', async (req, res, next) => {
+  try {
+    const businessId = getBizId(req);
+    const [[biz]] = await pool.execute(
+      `SELECT wrapp_enabled, wrapp_api_key, wrapp_user_id,
+              wrapp_billing_book_dn_id, wrapp_billing_book_inv_id
+       FROM businesses WHERE id = ? LIMIT 1`,
+      [businessId]
+    );
+    if (!biz) return res.status(404).json({ error: 'Business not found.' });
+
+    const [psRows] = await pool.execute(
+      "SELECT setting_value FROM platform_settings WHERE setting_key = 'wrapp_partner_api_key' LIMIT 1"
+    );
+    const partnerKeySet = !!(psRows[0]?.setting_value);
+
+    res.json({
+      data: {
+        wrapp_enabled:   biz.wrapp_enabled === 1,
+        has_api_key:     !!(biz.wrapp_api_key),
+        wrapp_user_id:   biz.wrapp_user_id || null,
+        partner_key_set: partnerKeySet,
+        billing_book_dn_cached:  !!(biz.wrapp_billing_book_dn_id),
+        billing_book_inv_cached: !!(biz.wrapp_billing_book_inv_id),
+      },
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/wrapp/initiate-onboarding', async (req, res, next) => {
+  try {
+    const businessId = getBizId(req);
+    const wrapp = require('../services/wrapp.service');
+    const result = await wrapp.initiateOnboarding(businessId);
+    res.json({ data: result });
+  } catch (err) {
+    if (err.message && !err.statusCode) {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
+  }
+});
+
 module.exports = router;

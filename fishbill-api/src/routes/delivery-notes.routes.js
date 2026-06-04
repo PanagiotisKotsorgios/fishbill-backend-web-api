@@ -32,6 +32,7 @@ const pdfService = require('../services/pdf.service');
   for (const col of [
     `ALTER TABLE delivery_notes ADD COLUMN wrapp_invoice_id VARCHAR(255) NULL`,
     `ALTER TABLE delivery_notes ADD COLUMN wrapp_mark VARCHAR(255) NULL`,
+    `ALTER TABLE delivery_notes ADD COLUMN wrapp_qr_url TEXT NULL`,
   ]) {
     await pool.execute(col).catch(e => { if (e.errno !== 1060) console.warn('[DN migration]', e.message); });
   }
@@ -633,13 +634,13 @@ router.post('/:id/transmit', async (req, res, next) => {
       await pool.execute(
         `UPDATE delivery_notes
          SET status = 'transmitted', mydata_mark = ?, mydata_uid = ?,
-             wrapp_invoice_id = ?, wrapp_mark = ?,
+             wrapp_invoice_id = ?, wrapp_mark = ?, wrapp_qr_url = ?,
              mydata_response = ?, transmitted_at = NOW(), updated_at = NOW()
          WHERE id = ?`,
         [
           result.mark, result.uid || null,
-          result.wrapp_invoice_id, result.mark,
-          JSON.stringify({ mark: result.mark, uid: result.uid, wrapp_id: result.wrapp_invoice_id, provider: 'wrapp' }),
+          result.wrapp_invoice_id, result.mark, result.qrUrl || null,
+          JSON.stringify({ mark: result.mark, uid: result.uid, qr: result.qrUrl, wrapp_id: result.wrapp_invoice_id, provider: 'wrapp' }),
           note.id,
         ]
       );

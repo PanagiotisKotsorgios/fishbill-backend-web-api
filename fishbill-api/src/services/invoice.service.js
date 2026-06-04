@@ -124,8 +124,8 @@ async function transmit(invoice) {
 
       await pool.execute(
         `UPDATE invoices SET status='transmitted', mydata_mark=?, mydata_qr=?,
-         wrapp_invoice_id=?, last_error=NULL, updated_at=NOW() WHERE id=?`,
-        [result.mark, result.qrUrl || null, result.wrapp_invoice_id, invoice.id]
+         wrapp_invoice_id=?, wrapp_qr_url=?, last_error=NULL, updated_at=NOW() WHERE id=?`,
+        [result.mark, result.qrUrl || null, result.wrapp_invoice_id, result.qrUrl || null, invoice.id]
       ).catch(() => {});
       await pool.execute(
         `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)

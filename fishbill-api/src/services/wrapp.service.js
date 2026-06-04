@@ -108,11 +108,11 @@ async function getBillingBookId(businessId, invoiceTypeCode) {
 // ── Unit code mapping (myDATA quantity_type) ──────────────────────────────────
 function unitCode(unit) {
   const u = (unit || 'kg').toLowerCase().trim();
-  if (u === 'kg' || u === 'κιλό' || u === 'κιλα' || u === 'κιλά') return 1;
-  if (u === 'τεμ' || u === 'τεμάχιο' || u === 'τεμαχιο' || u === 'pcs') return 2;
-  if (u === 'lt' || u === 'λτ' || u === 'λίτρο' || u === 'litre' || u === 'liter') return 3;
+  if (u === 'τεμ' || u === 'τεμάχιο' || u === 'τεμαχιο' || u === 'pcs') return 1; // Τεμάχια
+  if (u === 'kg' || u === 'κιλό' || u === 'κιλα' || u === 'κιλά') return 2;        // Κιλά
+  if (u === 'lt' || u === 'λτ' || u === 'λίτρο' || u === 'litre' || u === 'liter') return 3; // Λίτρα
   if (u === 'gr' || u === 'γρ' || u === 'γραμμάρια') return 4;
-  return 1; // default: kg
+  return 2; // default: kg
 }
 
 // ── Purpose of movement code mapping ─────────────────────────────────────────
@@ -161,12 +161,12 @@ function buildLines(lines, isDn) {
       vat_rate:                vatRate,
       vat_total:               vatAmt,
       subtotal:                subtot,
-      classification_category: 'category1_3',
+      classification_category: 'category1_1', // Έσοδα από Πώληση Εμπορευμάτων (goods/fish)
       classification_type:     'E3_561_001',
     };
 
     if (vatRate === 0) {
-      line.vat_exemption_code = 30; // Λοιπές εξαιρούμενες πράξεις
+      line.vat_exemption_code = 27; // Λοιπές Εξαιρέσεις ΦΠΑ
     }
 
     return line;
@@ -278,10 +278,10 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
       vat_rate:                vatRate,
       vat_total:               vatAmt,
       subtotal:                subtot,
-      classification_category: 'category1_3',
+      classification_category: 'category1_1', // goods/fish
       classification_type:     'E3_561_001',
     };
-    if (vatRate === 0) line.vat_exemption_code = 30;
+    if (vatRate === 0) line.vat_exemption_code = 27;
     return line;
   });
 

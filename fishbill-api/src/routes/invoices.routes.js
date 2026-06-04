@@ -68,9 +68,13 @@ function fireNotif(bizId, flag, fn, extraArgs) {
       else console.warn('[invoices] extra_invoice_credits migration failed:', e.message);
     }
   }
-  // Wrapp invoice ID column on invoices
-  await pool.execute(`ALTER TABLE invoices ADD COLUMN wrapp_invoice_id VARCHAR(255) NULL`)
-    .catch(e => { if (e.errno !== 1060) console.warn('[invoices] wrapp_invoice_id migration:', e.message); });
+  // Wrapp columns on invoices
+  for (const col of [
+    `ALTER TABLE invoices ADD COLUMN wrapp_invoice_id VARCHAR(255) NULL`,
+    `ALTER TABLE invoices ADD COLUMN wrapp_qr_url TEXT NULL`,
+  ]) {
+    await pool.execute(col).catch(e => { if (e.errno !== 1060) console.warn('[invoices] migration:', e.message); });
+  }
 })();
 
 router.use(authenticate);
