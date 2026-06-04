@@ -366,8 +366,7 @@
       const hasWeighing = parseInt(r.addon_weighing) === 1;
       const cycleMonths   = CYCLE_MONTHS[r.billing_cycle] ?? 1;
       const basePrice     = PRICING[r.plan]?.[r.billing_cycle] ?? 0;
-      const addonTotal    = (hasOspa ? 10 * cycleMonths : 0) + (hasWeighing ? 2 * cycleMonths : 0);
-      const totalExpected = basePrice + addonTotal;
+      const totalExpected = basePrice;
 
       const statusBadge = active
         ? '<span class="tag bg-emerald-100 text-emerald-700 text-sm px-3 py-1">✅ Ενεργή</span>'
