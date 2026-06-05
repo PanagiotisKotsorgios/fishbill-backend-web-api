@@ -349,7 +349,8 @@ async function cancelDeliveryNote(wrappInvoiceId, businessId) {
 // ── Initiate partner onboarding for a business ────────────────────────────────
 async function initiateOnboarding(businessId) {
   const settings  = await getSettings();
-  if (!settings.partnerKey) throw new Error('Wrapp Partner API key δεν έχει οριστεί στις ρυθμίσεις.');
+  if (!settings.partnerKey) throw new Error('Ο πάροχος ΥΠΑΗΕΣ δεν έχει ρυθμιστεί. Επικοινωνήστε με την υποστήριξη.');
+  if (!settings.webhookEndpoint) throw new Error('Το webhook endpoint δεν έχει οριστεί στις ρυθμίσεις πλατφόρμας.');
 
   const [[biz]] = await pool.execute(
     'SELECT email, name, phone FROM businesses WHERE id = ? LIMIT 1',
@@ -359,20 +360,31 @@ async function initiateOnboarding(businessId) {
 
   const payload = {
     email:            biz.email,
-    partner_user_id:  businessId,
-    phone:            biz.phone  || '',
+    partner_user_id:  String(businessId),
     webhook_endpoint: settings.webhookEndpoint,
   };
+  // phone: omit entirely if blank — empty string can trigger validation errors
+  if (biz.phone && biz.phone.trim()) payload.phone = biz.phone.trim();
 
-  const resp = await axios.post(
-    `${settings.baseUrl}/api/v1/external_login`,
-    payload,
-    { headers: { 'X-PARTNER-API-KEY': settings.partnerKey }, timeout: 15000 }
-  );
-
-  const loginUrl = resp.data?.login_url;
-  if (!loginUrl) throw new Error('Wrapp: δεν επεστράφη login_url.');
-  return { login_url: loginUrl };
+  try {
+    const resp = await axios.post(
+      `${settings.baseUrl}/api/v1/external_login`,
+      payload,
+      { headers: { 'X-PARTNER-API-KEY': settings.partnerKey, 'Content-Type': 'application/json' }, timeout: 15000 }
+    );
+    const loginUrl = resp.data?.login_url;
+    if (!loginUrl) throw new Error('Δεν επεστράφη σύνδεσμος ενεργοποίησης. Δοκιμάστε ξανά.');
+    return { login_url: loginUrl };
+  } catch (err) {
+    if (err.response) {
+      const status = err.response.status;
+      const d = err.response.data;
+      const detail = d?.message || d?.error || d?.errors?.[0]?.message || d?.errors?.[0] || JSON.stringify(d);
+      console.error(`[wrapp] initiateOnboarding ${status}:`, JSON.stringify(d));
+      throw new Error(`Σφάλμα ενεργοποίησης (${status}): ${detail}`);
+    }
+    throw err;
+  }
 }
 
 // ── Check partner user subscription status ────────────────────────────────────
