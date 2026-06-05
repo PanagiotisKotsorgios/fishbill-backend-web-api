@@ -2016,6 +2016,10 @@ router.get('/wrapp/settings', async (req, res, next) => {
     );
     const map = {};
     rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+    // Mask partner key — return first 8 chars + bullets so admin can confirm it's set without exposing it
+    const rawKey = map.wrapp_partner_api_key || '';
+    map.wrapp_partner_api_key = rawKey ? rawKey.slice(0, 8) + '●'.repeat(Math.max(0, rawKey.length - 8)) : '';
+    map.has_partner_key = rawKey.length > 0;
     res.json({ data: map });
   } catch (err) { next(err); }
 });
