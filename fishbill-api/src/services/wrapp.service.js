@@ -353,10 +353,15 @@ async function initiateOnboarding(businessId) {
   if (!settings.webhookEndpoint) throw new Error('Το webhook endpoint δεν έχει οριστεί στις ρυθμίσεις πλατφόρμας.');
 
   const [[biz]] = await pool.execute(
-    'SELECT email, name, phone FROM businesses WHERE id = ? LIMIT 1',
+    `SELECT b.name, b.phone,
+            COALESCE(NULLIF(TRIM(b.email),''), u.email) AS email
+     FROM businesses b
+     LEFT JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+     WHERE b.id = ? LIMIT 1`,
     [businessId]
   );
   if (!biz) throw new Error('Επιχείρηση δεν βρέθηκε.');
+  if (!biz.email) throw new Error('Δεν βρέθηκε email για αυτή την επιχείρηση. Συμπληρώστε το email στο προφίλ σας.');
 
   const payload = {
     email:            biz.email,
