@@ -384,8 +384,11 @@ async function initiateOnboarding(businessId) {
     if (err.response) {
       const status = err.response.status;
       const d = err.response.data;
-      const detail = d?.message || d?.error || d?.errors?.[0]?.message || d?.errors?.[0] || JSON.stringify(d);
-      console.error(`[wrapp] initiateOnboarding ${status}:`, JSON.stringify(d));
+      const isHtml = typeof d === 'string' && d.trim().startsWith('<');
+      const detail = isHtml
+        ? 'Ο διακομιστής ενεργοποίησης δεν ανταποκρίνεται. Δοκιμάστε ξανά σε λίγο.'
+        : (d?.message || d?.error || d?.errors?.[0]?.message || d?.errors?.[0] || JSON.stringify(d));
+      console.error(`[wrapp] initiateOnboarding ${status}:`, isHtml ? '(HTML response)' : JSON.stringify(d));
       throw new Error(`Σφάλμα ενεργοποίησης (${status}): ${detail}`);
     }
     throw err;
