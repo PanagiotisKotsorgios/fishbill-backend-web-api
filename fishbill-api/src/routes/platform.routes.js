@@ -69,6 +69,68 @@ router.get('/app-config', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── GET /api/platform/wrapp-ping — PUBLIC: live Wrapp connectivity diagnostic ─
+// No auth required. Does not expose the full partner key (only first 8 chars).
+// Use this to verify DB settings are correct and Wrapp API is reachable.
+router.get('/wrapp-ping', async (req, res, next) => {
+  try {
+    const axios = require('axios');
+    const [rows] = await pool.execute(
+      "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
+    );
+    const map = {};
+    rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+
+    const partnerKey      = map.wrapp_partner_api_key || '';
+    const rawBaseUrl      = map.wrapp_base_url        || '';
+    const baseUrl         = (rawBaseUrl || 'https://wrapp.ai').replace(/\/$/, '');
+    const webhookEndpoint = map.wrapp_webhook_endpoint || '';
+
+    const info = {
+      base_url_in_db:     rawBaseUrl    || '(not set — defaulting to https://wrapp.ai)',
+      base_url_used:      baseUrl,
+      partner_key_set:    !!partnerKey,
+      partner_key_prefix: partnerKey ? (partnerKey.slice(0, 8) + '...') : '(none)',
+      webhook_endpoint:   webhookEndpoint || '(not set)',
+    };
+
+    if (!partnerKey) {
+      return res.json({ ok: false, info, error: 'wrapp_partner_api_key not set in platform_settings' });
+    }
+
+    let ping;
+    try {
+      const urlObj = new URL(`${baseUrl}/api/v1/embedded_check_user`);
+      const cfg = {
+        headers: { 'X-PARTNER-API-KEY': partnerKey, 'Content-Type': 'application/json' },
+        timeout: 10000,
+        validateStatus: () => true,
+      };
+      if (urlObj.username) {
+        cfg.auth = { username: urlObj.username, password: urlObj.password };
+        urlObj.username = ''; urlObj.password = '';
+      }
+      const r = await axios.post(urlObj.toString(), { partner_user_id: '__diag__' }, cfg);
+      const isHtml = typeof r.data === 'string' && r.data.trim().startsWith('<');
+      ping = {
+        status:    r.status,
+        body_type: isHtml ? 'HTML (server returned a web page — wrong URL or auth gate?)' : 'JSON',
+        body:      isHtml ? r.data.slice(0, 300) : r.data,
+        auth_ok:   r.status !== 401 && r.status !== 403,
+        note:      r.status === 422 ? 'API responded normally (422 = user not found, expected for test call)' :
+                   r.status === 200 ? 'API responded normally (200 OK)' :
+                   r.status === 401 ? 'AUTH FAILED — wrong partner key' :
+                   r.status === 403 ? 'FORBIDDEN — check partner key' :
+                   r.status === 500 && isHtml ? 'HTML 500 — URL may be wrong or behind an HTTP auth gate' : '',
+      };
+    } catch (e) {
+      ping = { error: e.message, auth_ok: false };
+    }
+
+    res.json({ ok: ping?.auth_ok === true, info, ping });
+  } catch (err) { next(err); }
+});
+
 router.use(authenticate, requireSuperAdmin);
 
 // ── Helper: get all platform settings as key→value map ───────────────────────

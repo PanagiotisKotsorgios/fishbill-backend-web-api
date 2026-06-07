@@ -363,13 +363,17 @@ async function initiateOnboarding(businessId) {
   if (!biz) throw new Error('Επιχείρηση δεν βρέθηκε.');
   if (!biz.email) throw new Error('Δεν βρέθηκε email για αυτή την επιχείρηση. Συμπληρώστε το email στο προφίλ σας.');
 
+  // Wrapp requires phone — fail fast with a clear message so the user knows what to fix
+  if (!biz.phone || !biz.phone.trim()) {
+    throw new Error('Το τηλέφωνο επιχείρησης είναι υποχρεωτικό για την ενεργοποίηση. Παρακαλώ συμπληρώστε το στις Ρυθμίσεις → Προφίλ Επιχείρησης.');
+  }
+
   const payload = {
     email:            biz.email,
     partner_user_id:  String(businessId),
     webhook_endpoint: settings.webhookEndpoint,
+    phone:            biz.phone.trim(),
   };
-  // phone: omit entirely if blank — empty string can trigger validation errors
-  if (biz.phone && biz.phone.trim()) payload.phone = biz.phone.trim();
 
   // Build request config — support basic auth embedded in base URL (e.g. staging)
   const urlObj = new URL(`${settings.baseUrl}/api/v1/external_login`);
@@ -415,7 +419,7 @@ async function checkUserStatus(businessId) {
 
   const resp = await axios.post(
     `${settings.baseUrl}/api/v1/embedded_check_user`,
-    { partner_user_id: businessId },
+    { partner_user_id: String(businessId) },
     { headers: { 'X-PARTNER-API-KEY': settings.partnerKey }, timeout: 15000 }
   );
   return {

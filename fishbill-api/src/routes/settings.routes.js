@@ -544,4 +544,65 @@ router.post('/wrapp/initiate-onboarding', async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/settings/wrapp/test
+// Quick connectivity check: resolves DB settings and pings Wrapp API.
+// ---------------------------------------------------------------------------
+router.get('/wrapp/test', async (req, res, next) => {
+  try {
+    const pool   = require('../config/database');
+    const axios  = require('axios');
+
+    const [rows] = await pool.execute(
+      "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
+    );
+    const map = {};
+    rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+
+    const partnerKey      = map.wrapp_partner_api_key || '';
+    const rawBaseUrl      = map.wrapp_base_url || '';
+    const baseUrl         = (rawBaseUrl || 'https://wrapp.ai').replace(/\/$/, '');
+    const webhookEndpoint = map.wrapp_webhook_endpoint || '';
+
+    const info = {
+      base_url_in_db:       rawBaseUrl || '(not set — falling back to https://wrapp.ai)',
+      base_url_used:        baseUrl,
+      partner_key_set:      !!partnerKey,
+      partner_key_prefix:   partnerKey ? partnerKey.slice(0, 8) + '...' : '(none)',
+      webhook_endpoint:     webhookEndpoint || '(not set)',
+    };
+
+    if (!partnerKey) {
+      return res.json({ ok: false, info, error: 'wrapp_partner_api_key not set in platform_settings' });
+    }
+
+    // Ping: POST /api/v1/embedded_check_user with a dummy id — expect 404/422, not 401/500
+    let pingResult;
+    try {
+      const urlObj = new URL(`${baseUrl}/api/v1/embedded_check_user`);
+      const axiosConfig = {
+        headers: { 'X-PARTNER-API-KEY': partnerKey, 'Content-Type': 'application/json' },
+        timeout: 10000,
+        validateStatus: () => true, // capture any status
+      };
+      if (urlObj.username) {
+        axiosConfig.auth = { username: urlObj.username, password: urlObj.password };
+        urlObj.username = ''; urlObj.password = '';
+      }
+      const resp = await axios.post(urlObj.toString(), { partner_user_id: '__test__' }, axiosConfig);
+      const isHtml = typeof resp.data === 'string' && resp.data.trim().startsWith('<');
+      pingResult = {
+        status:    resp.status,
+        body_type: isHtml ? 'html (bad — HTTP gateway in front of API?)' : 'json',
+        body:      isHtml ? resp.data.slice(0, 200) : resp.data,
+        auth_ok:   resp.status !== 401 && resp.status !== 403,
+      };
+    } catch (pingErr) {
+      pingResult = { error: pingErr.message };
+    }
+
+    res.json({ ok: pingResult?.auth_ok === true, info, ping: pingResult });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
