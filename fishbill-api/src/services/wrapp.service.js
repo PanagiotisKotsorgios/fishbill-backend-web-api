@@ -371,13 +371,25 @@ async function initiateOnboarding(businessId) {
   // phone: omit entirely if blank — empty string can trigger validation errors
   if (biz.phone && biz.phone.trim()) payload.phone = biz.phone.trim();
 
+  // Build request config — support basic auth embedded in base URL (e.g. staging)
+  const urlObj = new URL(`${settings.baseUrl}/api/v1/external_login`);
+  const axiosConfig = {
+    headers: { 'X-PARTNER-API-KEY': settings.partnerKey, 'Content-Type': 'application/json' },
+    timeout: 15000,
+  };
+  if (urlObj.username) {
+    axiosConfig.auth = { username: urlObj.username, password: urlObj.password };
+    urlObj.username = '';
+    urlObj.password = '';
+  }
+  const endpoint = urlObj.toString();
+
+  console.log(`[wrapp] initiateOnboarding → ${endpoint}`, JSON.stringify({ ...payload, partner_key_prefix: settings.partnerKey.slice(0,8) }));
+
   try {
-    const resp = await axios.post(
-      `${settings.baseUrl}/api/v1/external_login`,
-      payload,
-      { headers: { 'X-PARTNER-API-KEY': settings.partnerKey, 'Content-Type': 'application/json' }, timeout: 15000 }
-    );
+    const resp = await axios.post(endpoint, payload, axiosConfig);
     const loginUrl = resp.data?.login_url;
+    console.log(`[wrapp] initiateOnboarding success, login_url received: ${!!loginUrl}`);
     if (!loginUrl) throw new Error('Δεν επεστράφη σύνδεσμος ενεργοποίησης. Δοκιμάστε ξανά.');
     return { login_url: loginUrl };
   } catch (err) {
@@ -388,9 +400,10 @@ async function initiateOnboarding(businessId) {
       const detail = isHtml
         ? 'Ο διακομιστής ενεργοποίησης δεν ανταποκρίνεται. Δοκιμάστε ξανά σε λίγο.'
         : (d?.message || d?.error || d?.errors?.[0]?.message || d?.errors?.[0] || JSON.stringify(d));
-      console.error(`[wrapp] initiateOnboarding ${status}:`, isHtml ? '(HTML response)' : JSON.stringify(d));
+      console.error(`[wrapp] initiateOnboarding ${status}:`, isHtml ? `(HTML response, len=${String(d).length})` : JSON.stringify(d));
       throw new Error(`Σφάλμα ενεργοποίησης (${status}): ${detail}`);
     }
+    console.error(`[wrapp] initiateOnboarding network error:`, err.message);
     throw err;
   }
 }
