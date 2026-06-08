@@ -98,9 +98,9 @@ router.get('/wrapp-ping', async (req, res, next) => {
       return res.json({ ok: false, info, error: 'wrapp_partner_api_key not set in platform_settings' });
     }
 
-    let ping;
-    try {
-      const urlObj = new URL(`${baseUrl}/api/v1/embedded_check_user`);
+    // Helper: make a test call and return a normalised result object
+    async function testEndpoint(url, body) {
+      const urlObj = new URL(url);
       const cfg = {
         headers: { 'X-PARTNER-API-KEY': partnerKey, 'Content-Type': 'application/json' },
         timeout: 10000,
@@ -110,24 +110,38 @@ router.get('/wrapp-ping', async (req, res, next) => {
         cfg.auth = { username: urlObj.username, password: urlObj.password };
         urlObj.username = ''; urlObj.password = '';
       }
-      const r = await axios.post(urlObj.toString(), { partner_user_id: '__diag__' }, cfg);
+      const r = await axios.post(urlObj.toString(), body, cfg);
       const isHtml = typeof r.data === 'string' && r.data.trim().startsWith('<');
-      ping = {
+      return {
         status:    r.status,
-        body_type: isHtml ? 'HTML (server returned a web page — wrong URL or auth gate?)' : 'JSON',
-        body:      isHtml ? r.data.slice(0, 300) : r.data,
+        body_type: isHtml ? 'HTML' : 'JSON',
+        body:      isHtml ? r.data.slice(0, 400) : r.data,
         auth_ok:   r.status !== 401 && r.status !== 403,
-        note:      r.status === 422 ? 'API responded normally (422 = user not found, expected for test call)' :
-                   r.status === 200 ? 'API responded normally (200 OK)' :
-                   r.status === 401 ? 'AUTH FAILED — wrong partner key' :
-                   r.status === 403 ? 'FORBIDDEN — check partner key' :
-                   r.status === 500 && isHtml ? 'HTML 500 — URL may be wrong or behind an HTTP auth gate' : '',
       };
-    } catch (e) {
-      ping = { error: e.message, auth_ok: false };
     }
 
-    res.json({ ok: ping?.auth_ok === true, info, ping });
+    let ping_check_user, ping_external_login;
+    try {
+      ping_check_user = await testEndpoint(
+        `${baseUrl}/api/v1/embedded_check_user`,
+        { partner_user_id: '__diag__' }
+      );
+    } catch (e) { ping_check_user = { error: e.message }; }
+
+    try {
+      ping_external_login = await testEndpoint(
+        `${baseUrl}/api/v1/external_login`,
+        {
+          email:            'diag-test@fishbill.gr',
+          partner_user_id:  '__diag_login__',
+          webhook_endpoint: webhookEndpoint || 'https://master-app.gr/api/wrapp/webhook',
+          phone:            '6900000001',
+        }
+      );
+    } catch (e) { ping_external_login = { error: e.message }; }
+
+    const ok = ping_check_user?.auth_ok === true && ping_external_login?.auth_ok === true;
+    res.json({ ok, info, ping_check_user, ping_external_login });
   } catch (err) { next(err); }
 });
 
