@@ -2184,6 +2184,19 @@ router.patch('/wrapp/toggle/:bizId', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── PATCH /api/platform/businesses/:bizId/email — set business email (Wrapp override) ─
+router.patch('/businesses/:bizId/email', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) return res.status(400).json({ error: 'Valid email required.' });
+    await pool.execute(
+      'UPDATE businesses SET email = ?, updated_at = NOW() WHERE id = ?',
+      [email.trim(), req.params.bizId]
+    );
+    res.json({ data: { message: 'Business email updated.', email: email.trim() } });
+  } catch (err) { next(err); }
+});
+
 // ── DELETE /api/platform/wrapp/clear-billing-cache/:bizId ────────────────────
 router.delete('/wrapp/clear-billing-cache/:bizId', async (req, res, next) => {
   try {
