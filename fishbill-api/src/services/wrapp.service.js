@@ -368,11 +368,17 @@ async function initiateOnboarding(businessId) {
     throw new Error('Το τηλέφωνο επιχείρησης είναι υποχρεωτικό για την ενεργοποίηση. Παρακαλώ συμπληρώστε το στις Ρυθμίσεις → Προφίλ Επιχείρησης.');
   }
 
+  // Normalize phone: strip spaces/dashes/parens, remove +30 or 0030 country prefix
+  // Wrapp staging returns HTML 500 for any format other than plain 10-digit (e.g. 6986788178)
+  let phone = biz.phone.trim().replace(/[\s\-().+]/g, '');
+  if (phone.startsWith('0030')) phone = phone.slice(4);
+  else if (phone.startsWith('30') && phone.length === 12) phone = phone.slice(2);
+
   const payload = {
     email:            biz.email,
     partner_user_id:  String(businessId),
     webhook_endpoint: settings.webhookEndpoint,
-    phone:            biz.phone.trim(),
+    phone,
   };
 
   // Build request config — support basic auth embedded in base URL (e.g. staging)

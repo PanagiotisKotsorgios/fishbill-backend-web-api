@@ -128,6 +128,14 @@ router.get('/wrapp-ping', async (req, res, next) => {
       );
     } catch (e) { ping_check_user = { error: e.message }; }
 
+    // Normalize phone the same way initiateOnboarding does
+    function normalizePhone(raw) {
+      let p = (raw || '').trim().replace(/[\s\-().+]/g, '');
+      if (p.startsWith('0030')) p = p.slice(4);
+      else if (p.startsWith('30') && p.length === 12) p = p.slice(2);
+      return p;
+    }
+
     try {
       ping_external_login = await testEndpoint(
         `${baseUrl}/api/v1/external_login`,
@@ -135,7 +143,7 @@ router.get('/wrapp-ping', async (req, res, next) => {
           email:            'diag-test@fishbill.gr',
           partner_user_id:  '__diag_login__',
           webhook_endpoint: webhookEndpoint || 'https://master-app.gr/api/wrapp/webhook',
-          phone:            '6900000001',
+          phone:            normalizePhone('+306900000001'), // test normalization in ping too
         }
       );
     } catch (e) { ping_external_login = { error: e.message }; }
