@@ -75,7 +75,7 @@ router.get('/app-config', async (req, res, next) => {
 router.get('/wrapp-ping', async (req, res, next) => {
   try {
     const axios = require('axios');
-    const server_version = 'v1.0.47-d';
+    const server_version = 'v1.0.48';
     const [rows] = await pool.execute(
       "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
     );
@@ -154,44 +154,44 @@ router.get('/wrapp-ping', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── POST /api/platform/dev-setup — one-shot test environment reset (no auth) ──
-// Uses JWT_SECRET as bearer token so only someone with prod env access can call it.
-router.post('/dev-setup', async (req, res, next) => {
+// ── POST /api/platform/dev-setup — reset super_admin password (JWT_SECRET auth) ─
+router.post('/dev-setup', async (req, res) => {
   try {
     const token = req.headers['x-setup-token'];
-    if (!token || token !== process.env.JWT_SECRET) {
-      return res.status(403).json({ error: 'Forbidden.' });
-    }
+    if (!token || token !== process.env.JWT_SECRET) return res.status(403).json({ error: 'Forbidden.' });
     const bcrypt = require('bcrypt');
-
-    // 1. Reset super_admin password to current ADMIN_PASSWORD env var
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) return res.status(500).json({ error: 'ADMIN_PASSWORD not set in env.' });
     const hash = await bcrypt.hash(adminPassword, 12);
-    const [r1] = await pool.execute(
-      "UPDATE users SET password_hash = ? WHERE role = 'super_admin'",
-      [hash]
-    );
-
-    // 2. Update business email for Wrapp staging test
-    const [r2] = await pool.execute(
-      "UPDATE businesses SET email = 'opengplms+wrapptest@gmail.com', updated_at = NOW() WHERE id = 'a0d73921-630d-11f1-806d-3ab8d1995943'"
-    );
-
-    // 3. Reset Wrapp state so full payment flow can be tested from scratch
-    const [r3] = await pool.execute(
-      "UPDATE businesses SET wrapp_enabled = 0, wrapp_api_key = NULL, wrapp_user_id = NULL, subscription_active = 0, plan = 'trial', updated_at = NOW() WHERE id = 'a0d73921-630d-11f1-806d-3ab8d1995943'"
-    );
-
-    res.json({
-      ok: true,
-      message: 'Setup complete.',
-      super_admin_rows_updated: r1.affectedRows,
-      business_email_rows:      r2.affectedRows,
-      wrapp_reset_rows:         r3.affectedRows,
-    });
+    const [r1] = await pool.execute("UPDATE users SET password_hash = ? WHERE role = 'super_admin'", [hash]);
+    res.json({ ok: true, super_admin_rows_updated: r1.affectedRows });
   } catch (err) {
-    return res.status(500).json({ error: err.message, code: err.code || null, stack: err.stack ? err.stack.split('\n').slice(0,3) : null });
+    return res.status(500).json({ error: err.message, code: err.code || null });
+  }
+});
+
+// ── POST /api/platform/dev-cleanup — delete test businesses/users (JWT_SECRET auth) ─
+// Deletes by business ID list. Also deletes associated users + business_settings.
+router.post('/dev-cleanup', async (req, res) => {
+  try {
+    const token = req.headers['x-setup-token'];
+    if (!token || token !== process.env.JWT_SECRET) return res.status(403).json({ error: 'Forbidden.' });
+
+    // IDs to delete (test businesses created during staging tests)
+    const bizIds = (req.body.ids || [
+      '5d000557-633e-11f1-958f-0ae58a65029f',  // nolifeprogrammer1+wrapptest
+    ]).filter(Boolean);
+
+    const results = [];
+    for (const id of bizIds) {
+      await pool.execute('DELETE FROM business_settings WHERE business_id = ?', [id]);
+      const [ru] = await pool.execute('DELETE FROM users WHERE business_id = ?', [id]);
+      const [rb] = await pool.execute('DELETE FROM businesses WHERE id = ?', [id]);
+      results.push({ id, users_deleted: ru.affectedRows, business_deleted: rb.affectedRows });
+    }
+    res.json({ ok: true, results });
+  } catch (err) {
+    return res.status(500).json({ error: err.message, code: err.code || null });
   }
 });
 
