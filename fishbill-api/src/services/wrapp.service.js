@@ -394,7 +394,7 @@ async function initiateOnboarding(businessId) {
   }
   const endpoint = urlObj.toString();
 
-  console.log(`[wrapp] initiateOnboarding → ${endpoint}`, JSON.stringify({ ...payload, partner_key_prefix: settings.partnerKey.slice(0,8) }));
+  console.log(`[wrapp] initiateOnboarding → ${endpoint} payload=${JSON.stringify({ ...payload, partner_key_prefix: settings.partnerKey.slice(0,8) })}`);
 
   try {
     const resp = await axios.post(endpoint, payload, axiosConfig);

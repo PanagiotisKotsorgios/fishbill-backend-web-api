@@ -75,6 +75,7 @@ router.get('/app-config', async (req, res, next) => {
 router.get('/wrapp-ping', async (req, res, next) => {
   try {
     const axios = require('axios');
+    const server_version = 'v1.0.46';
     const [rows] = await pool.execute(
       "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
     );
@@ -149,7 +150,7 @@ router.get('/wrapp-ping', async (req, res, next) => {
     } catch (e) { ping_external_login = { error: e.message }; }
 
     const ok = ping_check_user?.auth_ok === true && ping_external_login?.auth_ok === true;
-    res.json({ ok, info, ping_check_user, ping_external_login });
+    res.json({ ok, server_version, info, ping_check_user, ping_external_login });
   } catch (err) { next(err); }
 });
 
