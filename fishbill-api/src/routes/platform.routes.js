@@ -75,7 +75,7 @@ router.get('/app-config', async (req, res, next) => {
 router.get('/wrapp-ping', async (req, res, next) => {
   try {
     const axios = require('axios');
-    const server_version = 'v1.0.46';
+    const server_version = 'v1.0.47';
     const [rows] = await pool.execute(
       "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
     );
@@ -151,6 +151,45 @@ router.get('/wrapp-ping', async (req, res, next) => {
 
     const ok = ping_check_user?.auth_ok === true && ping_external_login?.auth_ok === true;
     res.json({ ok, server_version, info, ping_check_user, ping_external_login });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/dev-setup — one-shot test environment reset (no auth) ──
+// Uses JWT_SECRET as bearer token so only someone with prod env access can call it.
+router.post('/dev-setup', async (req, res, next) => {
+  try {
+    const token = req.headers['x-setup-token'];
+    if (!token || token !== process.env.JWT_SECRET) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+    const bcrypt = require('bcrypt');
+
+    // 1. Reset super_admin password to current ADMIN_PASSWORD env var
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) return res.status(500).json({ error: 'ADMIN_PASSWORD not set in env.' });
+    const hash = await bcrypt.hash(adminPassword, 12);
+    const [r1] = await pool.execute(
+      "UPDATE users SET password_hash = ? WHERE role = 'super_admin'",
+      [hash]
+    );
+
+    // 2. Update business email for Wrapp staging test
+    const [r2] = await pool.execute(
+      "UPDATE businesses SET email = 'opengplms+wrapptest@gmail.com', updated_at = NOW() WHERE id = 'a0d73921-630d-11f1-806d-3ab8d1995943'"
+    );
+
+    // 3. Reset Wrapp state so full payment flow can be tested from scratch
+    const [r3] = await pool.execute(
+      "UPDATE businesses SET wrapp_enabled = 0, wrapp_api_key = NULL, wrapp_user_id = NULL, wrapp_qr_url = NULL, subscription_active = 0, plan = 'trial', updated_at = NOW() WHERE id = 'a0d73921-630d-11f1-806d-3ab8d1995943'"
+    );
+
+    res.json({
+      ok: true,
+      message: 'Setup complete.',
+      super_admin_rows_updated: r1.affectedRows,
+      business_email_rows:      r2.affectedRows,
+      wrapp_reset_rows:         r3.affectedRows,
+    });
   } catch (err) { next(err); }
 });
 
