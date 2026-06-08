@@ -180,7 +180,7 @@ router.post('/dev-setup', async (req, res, next) => {
 
     // 3. Reset Wrapp state so full payment flow can be tested from scratch
     const [r3] = await pool.execute(
-      "UPDATE businesses SET wrapp_enabled = 0, wrapp_api_key = NULL, wrapp_user_id = NULL, wrapp_qr_url = NULL, subscription_active = 0, plan = 'trial', updated_at = NOW() WHERE id = 'a0d73921-630d-11f1-806d-3ab8d1995943'"
+      "UPDATE businesses SET wrapp_enabled = 0, wrapp_api_key = NULL, wrapp_user_id = NULL, subscription_active = 0, plan = 'trial', updated_at = NOW() WHERE id = 'a0d73921-630d-11f1-806d-3ab8d1995943'"
     );
 
     res.json({
