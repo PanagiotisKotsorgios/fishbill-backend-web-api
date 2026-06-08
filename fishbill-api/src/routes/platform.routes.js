@@ -190,7 +190,9 @@ router.post('/dev-setup', async (req, res, next) => {
       business_email_rows:      r2.affectedRows,
       wrapp_reset_rows:         r3.affectedRows,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    return res.status(500).json({ error: err.message, code: err.code || null, stack: err.stack ? err.stack.split('\n').slice(0,3) : null });
+  }
 });
 
 router.use(authenticate, requireSuperAdmin);
