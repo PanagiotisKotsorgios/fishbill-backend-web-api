@@ -75,7 +75,7 @@ router.get('/app-config', async (req, res, next) => {
 router.get('/wrapp-ping', async (req, res, next) => {
   try {
     const axios = require('axios');
-    const server_version = 'v1.0.48';
+    const server_version = 'v1.0.49';
     const [rows] = await pool.execute(
       "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
     );
