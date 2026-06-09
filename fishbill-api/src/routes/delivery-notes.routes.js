@@ -14,7 +14,7 @@ const { validate }     = require('../middleware/validate');
 
 const DN_PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
 
-const _dnLogFile = path.join(__dirname, '../logs/wrapp.log');
+const _dnLogFile = path.join(__dirname, '../../logs/wrapp.log');
 try { fs.mkdirSync(path.dirname(_dnLogFile), { recursive: true }); } catch (_) {}
 function dnlog(level, msg, data) {
   const ts   = new Date().toISOString();
