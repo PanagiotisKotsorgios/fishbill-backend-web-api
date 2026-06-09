@@ -428,8 +428,12 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: 'Δεν είναι δυνατή η διαγραφή λόγω συνδεδεμένων εγγραφών.' });
   }
 
+  // MySQL: unknown column (missing migration)
+  if (err.code === 'ER_BAD_FIELD_ERROR') {
+    return res.status(500).json({ error: 'Σφάλμα βάσης δεδομένων: λείπει στήλη. Επικοινωνήστε με την υποστήριξη.' });
+  }
   // MySQL: connection lost / timeout
-  if (err.code && err.code.startsWith('ER_') ) {
+  if (err.code && err.code.startsWith('ER_')) {
     return res.status(503).json({ error: 'Πρόβλημα σύνδεσης με τη βάση δεδομένων. Δοκιμάστε ξανά.' });
   }
 
