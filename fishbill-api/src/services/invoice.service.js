@@ -112,10 +112,7 @@ async function transmit(invoice) {
     ilog('DEBUG', 'fetched invoice lines', { invoice_id: invoice.id, line_count: lineRows.length });
 
     const [bizRows] = await pool.execute(
-      `SELECT b.*, bs.mydata_user_id, bs.mydata_subscription_key
-       FROM businesses b
-       LEFT JOIN business_settings bs ON bs.business_id = b.id
-       WHERE b.id = ? LIMIT 1`,
+      `SELECT b.* FROM businesses b WHERE b.id = ? LIMIT 1`,
       [invoice.business_id]
     );
     const biz = bizRows[0] || {};
@@ -158,9 +155,9 @@ async function transmit(invoice) {
       ilog('INFO', 'DB invoices updated to transmitted', { invoice_id: invoice.id, affected: updateResult?.affectedRows });
 
       await pool.execute(
-        `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)
-         VALUES (?, ?, 'success', ?, NOW(), NOW())`,
-        [invoice.id, invoice.business_id, `MARK: ${result.mark} | WRAPP_ID: ${result.wrapp_invoice_id} | PROVIDER: wrapp`]
+        `INSERT INTO transmission_logs (invoice_id, status, response_message, attempted_at, created_at)
+         VALUES (?, 'success', ?, NOW(), NOW())`,
+        [invoice.id, `MARK: ${result.mark} | WRAPP_ID: ${result.wrapp_invoice_id} | PROVIDER: wrapp`]
       ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
 
       ilog('INFO', 'invoice transmission SUCCESS via Wrapp', { invoice_id: invoice.id, mark: result.mark });
@@ -182,9 +179,9 @@ async function transmit(invoice) {
         [etResult.mark, etResult.qrUrl || null, etResult.uid || null, invoice.id]
       );
       await pool.execute(
-        `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)
-         VALUES (?, ?, 'success', ?, NOW(), NOW())`,
-        [invoice.id, invoice.business_id, `MARK: ${etResult.mark} | UID: ${etResult.uid} | ENV: ${etResult.testMode ? 'TEST' : 'PROD'}`]
+        `INSERT INTO transmission_logs (invoice_id, status, response_message, attempted_at, created_at)
+         VALUES (?, 'success', ?, NOW(), NOW())`,
+        [invoice.id, `MARK: ${etResult.mark} | UID: ${etResult.uid} | ENV: ${etResult.testMode ? 'TEST' : 'PROD'}`]
       );
       ilog('INFO', 'invoice transmission SUCCESS via e-Timologiera', { invoice_id: invoice.id, mark: etResult.mark });
       return { success: true, mark: etResult.mark, qrUrl: etResult.qrUrl, uid: etResult.uid, testMode: etResult.testMode };
@@ -196,9 +193,9 @@ async function transmit(invoice) {
     const message = err.message || String(err);
     ilog('ERROR', 'transmit() caught error — marking invoice failed', { invoice_id: invoice.id, error: message });
     await pool.execute(
-      `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)
-       VALUES (?, ?, 'failed', ?, NOW(), NOW())`,
-      [invoice.id, invoice.business_id, message]
+      `INSERT INTO transmission_logs (invoice_id, status, response_message, attempted_at, created_at)
+       VALUES (?, 'failed', ?, NOW(), NOW())`,
+      [invoice.id, message]
     );
     await pool.execute(
       `UPDATE invoices SET status='failed', last_error=?, retry_count=retry_count+1, updated_at=NOW() WHERE id=?`,
