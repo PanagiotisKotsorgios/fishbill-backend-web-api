@@ -131,7 +131,7 @@ async function runAutoTransmit() {
       const [notes] = await pool.execute(
         `SELECT dn.*
          FROM delivery_notes dn
-         WHERE dn.business_id = ? AND dn.status IN ('issued','draft') ORDER BY dn.created_at ASC LIMIT 20`,
+         WHERE dn.business_id = ? AND dn.status IN ('issued','draft','failed') ORDER BY dn.created_at ASC LIMIT 20`,
         [biz.id]
       );
       if (notes.length) {
