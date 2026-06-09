@@ -2225,6 +2225,41 @@ router.patch('/wrapp/toggle/:bizId', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── GET /api/platform/wrapp/credentials/:bizId — fetch current Wrapp credentials ─
+router.get('/wrapp/credentials/:bizId', authenticate, requireSuperAdmin, async (req, res, next) => {
+  try {
+    const [[biz]] = await pool.execute(
+      'SELECT wrapp_api_key, wrapp_user_id, wrapp_partner_user_id FROM businesses WHERE id = ? LIMIT 1',
+      [req.params.bizId]
+    );
+    if (!biz) return res.status(404).json({ error: 'Business not found.' });
+    res.json({ data: {
+      wrapp_api_key:        biz.wrapp_api_key        || null,
+      wrapp_user_id:        biz.wrapp_user_id         || null,
+      wrapp_partner_user_id: biz.wrapp_partner_user_id || null,
+    }});
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/wrapp/credentials/:bizId — manually set Wrapp credentials ─
+router.post('/wrapp/credentials/:bizId', authenticate, requireSuperAdmin, async (req, res, next) => {
+  try {
+    const { wrapp_api_key, wrapp_user_id, wrapp_partner_user_id } = req.body;
+    if (!wrapp_api_key || !wrapp_api_key.trim()) {
+      return res.status(400).json({ error: 'wrapp_api_key is required.' });
+    }
+    await pool.execute(
+      `UPDATE businesses
+       SET wrapp_api_key = ?, wrapp_user_id = ?, wrapp_partner_user_id = ?, updated_at = NOW()
+       WHERE id = ?`,
+      [wrapp_api_key.trim(), wrapp_user_id?.trim() || null, wrapp_partner_user_id?.trim() || null, req.params.bizId]
+    );
+    // Invalidate any cached credentials in wrapp.service
+    try { require('../services/wrapp.service').invalidateCache(req.params.bizId); } catch (_) {}
+    res.json({ data: { message: 'Wrapp credentials αποθηκεύτηκαν επιτυχώς.' } });
+  } catch (err) { next(err); }
+});
+
 // ── PATCH /api/platform/businesses/:bizId/email — set business email (Wrapp override) ─
 router.patch('/businesses/:bizId/email', async (req, res, next) => {
   try {
