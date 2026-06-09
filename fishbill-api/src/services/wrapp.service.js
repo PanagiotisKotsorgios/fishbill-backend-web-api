@@ -33,10 +33,13 @@ async function getSettings() {
 
 async function getBusinessCredentials(businessId) {
   const [[biz]] = await pool.execute(
-    `SELECT wrapp_api_key, wrapp_user_id, wrapp_enabled,
-            wrapp_billing_book_dn_id, wrapp_billing_book_inv_id,
-            email, name, afm, address, city, postal_code, phone
-     FROM businesses WHERE id = ? LIMIT 1`,
+    `SELECT b.wrapp_api_key, b.wrapp_user_id, b.wrapp_enabled,
+            b.wrapp_billing_book_dn_id, b.wrapp_billing_book_inv_id,
+            b.name, b.afm, b.address, b.city, b.postal_code, b.phone,
+            COALESCE(NULLIF(TRIM(b.email),''), u.email) AS email
+     FROM businesses b
+     LEFT JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+     WHERE b.id = ? LIMIT 1`,
     [businessId]
   );
   if (!biz) throw new Error('Επιχείρηση δεν βρέθηκε.');
@@ -45,18 +48,28 @@ async function getBusinessCredentials(businessId) {
   return biz;
 }
 
-/** Login with api_key → JWT (cached for 23 h) */
+/** Login with api_key + email → JWT (cached for 23 h) */
 async function getJwt(businessId) {
   const cached = jwtCache[businessId];
   if (cached && cached.expiresAt > Date.now()) return cached.jwt;
 
-  const biz       = await getBusinessCredentials(businessId);
-  const settings  = await getSettings();
+  const biz      = await getBusinessCredentials(businessId);
+  const settings = await getSettings();
 
+  // Parse basic auth credentials embedded in baseUrl (used in staging gated envs)
+  const urlObj = new URL(`${settings.baseUrl}/api/v1/login`);
+  const axiosConfig = { timeout: 15000 };
+  if (urlObj.username) {
+    axiosConfig.auth = { username: decodeURIComponent(urlObj.username), password: decodeURIComponent(urlObj.password) };
+    urlObj.username  = '';
+    urlObj.password  = '';
+  }
+
+  // Wrapp login accepts email OR wrapp_user_id — email is simpler and always available
   const resp = await axios.post(
-    `${settings.baseUrl}/api/v1/login`,
-    { api_key: biz.wrapp_api_key, wrapp_user_id: biz.wrapp_user_id },
-    { timeout: 15000 }
+    urlObj.toString(),
+    { api_key: biz.wrapp_api_key, email: biz.email },
+    axiosConfig
   );
   const jwt = resp.data?.data?.attributes?.jwt;
   if (!jwt) throw new Error('Αποτυχία σύνδεσης Wrapp: δεν επεστράφη JWT.');

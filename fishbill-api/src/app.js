@@ -12,6 +12,94 @@ const app = express();
 // correct IP detection when running behind a proxy
 app.set('trust proxy', 1);
 
+// ── Wrapp webhook — registered BEFORE CORS/rate-limit middleware ──────────────
+// Wrapp servers may send an Origin header we don't know in advance; bypassing
+// CORS for this single endpoint avoids HTTP 500 CORS rejections.
+// Body parsers are applied inline so this handler is self-contained.
+app.post('/api/wrapp/webhook',
+  express.json(),
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    try {
+      console.log('[wrapp webhook] raw body:', JSON.stringify(req.body));
+      const { wrapp_user_id, partner_user_id, api_key } = req.body || {};
+      if (!api_key) {
+        console.log('[wrapp webhook] missing api_key — body was:', JSON.stringify(req.body));
+        return res.status(400).json({ error: 'Missing api_key.' });
+      }
+      const pool  = require('./config/database');
+      const wrapp = require('./services/wrapp.service');
+
+      // Resolve business: Wrapp echoes our partner_user_id (UUID).
+      // Fallback: look up by owner email if partner_user_id doesn't match directly.
+      let resolvedBizId = null;
+      if (partner_user_id) {
+        const [[byId]] = await pool.execute(
+          'SELECT id FROM businesses WHERE id = ? LIMIT 1', [partner_user_id]
+        );
+        if (byId) {
+          resolvedBizId = byId.id;
+        } else if (wrapp_user_id) {
+          const [[byEmail]] = await pool.execute(
+            `SELECT b.id FROM businesses b
+             JOIN users u ON u.business_id = b.id AND u.role = 'owner'
+             WHERE u.email = ? OR b.email = ? LIMIT 1`,
+            [wrapp_user_id, wrapp_user_id]
+          );
+          if (byEmail) resolvedBizId = byEmail.id;
+        }
+      }
+
+      if (!resolvedBizId) {
+        console.error(`[wrapp webhook] Cannot resolve business — partner_user_id=${partner_user_id} wrapp_user_id=${wrapp_user_id}`);
+        return res.json({ ok: false, error: 'Business not found.' });
+      }
+
+      await pool.execute(
+        `UPDATE businesses
+         SET wrapp_api_key = ?, wrapp_user_id = ?, wrapp_enabled = 1, updated_at = NOW()
+         WHERE id = ?`,
+        [api_key, wrapp_user_id || null, resolvedBizId]
+      );
+      wrapp.invalidateCache(resolvedBizId);
+      console.log(`[wrapp webhook] Credentials saved for business ${resolvedBizId} (partner_user_id=${partner_user_id})`);
+
+      try {
+        const [[bizRow]] = await pool.execute(
+          'SELECT subscription_active, COALESCE(is_first_subscription, 1) AS is_first FROM businesses WHERE id = ? LIMIT 1',
+          [resolvedBizId]
+        );
+        if (bizRow && !bizRow.subscription_active) {
+          const isFirst    = bizRow.is_first === 1;
+          const monthCount = 12 + (isFirst ? 1 : 0);
+          const endDate    = new Date();
+          endDate.setMonth(endDate.getMonth() + monthCount);
+          await pool.execute(
+            `UPDATE businesses SET subscription_active = 1, plan = 'pro', billing_cycle = 'annual',
+             subscription_ends_at = ?, is_first_subscription = 0, updated_at = NOW()
+             WHERE id = ? AND subscription_active = 0`,
+            [endDate, resolvedBizId]
+          );
+          await pool.execute(
+            `INSERT INTO business_settings (business_id, feature_ospa, feature_weighing_slips)
+             VALUES (?, 1, 1)
+             ON DUPLICATE KEY UPDATE feature_ospa = 1, feature_weighing_slips = 1`,
+            [resolvedBizId]
+          );
+          console.log(`[wrapp webhook] Subscription auto-activated for business ${resolvedBizId} (${monthCount} months, first=${isFirst})`);
+        }
+      } catch (activateErr) {
+        console.error('[wrapp webhook] Auto-activate error:', activateErr.message);
+      }
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('[wrapp webhook] Error:', err.message);
+      res.status(500).json({ error: 'Internal error.' });
+    }
+  }
+);
+
 // ── Security headers (with HSTS + CSP) ───────────────────────────────────────
 app.use(helmet({
   // HTTP Strict Transport Security — tell browsers to only use HTTPS for 1 year
@@ -193,101 +281,6 @@ app.get('/api/status', async (req, res) => {
       message: map.maintenance_message || 'Εκτελούνται εργασίες συντήρησης. Σύντομα θα είμαστε πάλι κοντά σας.',
     });
   } catch { res.json({ maintenance: false, message: '' }); }
-});
-
-// ── Wrapp Partner webhook (no auth — called by Wrapp servers after onboarding) ─
-// POST /api/wrapp/webhook  { wrapp_user_id, partner_user_id (=business_id), api_key }
-app.post('/api/wrapp/webhook', async (req, res) => {
-  try {
-    console.log('[wrapp webhook] raw body:', JSON.stringify(req.body));
-    const { wrapp_user_id, partner_user_id, api_key } = req.body || {};
-    if (!api_key) {
-      console.log('[wrapp webhook] missing api_key — rejecting. body was:', JSON.stringify(req.body));
-      return res.status(400).json({ error: 'Missing api_key.' });
-    }
-    const pool  = require('./config/database');
-    const wrapp = require('./services/wrapp.service');
-
-    // Resolve which business this webhook belongs to.
-    // Wrapp should echo our partner_user_id (which is our UUID business id),
-    // but some environments send their own internal integer — handle both cases.
-    let resolvedBizId = null;
-
-    if (partner_user_id) {
-      // First try: direct match by our business id (UUID)
-      const [[byId]] = await pool.execute(
-        'SELECT id FROM businesses WHERE id = ? LIMIT 1', [partner_user_id]
-      );
-      if (byId) {
-        resolvedBizId = byId.id;
-      } else {
-        // Second try: look up by email sent during onboarding (wrapp_user_id is the user's email)
-        if (wrapp_user_id) {
-          const [[byEmail]] = await pool.execute(
-            `SELECT b.id FROM businesses b
-             JOIN users u ON u.business_id = b.id AND u.role = 'owner'
-             WHERE u.email = ? OR b.email = ? LIMIT 1`,
-            [wrapp_user_id, wrapp_user_id]
-          );
-          if (byEmail) resolvedBizId = byEmail.id;
-        }
-      }
-    }
-
-    if (!resolvedBizId) {
-      console.error(`[wrapp webhook] Cannot resolve business for partner_user_id=${partner_user_id} wrapp_user_id=${wrapp_user_id}`);
-      // Still return 200 so Wrapp doesn't keep retrying; log for manual review
-      return res.json({ ok: false, error: 'Business not found.' });
-    }
-
-    // Save credentials
-    await pool.execute(
-      `UPDATE businesses
-       SET wrapp_api_key = ?, wrapp_user_id = ?, wrapp_enabled = 1, updated_at = NOW()
-       WHERE id = ?`,
-      [api_key, wrapp_user_id || null, resolvedBizId]
-    );
-    wrapp.invalidateCache(resolvedBizId);
-    console.log(`[wrapp webhook] Credentials saved for business ${resolvedBizId} (partner_user_id=${partner_user_id})`);
-
-    // Auto-activate FishBill subscription
-    try {
-      const [[bizRow]] = await pool.execute(
-        'SELECT subscription_active, COALESCE(is_first_subscription, 1) AS is_first FROM businesses WHERE id = ? LIMIT 1',
-        [resolvedBizId]
-      );
-      if (bizRow && !bizRow.subscription_active) {
-        const isFirst    = bizRow.is_first === 1;
-        const monthCount = 12 + (isFirst ? 1 : 0);
-        const endDate    = new Date();
-        endDate.setMonth(endDate.getMonth() + monthCount);
-
-        await pool.execute(
-          `UPDATE businesses
-           SET subscription_active = 1, plan = 'pro', billing_cycle = 'annual',
-               subscription_ends_at = ?, is_first_subscription = 0, updated_at = NOW()
-           WHERE id = ? AND subscription_active = 0`,
-          [endDate, resolvedBizId]
-        );
-
-        await pool.execute(
-          `INSERT INTO business_settings (business_id, feature_ospa, feature_weighing_slips)
-           VALUES (?, 1, 1)
-           ON DUPLICATE KEY UPDATE feature_ospa = 1, feature_weighing_slips = 1`,
-          [resolvedBizId]
-        );
-
-        console.log(`[wrapp webhook] Subscription auto-activated for business ${resolvedBizId} (${monthCount} months, first=${isFirst})`);
-      }
-    } catch (activateErr) {
-      console.error('[wrapp webhook] Auto-activate error:', activateErr.message);
-    }
-
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('[wrapp webhook] Error:', err.message);
-    res.status(500).json({ error: 'Internal error.' });
-  }
 });
 
 // ── Health check (with DB ping) ───────────────────────────────────────────────
