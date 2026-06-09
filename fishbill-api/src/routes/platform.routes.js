@@ -75,7 +75,7 @@ router.get('/app-config', async (req, res, next) => {
 router.get('/wrapp-ping', async (req, res, next) => {
   try {
     const axios = require('axios');
-    const server_version = 'v1.0.50';
+    const server_version = 'v1.0.51';
     const [rows] = await pool.execute(
       "SELECT setting_key, setting_value FROM platform_settings WHERE setting_key IN ('wrapp_partner_api_key','wrapp_base_url','wrapp_webhook_endpoint')"
     );
@@ -2249,6 +2249,44 @@ router.delete('/wrapp/clear-billing-cache/:bizId', async (req, res, next) => {
     const wrapp = require('../services/wrapp.service');
     wrapp.invalidateCache(req.params.bizId);
     res.json({ data: { message: 'Cache billing books εκκαθαρίστηκε.' } });
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/platform/wrapp/logs — stream wrapp.log content ──────────────────
+// ?tail=N  return last N lines (default 500, max 5000)
+// ?from_line=N  return only lines starting at line N (for incremental polling)
+router.get('/wrapp/logs', async (req, res, next) => {
+  try {
+    const LOG_FILE = path.join(__dirname, '../../logs/wrapp.log');
+    if (!fs.existsSync(LOG_FILE)) {
+      return res.json({ lines: [], total_lines: 0, log_exists: false });
+    }
+
+    const tail      = Math.min(5000, Math.max(1, parseInt(req.query.tail) || 500));
+    const fromLine  = parseInt(req.query.from_line) || 0;
+
+    const raw    = fs.readFileSync(LOG_FILE, 'utf8');
+    const allLines = raw.split('\n').filter(l => l.trim() !== '');
+    const total  = allLines.length;
+
+    let lines;
+    if (fromLine > 0) {
+      lines = allLines.slice(fromLine);
+    } else {
+      lines = allLines.slice(-tail);
+    }
+
+    const size = fs.statSync(LOG_FILE).size;
+    res.json({ lines, total_lines: total, log_size_bytes: size, log_exists: true });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/platform/wrapp/logs/clear — truncate wrapp.log ─────────────────
+router.post('/wrapp/logs/clear', async (req, res, next) => {
+  try {
+    const LOG_FILE = path.join(__dirname, '../../logs/wrapp.log');
+    if (fs.existsSync(LOG_FILE)) fs.writeFileSync(LOG_FILE, '');
+    res.json({ data: { message: 'Το αρχείο log εκκαθαρίστηκε.' } });
   } catch (err) { next(err); }
 });
 

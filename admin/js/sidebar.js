@@ -90,6 +90,7 @@ const NAV_GROUPS = [
       { href: 'reminders.html',   icon: 'fa-bell-ring',         label: 'Υπενθυμίσεις SMS',    roles: ['super_admin'] },
       { href: 'platform.html',    icon: 'fa-server',            label: 'Πλατφόρμα',           roles: ['super_admin'] },
       { href: 'emails.html',      icon: 'fa-paper-plane',       label: 'Email & Campaigns',   roles: ['super_admin'] },
+      { href: 'wrapp-logs.html',  icon: 'fa-scroll',            label: 'Wrapp Logs',          roles: ['super_admin'] },
     ],
   },
 ];

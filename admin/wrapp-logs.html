@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishBill – Wrapp Logs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%230A5568' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%230B7285' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2338BEC9' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%23064E60'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .anim { animation: fadeUp .3s ease-out both; }
+
+    #log-container {
+      background: #0d1117;
+      border-radius: 12px;
+      padding: 16px;
+      height: calc(100vh - 220px);
+      min-height: 400px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      border: 1px solid #30363d;
+      scroll-behavior: smooth;
+    }
+    #log-container::-webkit-scrollbar { width: 6px; }
+    #log-container::-webkit-scrollbar-track { background: #0d1117; }
+    #log-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    #log-container::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+    .log-line { display: block; padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+    .log-line:hover { background: rgba(255,255,255,.04); border-radius: 4px; }
+
+    .lvl-INFO  { color: #3fb950; }
+    .lvl-DEBUG { color: #8b949e; }
+    .lvl-WARN  { color: #d29922; }
+    .lvl-ERROR { color: #f85149; }
+    .lvl-ts    { color: #484f58; }
+    .lvl-tag   { color: #58a6ff; font-weight: 500; }
+    .lvl-msg   { color: #e6edf3; }
+
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+    }
+    .live-badge.on  { background: rgba(63,185,80,.15); color: #3fb950; border: 1px solid rgba(63,185,80,.3); }
+    .live-badge.off { background: rgba(248,81,73,.12); color: #f85149; border: 1px solid rgba(248,81,73,.3); }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .pulse-dot { width:7px; height:7px; border-radius:50%; animation: pulse-dot 1.4s ease-in-out infinite; }
+    .pulse-dot.green  { background: #3fb950; }
+    .pulse-dot.red    { background: #f85149; animation: none; }
+
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .15s; }
+    .btn:active { transform:scale(.97); }
+    .btn-ghost  { background:#f1f5f9; color:#475569; }
+    .btn-ghost:hover { background:#e2e8f0; }
+    .btn-danger { background:#fee2e2; color:#dc2626; }
+    .btn-danger:hover { background:#fecaca; }
+
+    .filter-btn { padding:5px 12px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; border:none; transition:all .15s; opacity:.55; }
+    .filter-btn.active { opacity:1; }
+    .filter-btn-all   { background:#e2e8f0; color:#475569; }
+    .filter-btn-all.active { background:#1d4ed8; color:#fff; }
+    .filter-btn-info  { background:rgba(63,185,80,.15);  color:#3fb950; }
+    .filter-btn-info.active  { background:rgba(63,185,80,.3); }
+    .filter-btn-debug { background:rgba(139,148,158,.15); color:#8b949e; }
+    .filter-btn-debug.active { background:rgba(139,148,158,.3); }
+    .filter-btn-warn  { background:rgba(210,153,34,.15);  color:#d29922; }
+    .filter-btn-warn.active  { background:rgba(210,153,34,.3); }
+    .filter-btn-error { background:rgba(248,81,73,.15);   color:#f85149; }
+    .filter-btn-error.active { background:rgba(248,81,73,.3); }
+
+    .stat-chip { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="sidebar-container"></div>
+
+<div class="pt-14 lg:pt-0 min-h-screen">
+  <main class="p-6">
+
+    <!-- Header -->
+    <div class="mb-5 anim flex items-start justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <i class="fas fa-scroll text-blue-600"></i> Wrapp Logs
+        </h1>
+        <p class="text-sm text-gray-500 mt-0.5">Ζωντανή παρακολούθηση αρχείου wrapp.log — όλες οι επικοινωνίες με το Wrapp API</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span id="live-badge" class="live-badge on"><span class="pulse-dot green"></span>LIVE</span>
+        <button class="btn btn-ghost" onclick="toggleLive()"><i class="fas fa-pause" id="toggle-icon"></i> <span id="toggle-label">Παύση</span></button>
+        <button class="btn btn-ghost" onclick="reload()"><i class="fas fa-rotate-right"></i> Ανανέωση</button>
+        <button class="btn btn-ghost" onclick="downloadLog()"><i class="fas fa-download"></i> Download</button>
+        <button class="btn btn-danger" onclick="clearLog()"><i class="fas fa-trash"></i> Εκκαθάριση</button>
+      </div>
+    </div>
+
+    <!-- Stats + filters row -->
+    <div class="mb-3 anim flex flex-wrap items-center gap-3" style="animation-delay:.05s">
+      <span class="stat-chip bg-gray-100 text-gray-600"><i class="fas fa-list-ol text-gray-400"></i> <span id="stat-total">–</span> γραμμές</span>
+      <span class="stat-chip bg-gray-100 text-gray-600"><i class="fas fa-hdd text-gray-400"></i> <span id="stat-size">–</span></span>
+      <span class="stat-chip" style="background:rgba(63,185,80,.12);color:#3fb950"><i class="fas fa-circle-info"></i> <span id="stat-info">0</span> INFO</span>
+      <span class="stat-chip" style="background:rgba(210,153,34,.12);color:#d29922"><i class="fas fa-triangle-exclamation"></i> <span id="stat-warn">0</span> WARN</span>
+      <span class="stat-chip" style="background:rgba(248,81,73,.12);color:#f85149"><i class="fas fa-xmark-circle"></i> <span id="stat-error">0</span> ERROR</span>
+      <span class="stat-chip" style="background:rgba(139,148,158,.12);color:#8b949e"><i class="fas fa-bug"></i> <span id="stat-debug">0</span> DEBUG</span>
+      <div class="ml-auto flex items-center gap-1.5">
+        <span class="text-xs text-gray-400 mr-1">Φίλτρο:</span>
+        <button class="filter-btn filter-btn-all active"  onclick="setFilter('')">Όλα</button>
+        <button class="filter-btn filter-btn-info"  onclick="setFilter('INFO')">INFO</button>
+        <button class="filter-btn filter-btn-debug" onclick="setFilter('DEBUG')">DEBUG</button>
+        <button class="filter-btn filter-btn-warn"  onclick="setFilter('WARN')">WARN</button>
+        <button class="filter-btn filter-btn-error" onclick="setFilter('ERROR')">ERROR</button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="mb-3 anim" style="animation-delay:.08s">
+      <div class="relative">
+        <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <input id="search-input" type="text" placeholder="Αναζήτηση στα logs…"
+          class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+          oninput="applyDisplayFilter()" />
+        <span id="match-count" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hidden"></span>
+      </div>
+    </div>
+
+    <!-- Log viewer -->
+    <div class="anim" style="animation-delay:.1s">
+      <div id="log-container">
+        <span class="log-line lvl-DEBUG">Φόρτωση logs…</span>
+      </div>
+    </div>
+
+    <!-- Footer info -->
+    <div class="mt-2 flex items-center justify-between text-xs text-gray-400">
+      <span id="last-update">–</span>
+      <span>Αυτόματη ανανέωση κάθε <strong>2 δευτ.</strong> · αρχείο: <code>logs/wrapp.log</code></span>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-sm font-semibold"></div>
+
+<script src="js/config.js?v=2"></script>
+<script src="js/api.js?v=2"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js?v=2"></script>
+<script>
+  requireAuth(['super_admin']);
+  buildSidebar();
+
+  // ── State ────────────────────────────────────────────────────────────────────
+  let allLines      = [];
+  let totalLines    = 0;
+  let logSizeBytes  = 0;
+  let lastFetchedLine = 0;
+  let liveEnabled   = true;
+  let pollTimer     = null;
+  let activeFilter  = '';
+  let autoScroll    = true;
+
+  const container = document.getElementById('log-container');
+
+  // ── Initial load ─────────────────────────────────────────────────────────────
+  async function reload() {
+    allLines = [];
+    lastFetchedLine = 0;
+    container.innerHTML = '<span class="log-line lvl-DEBUG">Φόρτωση…</span>';
+    await fetchNewLines(true);
+  }
+
+  async function fetchNewLines(initial = false) {
+    try {
+      const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('fishbill_token');
+      const tail  = initial ? 500 : undefined;
+      const from  = !initial && lastFetchedLine > 0 ? lastFetchedLine : undefined;
+
+      let url = `${CONFIG.API_URL}/platform/wrapp/logs`;
+      const qs = [];
+      if (tail)  qs.push(`tail=${tail}`);
+      if (from)  qs.push(`from_line=${from}`);
+      if (qs.length) url += '?' + qs.join('&');
+
+      const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+
+      if (!data.log_exists) {
+        container.innerHTML = '<span class="log-line lvl-WARN">⚠ Το αρχείο wrapp.log δεν υπάρχει ακόμα. Ξεκινήστε μια Wrapp λειτουργία για να δημιουργηθεί.</span>';
+        return;
+      }
+
+      totalLines   = data.total_lines || 0;
+      logSizeBytes = data.log_size_bytes || 0;
+
+      if (initial) {
+        allLines = data.lines || [];
+        lastFetchedLine = totalLines;
+        renderAll();
+      } else {
+        const newLines = data.lines || [];
+        if (newLines.length > 0) {
+          allLines = allLines.concat(newLines);
+          lastFetchedLine = totalLines;
+          appendLines(newLines);
+        }
+      }
+
+      updateStats();
+      document.getElementById('last-update').textContent = 'Τελευταία ανανέωση: ' + new Date().toLocaleTimeString('el-GR');
+
+    } catch (e) {
+      if (initial) {
+        container.innerHTML = `<span class="log-line lvl-ERROR">Σφάλμα φόρτωσης: ${e.message}</span>`;
+      }
+    }
+  }
+
+  // ── Rendering ────────────────────────────────────────────────────────────────
+  function parseLogLine(raw) {
+    // Format: [2026-06-09T10:11:12.345Z] [LEVEL] [TAG] message {data}
+    const m = raw.match(/^\[([^\]]+)\] \[([A-Z]+)\] \[([^\]]+)\] (.*)$/);
+    if (!m) return { raw, level: 'DEBUG', ts: '', tag: '', msg: raw };
+    return { raw, level: m[2], ts: m[1], tag: m[3], msg: m[4] };
+  }
+
+  function renderLine(raw) {
+    const { level, ts, tag, msg } = parseLogLine(raw);
+
+    // Apply active filter
+    if (activeFilter && level !== activeFilter) return null;
+
+    // Apply search filter
+    const search = document.getElementById('search-input')?.value?.toLowerCase() || '';
+    if (search && !raw.toLowerCase().includes(search)) return null;
+
+    const span = document.createElement('span');
+    span.className = `log-line lvl-${level}`;
+    span.dataset.level = level;
+    span.dataset.raw   = raw.toLowerCase();
+
+    if (ts) {
+      const timeOnly = ts.split('T')[1]?.split('.')[0] || ts;
+      const dateOnly = ts.split('T')[0] || '';
+      span.innerHTML =
+        `<span class="lvl-ts">${dateOnly} ${timeOnly}</span> ` +
+        `<span class="lvl-${level}">[${level}]</span> ` +
+        `<span class="lvl-tag">[${escHtml(tag)}]</span> ` +
+        `<span class="lvl-msg">${escHtml(msg)}</span>`;
+    } else {
+      span.innerHTML = `<span class="lvl-msg">${escHtml(raw)}</span>`;
+    }
+    return span;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function renderAll() {
+    container.innerHTML = '';
+    if (allLines.length === 0) {
+      container.innerHTML = '<span class="log-line lvl-DEBUG">Δεν υπάρχουν εγγραφές ακόμα.</span>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const raw of allLines) {
+      const el = renderLine(raw);
+      if (el) frag.appendChild(el);
+    }
+    container.appendChild(frag);
+    if (autoScroll) container.scrollTop = container.scrollHeight;
+  }
+
+  function appendLines(newRaw) {
+    const frag = document.createDocumentFragment();
+    for (const raw of newRaw) {
+      const el = renderLine(raw);
+      if (el) frag.appendChild(el);
+    }
+    container.appendChild(frag);
+    if (autoScroll) container.scrollTop = container.scrollHeight;
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('stat-total').textContent = totalLines.toLocaleString('el-GR');
+    document.getElementById('stat-size').textContent  = formatBytes(logSizeBytes);
+
+    let info = 0, warn = 0, error = 0, debug = 0;
+    for (const raw of allLines) {
+      const { level } = parseLogLine(raw);
+      if (level === 'INFO')  info++;
+      else if (level === 'WARN')  warn++;
+      else if (level === 'ERROR') error++;
+      else if (level === 'DEBUG') debug++;
+    }
+    document.getElementById('stat-info').textContent  = info;
+    document.getElementById('stat-warn').textContent  = warn;
+    document.getElementById('stat-error').textContent = error;
+    document.getElementById('stat-debug').textContent = debug;
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+    return (b/1024/1024).toFixed(2) + ' MB';
+  }
+
+  // ── Filter / Search ──────────────────────────────────────────────────────────
+  function setFilter(level) {
+    activeFilter = level;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    const selector = level
+      ? `.filter-btn-${level.toLowerCase()}`
+      : '.filter-btn-all';
+    document.querySelector(selector)?.classList.add('active');
+    applyDisplayFilter();
+  }
+
+  function applyDisplayFilter() {
+    const search = document.getElementById('search-input')?.value?.toLowerCase() || '';
+    let visible = 0;
+    let total   = 0;
+
+    container.querySelectorAll('.log-line').forEach(el => {
+      const level = el.dataset.level || '';
+      const raw   = el.dataset.raw || '';
+      const matchLevel  = !activeFilter || level === activeFilter;
+      const matchSearch = !search || raw.includes(search);
+      const show = matchLevel && matchSearch;
+      el.style.display = show ? '' : 'none';
+      if (show) visible++;
+      total++;
+    });
+
+    const mc = document.getElementById('match-count');
+    if (search) {
+      mc.textContent = `${visible} / ${total}`;
+      mc.classList.remove('hidden');
+    } else {
+      mc.classList.add('hidden');
+    }
+  }
+
+  // ── Live toggle ──────────────────────────────────────────────────────────────
+  function toggleLive() {
+    liveEnabled = !liveEnabled;
+    const badge  = document.getElementById('live-badge');
+    const icon   = document.getElementById('toggle-icon');
+    const label  = document.getElementById('toggle-label');
+    const dot    = badge.querySelector('.pulse-dot');
+
+    if (liveEnabled) {
+      badge.className = 'live-badge on';
+      dot.className   = 'pulse-dot green';
+      icon.className  = 'fas fa-pause';
+      label.textContent = 'Παύση';
+      startPolling();
+    } else {
+      badge.className = 'live-badge off';
+      dot.className   = 'pulse-dot red';
+      icon.className  = 'fas fa-play';
+      label.textContent = 'Συνέχεια';
+      stopPolling();
+    }
+  }
+
+  // ── Auto-scroll: pause when user scrolls up ──────────────────────────────────
+  container.addEventListener('scroll', () => {
+    const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 40;
+    autoScroll = atBottom;
+  });
+
+  // ── Polling ──────────────────────────────────────────────────────────────────
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(() => fetchNewLines(false), 2000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  // ── Download ─────────────────────────────────────────────────────────────────
+  function downloadLog() {
+    const text = allLines.join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `wrapp-${new Date().toISOString().slice(0,10)}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Clear ────────────────────────────────────────────────────────────────────
+  async function clearLog() {
+    if (!confirm('Να εκκαθαριστεί το αρχείο wrapp.log; Αυτή η ενέργεια δεν αναιρείται.')) return;
+    try {
+      const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('fishbill_token');
+      const resp  = await fetch(`${CONFIG.API_URL}/platform/wrapp/logs/clear`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      showToast('Το αρχείο log εκκαθαρίστηκε.', 'green');
+      await reload();
+    } catch (e) {
+      showToast('Σφάλμα: ' + e.message, 'red');
+    }
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────────────────
+  function showToast(msg, color = 'green') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl shadow-lg text-sm font-semibold text-white ${color === 'red' ? 'bg-red-500' : 'bg-green-600'}`;
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 3000);
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  reload().then(() => startPolling());
+</script>
+</body>
+</html>
