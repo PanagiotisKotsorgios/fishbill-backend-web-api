@@ -13,6 +13,17 @@ const { authenticate } = require('../middleware/auth');
 const { validate }     = require('../middleware/validate');
 
 const DN_PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
+
+const _dnLogFile = path.join(__dirname, '../logs/wrapp.log');
+try { fs.mkdirSync(path.dirname(_dnLogFile), { recursive: true }); } catch (_) {}
+function dnlog(level, msg, data) {
+  const ts   = new Date().toISOString();
+  const line = data !== undefined
+    ? `[${ts}] [${level}] [DN_TX] ${msg} ${JSON.stringify(data)}`
+    : `[${ts}] [${level}] [DN_TX] ${msg}`;
+  if (level === 'ERROR') console.error(line); else console.log(line);
+  try { fs.appendFileSync(_dnLogFile, line + '\n'); } catch (e) { console.error('[dnlog write FAILED]', e.message); }
+}
 const emailSvc  = require('../services/email.service');
 const pdfService = require('../services/pdf.service');
 
@@ -588,6 +599,8 @@ router.patch('/:id/cancel', async (req, res, next) => {
 router.post('/:id/transmit', async (req, res, next) => {
   try {
     const business_id = bizId(req);
+    dnlog('INFO', 'transmit() called', { dn_id: req.params.id, business_id });
+
     const [[note]] = await pool.execute(
       `SELECT dn.*,
               b.afm, b.name AS biz_name, b.address, b.city, b.postal_code, b.phone, b.email, b.doy
@@ -596,14 +609,25 @@ router.post('/:id/transmit', async (req, res, next) => {
        WHERE dn.id = ? AND dn.business_id = ? LIMIT 1`,
       [req.params.id, business_id]
     );
-    if (!note) return res.status(404).json({ error: 'Δελτίο αποστολής δεν βρέθηκε.' });
-    if (note.status === 'transmitted') return res.status(400).json({ error: 'Ήδη διαβιβάστηκε στην ΑΑΔΕ.' });
-    if (note.status === 'cancelled')  return res.status(400).json({ error: 'Ακυρωμένο — δεν μπορεί να διαβιβαστεί.' });
+    if (!note) {
+      dnlog('WARN', 'delivery note not found', { dn_id: req.params.id, business_id });
+      return res.status(404).json({ error: 'Δελτίο αποστολής δεν βρέθηκε.' });
+    }
+    dnlog('INFO', 'delivery note fetched', { dn_id: note.id, dn_number: note.note_number, status: note.status, recipient: note.recipient_name });
+    if (note.status === 'transmitted') {
+      dnlog('WARN', 'already transmitted — aborting', { dn_id: note.id });
+      return res.status(400).json({ error: 'Ήδη διαβιβάστηκε στην ΑΑΔΕ.' });
+    }
+    if (note.status === 'cancelled') {
+      dnlog('WARN', 'cancelled note — aborting', { dn_id: note.id });
+      return res.status(400).json({ error: 'Ακυρωμένο — δεν μπορεί να διαβιβαστεί.' });
+    }
 
     const [lines] = await pool.execute(
       'SELECT * FROM delivery_note_lines WHERE delivery_note_id = ? ORDER BY sort_order',
       [note.id]
     );
+    dnlog('DEBUG', 'fetched DN lines', { dn_id: note.id, line_count: lines.length });
 
     const biz = {
       afm:         note.afm,
@@ -623,13 +647,22 @@ router.post('/:id/transmit', async (req, res, next) => {
 
     // ── Choose provider: Wrapp (if enabled) or direct AADE ───────────────────
     const [[bizRow]] = await pool.execute(
-      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [business_id]
+      'SELECT wrapp_enabled, wrapp_api_key FROM businesses WHERE id = ? LIMIT 1', [business_id]
     );
     const useWrapp = bizRow?.wrapp_enabled === 1;
+    dnlog('INFO', 'provider check', { business_id, wrapp_enabled: bizRow?.wrapp_enabled, has_wrapp_api_key: !!bizRow?.wrapp_api_key, will_use_wrapp: useWrapp });
 
     if (useWrapp) {
+      dnlog('INFO', 'routing to Wrapp provider', { dn_id: note.id });
       const wrapp = require('../services/wrapp.service');
-      const result = await wrapp.transmitDeliveryNote(note, lines, biz);
+      let result;
+      try {
+        result = await wrapp.transmitDeliveryNote(note, lines, biz);
+        dnlog('INFO', 'wrapp.transmitDeliveryNote() returned', { dn_id: note.id, mark: result.mark, wrapp_invoice_id: result.wrapp_invoice_id, qrUrl: result.qrUrl });
+      } catch (wrappErr) {
+        dnlog('ERROR', 'wrapp.transmitDeliveryNote() threw', { dn_id: note.id, error: wrappErr.message, stack: wrappErr.stack?.split('\n').slice(0,3).join(' | ') });
+        throw wrappErr;
+      }
 
       await pool.execute(
         `UPDATE delivery_notes
@@ -644,6 +677,7 @@ router.post('/:id/transmit', async (req, res, next) => {
           note.id,
         ]
       );
+      dnlog('INFO', 'DN transmission SUCCESS via Wrapp', { dn_id: note.id, mark: result.mark });
 
       return res.json({
         data: {
@@ -654,8 +688,16 @@ router.post('/:id/transmit', async (req, res, next) => {
       });
     }
 
+    dnlog('INFO', 'routing to AADE direct provider', { dn_id: note.id, biz_afm: biz.afm });
     const aadeMydata = require('../services/aade-mydata.service');
-    const result = await aadeMydata.sendDeliveryNote(note, lines, biz, customer, business_id);
+    let result;
+    try {
+      result = await aadeMydata.sendDeliveryNote(note, lines, biz, customer, business_id);
+      dnlog('INFO', 'aadeMydata.sendDeliveryNote() returned', { dn_id: note.id, mark: result.mark, uid: result.uid, testMode: result.testMode });
+    } catch (aadeErr) {
+      dnlog('ERROR', 'aadeMydata.sendDeliveryNote() threw', { dn_id: note.id, error: aadeErr.message, stack: aadeErr.stack?.split('\n').slice(0,3).join(' | ') });
+      throw aadeErr;
+    }
 
     await pool.execute(
       `UPDATE delivery_notes
@@ -670,6 +712,7 @@ router.post('/:id/transmit', async (req, res, next) => {
       ]
     );
 
+    dnlog('INFO', 'DN transmission SUCCESS via AADE direct', { dn_id: note.id, mark: result.mark, testMode: result.testMode });
     return res.json({
       data: {
         message:  `Διαβιβάστηκε επιτυχώς${result.testMode ? ' (TEST περιβάλλον)' : ''}.`,
@@ -680,6 +723,7 @@ router.post('/:id/transmit', async (req, res, next) => {
     });
   } catch (err) {
     const msg = err.message || String(err);
+    dnlog('ERROR', 'transmit() caught error — marking DN failed', { dn_id: req.params.id, error: msg });
     await pool.execute(
       "UPDATE delivery_notes SET status = 'failed', mydata_response = ?, updated_at = NOW() WHERE id = ?",
       [JSON.stringify({ error: msg }), req.params.id]

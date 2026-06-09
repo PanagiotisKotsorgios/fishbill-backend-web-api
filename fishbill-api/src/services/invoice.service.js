@@ -1,5 +1,18 @@
 const pool = require('../config/database');
 const { calculateTotals } = require('../utils/calculateTotals');
+const fs   = require('fs');
+const path = require('path');
+
+const _iLogFile = path.join(__dirname, '../../logs/wrapp.log');
+try { fs.mkdirSync(path.dirname(_iLogFile), { recursive: true }); } catch (_) {}
+function ilog(level, msg, data) {
+  const ts   = new Date().toISOString();
+  const line = data !== undefined
+    ? `[${ts}] [${level}] [INVOICE_TX] ${msg} ${JSON.stringify(data)}`
+    : `[${ts}] [${level}] [INVOICE_TX] ${msg}`;
+  if (level === 'ERROR') console.error(line); else console.log(line);
+  try { fs.appendFileSync(_iLogFile, line + '\n'); } catch (e) { console.error('[ilog write FAILED]', e.message); }
+}
 
 /**
  * Get (and increment) the next invoice number for a given business + series.
@@ -90,11 +103,14 @@ async function calculateAndSaveInvoice(invoiceId) {
  * @param {object} invoice - invoice row from the database
  */
 async function transmit(invoice) {
+  ilog('INFO', 'transmit() called', { invoice_id: invoice.id, invoice_number: invoice.invoice_number, type: invoice.invoice_type, business_id: invoice.business_id, status: invoice.status });
   try {
     const [lineRows] = await pool.execute(
       `SELECT * FROM invoice_lines WHERE invoice_id = ? ORDER BY line_number`,
       [invoice.id]
     );
+    ilog('DEBUG', 'fetched invoice lines', { invoice_id: invoice.id, line_count: lineRows.length });
+
     const [bizRows] = await pool.execute(
       `SELECT b.*, bs.mydata_user_id, bs.mydata_subscription_key
        FROM businesses b
@@ -103,6 +119,7 @@ async function transmit(invoice) {
       [invoice.business_id]
     );
     const biz = bizRows[0] || {};
+    ilog('INFO', 'fetched business', { business_id: invoice.business_id, biz_name: biz.name, afm: biz.afm, wrapp_enabled: biz.wrapp_enabled, has_wrapp_api_key: !!biz.wrapp_api_key, has_mydata_user: !!biz.mydata_user_id });
 
     // Fetch customer details for the counterpart block
     let customer = {};
@@ -116,29 +133,47 @@ async function transmit(invoice) {
     }
     if (!customer.name && invoice.customer_name) customer.name = invoice.customer_name;
     if (!customer.afm  && invoice.customer_afm)  customer.afm  = invoice.customer_afm;
+    ilog('DEBUG', 'customer resolved', { customer_name: customer.name, customer_afm: customer.afm, from_customer_id: !!invoice.customer_id });
 
     // ── Choose provider: Wrapp (if enabled) or e-Timologiera ─────────────────
-    if (biz.wrapp_enabled === 1) {
-      const wrapp  = require('./wrapp.service');
-      const result = await wrapp.transmitInvoice(invoice, lineRows, biz, customer);
+    ilog('INFO', 'provider check', { wrapp_enabled: biz.wrapp_enabled, will_use_wrapp: biz.wrapp_enabled === 1 });
 
-      await pool.execute(
+    if (biz.wrapp_enabled === 1) {
+      ilog('INFO', 'routing to Wrapp provider', { invoice_id: invoice.id });
+      const wrapp  = require('./wrapp.service');
+      let result;
+      try {
+        result = await wrapp.transmitInvoice(invoice, lineRows, biz, customer);
+        ilog('INFO', 'wrapp.transmitInvoice() returned', { invoice_id: invoice.id, mark: result.mark, wrapp_invoice_id: result.wrapp_invoice_id, qrUrl: result.qrUrl });
+      } catch (wrappErr) {
+        ilog('ERROR', 'wrapp.transmitInvoice() threw', { invoice_id: invoice.id, error: wrappErr.message, stack: wrappErr.stack?.split('\n').slice(0,3).join(' | ') });
+        throw wrappErr;
+      }
+
+      const [updateResult] = await pool.execute(
         `UPDATE invoices SET status='transmitted', mydata_mark=?, mydata_qr=?,
          wrapp_invoice_id=?, wrapp_qr_url=?, last_error=NULL, updated_at=NOW() WHERE id=?`,
         [result.mark, result.qrUrl || null, result.wrapp_invoice_id, result.qrUrl || null, invoice.id]
-      ).catch(() => {});
+      ).catch((dbErr) => { ilog('ERROR', 'DB update invoices failed', { error: dbErr.message }); return [{}]; });
+      ilog('INFO', 'DB invoices updated to transmitted', { invoice_id: invoice.id, affected: updateResult?.affectedRows });
+
       await pool.execute(
         `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)
          VALUES (?, ?, 'success', ?, NOW(), NOW())`,
         [invoice.id, invoice.business_id, `MARK: ${result.mark} | WRAPP_ID: ${result.wrapp_invoice_id} | PROVIDER: wrapp`]
-      ).catch(() => {});
+      ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
+
+      ilog('INFO', 'invoice transmission SUCCESS via Wrapp', { invoice_id: invoice.id, mark: result.mark });
       return { success: true, mark: result.mark, qrUrl: result.qrUrl };
     }
 
     // ── e-Timologiera path ────────────────────────────────────────────────────
+    ilog('INFO', 'routing to e-Timologiera provider', { invoice_id: invoice.id, has_mydata_user: !!biz.mydata_user_id });
     const etim    = require('./etimologiera.service');
     const payload = buildEtimPayload(invoice, lineRows, biz, customer);
+    ilog('DEBUG', 'built e-Timologiera payload', { invoice_id: invoice.id, invoice_type: payload?.invoice?.invoiceHeader?.invoiceType });
     const etResult = await etim.sendInvoice(payload, invoice.business_id);
+    ilog('INFO', 'e-Timologiera returned', { invoice_id: invoice.id, mark: etResult.mark, uid: etResult.uid, testMode: etResult.testMode, errors: etResult.errors });
 
     if (etResult.mark) {
       await pool.execute(
@@ -151,6 +186,7 @@ async function transmit(invoice) {
          VALUES (?, ?, 'success', ?, NOW(), NOW())`,
         [invoice.id, invoice.business_id, `MARK: ${etResult.mark} | UID: ${etResult.uid} | ENV: ${etResult.testMode ? 'TEST' : 'PROD'}`]
       );
+      ilog('INFO', 'invoice transmission SUCCESS via e-Timologiera', { invoice_id: invoice.id, mark: etResult.mark });
       return { success: true, mark: etResult.mark, qrUrl: etResult.qrUrl, uid: etResult.uid, testMode: etResult.testMode };
     } else {
       throw new Error(etResult.errors?.join(', ') || 'No MARK returned from e-timologiera');
@@ -158,6 +194,7 @@ async function transmit(invoice) {
 
   } catch (err) {
     const message = err.message || String(err);
+    ilog('ERROR', 'transmit() caught error — marking invoice failed', { invoice_id: invoice.id, error: message });
     await pool.execute(
       `INSERT INTO transmission_logs (invoice_id, business_id, status, response_message, attempted_at, created_at)
        VALUES (?, ?, 'failed', ?, NOW(), NOW())`,
