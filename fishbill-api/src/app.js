@@ -16,17 +16,36 @@ app.set('trust proxy', 1);
 // Wrapp servers may send an Origin header we don't know in advance; bypassing
 // CORS for this single endpoint avoids HTTP 500 CORS rejections.
 // Body parsers are applied inline so this handler is self-contained.
+const fs   = require('fs');
+const path = require('path');
+const _wLogFile = path.join(__dirname, '../logs/wrapp.log');
+try { fs.mkdirSync(path.dirname(_wLogFile), { recursive: true }); } catch (_) {}
+function _wlog(level, msg, data) {
+  const ts   = new Date().toISOString();
+  const line = data !== undefined
+    ? `[${ts}] [${level}] [WEBHOOK] ${msg} ${JSON.stringify(data)}`
+    : `[${ts}] [${level}] [WEBHOOK] ${msg}`;
+  if (level === 'ERROR') console.error(line); else console.log(line);
+  try { fs.appendFileSync(_wLogFile, line + '\n'); } catch (_) {}
+}
+
 app.post('/api/wrapp/webhook',
   express.json(),
   express.urlencoded({ extended: true }),
   async (req, res) => {
     try {
-      console.log('[wrapp webhook] raw body:', JSON.stringify(req.body));
+      _wlog('INFO', 'Incoming webhook request', {
+        ip: req.ip,
+        origin: req.headers['origin'] || null,
+        body: req.body,
+      });
+
       const { wrapp_user_id, partner_user_id, api_key } = req.body || {};
       if (!api_key) {
-        console.log('[wrapp webhook] missing api_key — body was:', JSON.stringify(req.body));
+        _wlog('ERROR', 'Missing api_key in webhook body', req.body);
         return res.status(400).json({ error: 'Missing api_key.' });
       }
+
       const pool  = require('./config/database');
       const wrapp = require('./services/wrapp.service');
 
@@ -39,19 +58,24 @@ app.post('/api/wrapp/webhook',
         );
         if (byId) {
           resolvedBizId = byId.id;
+          _wlog('INFO', `Business resolved by partner_user_id`, { partner_user_id, biz_id: resolvedBizId });
         } else if (wrapp_user_id) {
+          _wlog('WARN', `partner_user_id not found as UUID, trying email fallback`, { partner_user_id, wrapp_user_id });
           const [[byEmail]] = await pool.execute(
             `SELECT b.id FROM businesses b
              JOIN users u ON u.business_id = b.id AND u.role = 'owner'
              WHERE u.email = ? OR b.email = ? LIMIT 1`,
             [wrapp_user_id, wrapp_user_id]
           );
-          if (byEmail) resolvedBizId = byEmail.id;
+          if (byEmail) {
+            resolvedBizId = byEmail.id;
+            _wlog('INFO', `Business resolved by email fallback`, { email: wrapp_user_id, biz_id: resolvedBizId });
+          }
         }
       }
 
       if (!resolvedBizId) {
-        console.error(`[wrapp webhook] Cannot resolve business — partner_user_id=${partner_user_id} wrapp_user_id=${wrapp_user_id}`);
+        _wlog('ERROR', 'Cannot resolve business — no match found', { partner_user_id, wrapp_user_id });
         return res.json({ ok: false, error: 'Business not found.' });
       }
 
@@ -62,7 +86,11 @@ app.post('/api/wrapp/webhook',
         [api_key, wrapp_user_id || null, resolvedBizId]
       );
       wrapp.invalidateCache(resolvedBizId);
-      console.log(`[wrapp webhook] Credentials saved for business ${resolvedBizId} (partner_user_id=${partner_user_id})`);
+      _wlog('INFO', 'Credentials saved to DB', {
+        biz_id: resolvedBizId,
+        wrapp_user_id,
+        api_key_prefix: api_key ? api_key.slice(0, 8) + '...' : null,
+      });
 
       try {
         const [[bizRow]] = await pool.execute(
@@ -86,15 +114,23 @@ app.post('/api/wrapp/webhook',
              ON DUPLICATE KEY UPDATE feature_ospa = 1, feature_weighing_slips = 1`,
             [resolvedBizId]
           );
-          console.log(`[wrapp webhook] Subscription auto-activated for business ${resolvedBizId} (${monthCount} months, first=${isFirst})`);
+          _wlog('INFO', 'Subscription auto-activated via Wrapp webhook', {
+            biz_id: resolvedBizId,
+            months: monthCount,
+            first_subscription_bonus: isFirst,
+            ends_at: endDate.toISOString().slice(0, 10),
+          });
+        } else {
+          _wlog('DEBUG', 'Subscription already active — no change', { biz_id: resolvedBizId });
         }
       } catch (activateErr) {
-        console.error('[wrapp webhook] Auto-activate error:', activateErr.message);
+        _wlog('ERROR', 'Auto-activate subscription failed', { error: activateErr.message });
       }
 
+      _wlog('INFO', 'Webhook processed successfully', { biz_id: resolvedBizId });
       res.json({ ok: true });
     } catch (err) {
-      console.error('[wrapp webhook] Error:', err.message);
+      _wlog('ERROR', 'Unhandled webhook error', { error: err.message, stack: err.stack });
       res.status(500).json({ error: 'Internal error.' });
     }
   }
