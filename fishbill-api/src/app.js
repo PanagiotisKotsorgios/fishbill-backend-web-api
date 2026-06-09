@@ -17,7 +17,6 @@ app.set('trust proxy', 1);
 // CORS for this single endpoint avoids HTTP 500 CORS rejections.
 // Body parsers are applied inline so this handler is self-contained.
 const fs   = require('fs');
-const path = require('path');
 const _wLogFile = path.join(__dirname, '../logs/wrapp.log');
 try { fs.mkdirSync(path.dirname(_wLogFile), { recursive: true }); } catch (_) {}
 function _wlog(level, msg, data) {
