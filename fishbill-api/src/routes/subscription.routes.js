@@ -64,8 +64,40 @@ router.get('/status', async (req, res, next) => {
       biz = { ...rows[0], auto_renew: 1, billing_cycle: 'monthly', is_parametrised: 0, addon_ospa: 0, addon_weighing_slips: 0 };
     }
 
-    const GRACE_DAYS         = 78;
-    const now                = new Date();
+    const GRACE_DAYS = 78;
+    const now        = new Date();
+
+    // Self-heal: if our DB says not active, check Wrapp directly.
+    // Handles the case where Wrapp's webhook was delayed or never arrived.
+    if (!biz.subscription_active) {
+      try {
+        const wrappSvc   = require('../services/wrapp.service');
+        const wrappCheck = await wrappSvc.checkUserStatus(req.user.business_id);
+        if (wrappCheck?.active_subscription) {
+          const isFirst    = biz.is_first_subscription !== 0;
+          const monthCount = 12 + (isFirst ? 1 : 0);
+          const endDate    = new Date();
+          endDate.setMonth(endDate.getMonth() + monthCount);
+          await pool.execute(
+            `UPDATE businesses SET subscription_active = 1, plan = 'pro', billing_cycle = 'annual',
+             subscription_ends_at = ?, is_first_subscription = 0, updated_at = NOW()
+             WHERE id = ? AND subscription_active = 0`,
+            [endDate, req.user.business_id]
+          );
+          await pool.execute(
+            `INSERT INTO business_settings (business_id, feature_ospa, feature_weighing_slips)
+             VALUES (?, 1, 1) ON DUPLICATE KEY UPDATE feature_ospa = 1, feature_weighing_slips = 1`,
+            [req.user.business_id]
+          );
+          biz.subscription_active = 1;
+          biz.plan                = 'pro';
+          biz.billing_cycle       = 'annual';
+          biz.subscription_ends_at = endDate.toISOString();
+          console.log(`[subscription] self-healed activation for business ${req.user.business_id} via Wrapp check`);
+        }
+      } catch (_) {}
+    }
+
     const trialActive        = biz.trial_ends_at && new Date(biz.trial_ends_at) > now;
     const subscriptionActive = biz.subscription_active === 1;
     const graceUntil         = biz.subscription_ends_at
