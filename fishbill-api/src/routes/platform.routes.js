@@ -2290,4 +2290,14 @@ router.post('/wrapp/logs/clear', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── POST /api/platform/wrapp/transmit-pending — manual trigger ───────────────
+router.post('/wrapp/transmit-pending', authenticate, requireSuperAdmin, async (req, res, next) => {
+  try {
+    const { runAutoTransmit } = require('../jobs/autoTransmit');
+    // fire-and-forget; response returns immediately
+    runAutoTransmit().catch(() => {});
+    res.json({ data: { message: 'Η διαβίβαση εκκίνησε. Δείτε τα logs για αποτελέσματα.' } });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

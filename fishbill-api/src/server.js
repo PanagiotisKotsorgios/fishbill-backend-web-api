@@ -9,6 +9,7 @@ const app    = require('./app');
 const pool   = require('./config/database');
 const logger = require('./utils/logger');
 const { startEmailCampaigns } = require('./jobs/emailCampaigns');
+const { startAutoTransmit }  = require('./jobs/autoTransmit');
 
 const PORT = process.env.PORT || 4000;
 
@@ -62,6 +63,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`FishBill API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
   logger.info(`Health check: http://localhost:${PORT}/health`);
   startEmailCampaigns(pool);
+  startAutoTransmit();
 });
 
 // ── Unhandled rejections ──────────────────────────────────────────────────────
