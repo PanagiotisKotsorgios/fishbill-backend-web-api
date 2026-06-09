@@ -113,16 +113,18 @@ async function runAutoTransmit() {
     tlog('DEBUG', 'auto-transmit tick', { wrapp_biz_count: bizRows.length, biz_ids: bizRows.map(b => b.id) });
 
     for (const biz of bizRows) {
-      // ── Pending invoices ────────────────────────────────────────────────────
+      // ── Pending invoices (issued or previously failed) ──────────────────────
       const [invoices] = await pool.execute(
-        `SELECT * FROM invoices WHERE business_id = ? AND status = 'issued' ORDER BY created_at ASC LIMIT 20`,
+        `SELECT * FROM invoices WHERE business_id = ? AND status IN ('issued','failed') ORDER BY created_at ASC LIMIT 20`,
         [biz.id]
       );
       if (invoices.length) {
-        tlog('INFO', 'found pending invoices', { biz_id: biz.id, count: invoices.length });
+        tlog('INFO', 'found pending invoices', { biz_id: biz.id, count: invoices.length, statuses: invoices.map(i => i.status) });
         for (const inv of invoices) {
           await processInvoice(inv);
         }
+      } else {
+        tlog('DEBUG', 'no pending invoices for biz', { biz_id: biz.id });
       }
 
       // ── Pending delivery notes ──────────────────────────────────────────────
@@ -133,10 +135,12 @@ async function runAutoTransmit() {
         [biz.id]
       );
       if (notes.length) {
-        tlog('INFO', 'found pending delivery notes', { biz_id: biz.id, count: notes.length });
+        tlog('INFO', 'found pending delivery notes', { biz_id: biz.id, count: notes.length, statuses: notes.map(n => n.status) });
         for (const note of notes) {
           await processDeliveryNote(note, biz);
         }
+      } else {
+        tlog('DEBUG', 'no pending delivery notes for biz', { biz_id: biz.id });
       }
     }
   } catch (err) {
