@@ -28,6 +28,12 @@ function _wlog(level, msg, data) {
   try { fs.appendFileSync(_wLogFile, line + '\n'); } catch (_) {}
 }
 
+// GET probe — lets us verify the webhook URL is publicly reachable
+app.get('/api/wrapp/webhook', (req, res) => {
+  _wlog('INFO', 'GET probe on webhook endpoint', { ip: req.ip, ua: req.headers['user-agent'] });
+  res.json({ ok: true, endpoint: '/api/wrapp/webhook', method: 'POST' });
+});
+
 app.post('/api/wrapp/webhook',
   express.json(),
   express.urlencoded({ extended: true }),

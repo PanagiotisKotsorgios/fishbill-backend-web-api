@@ -421,18 +421,22 @@ async function transmitDeliveryNote(note, noteLines, biz) {
   });
 
   const data = resp.data;
-  if (!data?.id) {
+  // Wrapp may return { status:"pending", invoice_id:"uuid" } for async processing
+  const invoiceId = data?.id || data?.invoice_id;
+  if (!invoiceId) {
     wError('transmitDeliveryNote', 'Wrapp did not return invoice id', { response: data });
     throw new Error('Wrapp: δεν επεστράφη invoice id.');
   }
 
+  const isPending = data?.status === 'pending';
   const result = {
-    wrapp_invoice_id: data.id,
+    wrapp_invoice_id: invoiceId,
     mark:             data.my_data_mark   || null,
     uid:              data.my_data_uid    || null,
     qrUrl:            data.my_data_qr_url || null,
+    pending:          isPending,
   };
-  wInfo('transmitDeliveryNote', `SUCCESS — DN id=${note.id} → wrapp_id=${result.wrapp_invoice_id} MARK=${result.mark}`, result);
+  wInfo('transmitDeliveryNote', `${isPending ? 'PENDING' : 'SUCCESS'} — DN id=${note.id} → wrapp_id=${result.wrapp_invoice_id} MARK=${result.mark}`, result);
   return result;
 }
 
@@ -524,18 +528,22 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
   });
 
   const data = resp.data;
-  if (!data?.id) {
+  // Wrapp may return { status:"pending", invoice_id:"uuid" } for async processing
+  const invoiceId = data?.id || data?.invoice_id;
+  if (!invoiceId) {
     wError('transmitInvoice', 'Wrapp did not return invoice id', { response: data });
     throw new Error('Wrapp: δεν επεστράφη invoice id.');
   }
 
+  const isPending = data?.status === 'pending';
   const result = {
-    wrapp_invoice_id: data.id,
+    wrapp_invoice_id: invoiceId,
     mark:             data.my_data_mark   || null,
     uid:              data.my_data_uid    || null,
     qrUrl:            data.my_data_qr_url || null,
+    pending:          isPending,
   };
-  wInfo('transmitInvoice', `SUCCESS — invoice id=${invoice.id} → wrapp_id=${result.wrapp_invoice_id} MARK=${result.mark}`, result);
+  wInfo('transmitInvoice', `${isPending ? 'PENDING' : 'SUCCESS'} — invoice id=${invoice.id} → wrapp_id=${result.wrapp_invoice_id} MARK=${result.mark}`, result);
   return result;
 }
 

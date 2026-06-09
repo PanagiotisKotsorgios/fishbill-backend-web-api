@@ -97,6 +97,7 @@
         <button class="btn btn-ghost" onclick="toggleLive()"><i class="fas fa-pause" id="toggle-icon"></i> <span id="toggle-label">Παύση</span></button>
         <button class="btn btn-ghost" onclick="reload()"><i class="fas fa-rotate-right"></i> Ανανέωση</button>
         <button class="btn btn-ghost" onclick="downloadLog()"><i class="fas fa-download"></i> Download</button>
+        <button class="btn btn-primary" id="transmit-btn" onclick="triggerTransmit()" style="background:#1d4ed8;color:#fff;"><i class="fas fa-paper-plane"></i> Διαβίβαση Εκκρεμών</button>
         <button class="btn btn-danger" onclick="clearLog()"><i class="fas fa-trash"></i> Εκκαθάριση</button>
       </div>
     </div>
@@ -420,6 +421,30 @@
       await reload();
     } catch (e) {
       showToast('Σφάλμα: ' + e.message, 'red');
+    }
+  }
+
+  // ── Manual transmit trigger ──────────────────────────────────────────────────
+  async function triggerTransmit() {
+    const btn = document.getElementById('transmit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Σε εξέλιξη…';
+    try {
+      const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('fishbill_token');
+      const resp  = await fetch(`${CONFIG.API_URL}/platform/wrapp/transmit-pending`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      showToast('Η διαβίβαση εκκίνησε — δείτε τα logs παρακάτω.', 'green');
+      setTimeout(() => reload(), 2000);
+    } catch (e) {
+      showToast('Σφάλμα: ' + e.message, 'red');
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Διαβίβαση Εκκρεμών';
+      }, 3000);
     }
   }
 
