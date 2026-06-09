@@ -155,9 +155,9 @@ async function transmit(invoice) {
       ilog('INFO', 'DB invoices updated to transmitted', { invoice_id: invoice.id, affected: updateResult?.affectedRows });
 
       await pool.execute(
-        `INSERT INTO transmission_logs (invoice_id, status, response_message, attempted_at, created_at)
-         VALUES (?, 'success', ?, NOW(), NOW())`,
-        [invoice.id, `MARK: ${result.mark} | WRAPP_ID: ${result.wrapp_invoice_id} | PROVIDER: wrapp`]
+        `INSERT INTO transmission_logs (invoice_id, provider, success, mydata_mark, attempted_at)
+         VALUES (?, 'wrapp', 1, ?, NOW())`,
+        [invoice.id, result.mark || null]
       ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
 
       ilog('INFO', 'invoice transmission SUCCESS via Wrapp', { invoice_id: invoice.id, mark: result.mark });
@@ -179,10 +179,10 @@ async function transmit(invoice) {
         [etResult.mark, etResult.qrUrl || null, etResult.uid || null, invoice.id]
       );
       await pool.execute(
-        `INSERT INTO transmission_logs (invoice_id, status, response_message, attempted_at, created_at)
-         VALUES (?, 'success', ?, NOW(), NOW())`,
-        [invoice.id, `MARK: ${etResult.mark} | UID: ${etResult.uid} | ENV: ${etResult.testMode ? 'TEST' : 'PROD'}`]
-      );
+        `INSERT INTO transmission_logs (invoice_id, provider, success, mydata_mark, attempted_at)
+         VALUES (?, 'etimologiera', 1, ?, NOW())`,
+        [invoice.id, etResult.mark || null]
+      ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
       ilog('INFO', 'invoice transmission SUCCESS via e-Timologiera', { invoice_id: invoice.id, mark: etResult.mark });
       return { success: true, mark: etResult.mark, qrUrl: etResult.qrUrl, uid: etResult.uid, testMode: etResult.testMode };
     } else {
@@ -193,12 +193,12 @@ async function transmit(invoice) {
     const message = err.message || String(err);
     ilog('ERROR', 'transmit() caught error — marking invoice failed', { invoice_id: invoice.id, error: message });
     await pool.execute(
-      `INSERT INTO transmission_logs (invoice_id, status, response_message, attempted_at, created_at)
-       VALUES (?, 'failed', ?, NOW(), NOW())`,
+      `INSERT INTO transmission_logs (invoice_id, provider, success, error_message, attempted_at)
+       VALUES (?, 'wrapp', 0, ?, NOW())`,
       [invoice.id, message]
-    );
+    ).catch(() => {});
     await pool.execute(
-      `UPDATE invoices SET status='failed', last_error=?, retry_count=retry_count+1, updated_at=NOW() WHERE id=?`,
+      `UPDATE invoices SET status='failed', last_error=?, updated_at=NOW() WHERE id=?`,
       [message, invoice.id]
     );
     return { success: false, message };

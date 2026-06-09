@@ -480,9 +480,9 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     return line;
   });
 
-  const net   = parseFloat((invoice.net_value   || 0).toFixed(2));
-  const vat   = parseFloat((invoice.vat_amount  || 0).toFixed(2));
-  const total = parseFloat((invoice.total_value || 0).toFixed(2));
+  const net   = parseFloat(parseFloat(invoice.net_value   || 0).toFixed(2));
+  const vat   = parseFloat(parseFloat(invoice.vat_amount  || 0).toFixed(2));
+  const total = parseFloat(parseFloat(invoice.total_value || 0).toFixed(2));
 
   const PM_MAP = { cash: 0, credit_card: 3, card: 3, bank_transfer: 2, check: 4, iris: 7, other: 1 };
   const pm = PM_MAP[invoice.payment_method] ?? 1;
