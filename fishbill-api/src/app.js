@@ -39,10 +39,17 @@ app.post('/api/wrapp/webhook',
         body: req.body,
       });
 
-      const { wrapp_user_id, partner_user_id, api_key } = req.body || {};
+      // Accept both snake_case and camelCase field names from Wrapp
+      const body           = req.body || {};
+      const api_key        = body.api_key        || body.apiKey        || null;
+      const wrapp_user_id  = body.wrapp_user_id  || body.wrappUserId   || null;
+      const partner_user_id = body.partner_user_id || body.partnerUserId || null;
+      _wlog('INFO', 'Parsed webhook fields', { api_key: api_key ? api_key.slice(0,8)+'...' : null, wrapp_user_id, partner_user_id });
+
       if (!api_key) {
-        _wlog('ERROR', 'Missing api_key in webhook body', req.body);
-        return res.status(400).json({ error: 'Missing api_key.' });
+        _wlog('ERROR', 'Missing api_key in webhook body — all known field names tried', body);
+        // Return 200 so Wrapp doesn't retry indefinitely; log the error
+        return res.json({ ok: false, error: 'Missing api_key.' });
       }
 
       const pool  = require('./config/database');
@@ -75,7 +82,8 @@ app.post('/api/wrapp/webhook',
 
       if (!resolvedBizId) {
         _wlog('ERROR', 'Cannot resolve business — no match found', { partner_user_id, wrapp_user_id });
-        return res.json({ ok: false, error: 'Business not found.' });
+        // Still return 200 so Wrapp doesn't keep retrying; we log the failure
+        return res.json({ ok: false, error: 'Business not found.', partner_user_id });
       }
 
       await pool.execute(
