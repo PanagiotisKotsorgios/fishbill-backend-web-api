@@ -115,7 +115,7 @@ async function runAutoTransmit() {
     for (const biz of bizRows) {
       // ── Pending invoices (issued or previously failed) ──────────────────────
       const [invoices] = await pool.execute(
-        `SELECT * FROM invoices WHERE business_id = ? AND status IN ('issued','failed') ORDER BY created_at ASC LIMIT 20`,
+        `SELECT * FROM invoices WHERE business_id = ? AND status IN ('draft','issued','failed') ORDER BY created_at ASC LIMIT 20`,
         [biz.id]
       );
       if (invoices.length) {
