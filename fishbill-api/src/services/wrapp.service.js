@@ -388,14 +388,21 @@ async function transmitDeliveryNote(note, noteLines, biz) {
 
   const dispatchDateRaw = note.dispatch_date || note.issue_date;
   // Clamp to today if the stored dispatch_date is in the past — Wrapp rejects dates < submission time
-  const dispatchMs  = dispatchDateRaw ? new Date(dispatchDateRaw).getTime() : 0;
-  const todayStart  = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const dispatchDateObj = dispatchMs < todayStart.getTime() ? new Date() : new Date(dispatchDateRaw);
-  const dispatchDateFmt = `${dispatchDateObj.getFullYear()}-${String(dispatchDateObj.getMonth()+1).padStart(2,'0')}-${String(dispatchDateObj.getDate()).padStart(2,'0')}`;
+  const dispatchMs       = dispatchDateRaw ? new Date(dispatchDateRaw).getTime() : 0;
+  const todayStart       = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const isClampedToToday = dispatchMs < todayStart.getTime();
+  const dispatchDateObj  = isClampedToToday ? new Date() : new Date(dispatchDateRaw);
+  const dispatchDateFmt  = `${dispatchDateObj.getFullYear()}-${String(dispatchDateObj.getMonth()+1).padStart(2,'0')}-${String(dispatchDateObj.getDate()).padStart(2,'0')}`;
+
+  // When clamping to today, use current time so dispatch_time >= invoice issue time (Wrapp validation)
+  const now = new Date();
+  const effectiveDispatchTime = isClampedToToday
+    ? `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+    : (note.dispatch_time ? note.dispatch_time.slice(0, 5) : '08:00');
 
   const delivery_detail = {
     dispatch_date:       formatDispatchDate(dispatchDateFmt),
-    dispatch_time:       note.dispatch_time || '08:00',
+    dispatch_time:       effectiveDispatchTime,
     vehicle_number:      note.vehicle_plate || 'ΑΓΝΩΣΤΟ',
     purpose_of_movement: movementPurposeCode(note.transport_purpose),
     issuer_of_movement:  biz.name || '',
