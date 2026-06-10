@@ -334,6 +334,31 @@ function formatDispatchDate(dateStr) {
   return `${String(d.getDate()).padStart(2,'0')}-${MONTHS_EN[d.getMonth()]}-${d.getFullYear()}`;
 }
 
+// ── Athens-time helpers ───────────────────────────────────────────────────────
+// Wrapp/myDATA validate dispatch_date & dispatch_time in Europe/Athens timezone.
+// Our server runs in UTC, so we must compute these explicitly in Athens local time
+// or we hit "dispatch time must be >= invoice issue time" (422) during summer.
+function athensParts(date = new Date(), offsetMinutes = 0) {
+  const d = new Date(date.getTime() + offsetMinutes * 60_000);
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Athens',
+    year:   'numeric', month:  '2-digit', day:    '2-digit',
+    hour:   '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(d);
+  const get   = type => parts.find(p => p.type === type).value;
+  let hour = get('hour');
+  if (hour === '24') hour = '00';
+  return {
+    year:   get('year'),
+    month:  get('month'),
+    day:    get('day'),
+    hour,
+    minute: get('minute'),
+  };
+}
+
 // ── Build invoice_lines array for Wrapp ──────────────────────────────────────
 function buildLines(lines, isDn) {
   return lines.map((l, idx) => {
@@ -386,19 +411,33 @@ async function transmitDeliveryNote(note, noteLines, biz) {
   const wrappLines = buildLines(noteLines, true);
   const totals     = buildTotals(wrappLines);
 
-  const dispatchDateRaw = note.dispatch_date || note.issue_date;
-  // Clamp to today if the stored dispatch_date is in the past — Wrapp rejects dates < submission time
-  const dispatchMs       = dispatchDateRaw ? new Date(dispatchDateRaw).getTime() : 0;
-  const todayStart       = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const isClampedToToday = dispatchMs < todayStart.getTime();
-  const dispatchDateObj  = isClampedToToday ? new Date() : new Date(dispatchDateRaw);
-  const dispatchDateFmt  = `${dispatchDateObj.getFullYear()}-${String(dispatchDateObj.getMonth()+1).padStart(2,'0')}-${String(dispatchDateObj.getDate()).padStart(2,'0')}`;
+  // Wrapp validates dispatch_date + dispatch_time against the invoice's issue time
+  // IN GREEK TIMEZONE (Europe/Athens). Our server runs in UTC, so naive
+  // new Date().getHours() is 3 hours behind in summer → 422 "dispatch time must
+  // be greater than or equal to invoice issue time". We compute everything in Athens.
+  const athensTodayParts = athensParts(new Date());
+  const athensTodayStr   = `${athensTodayParts.year}-${athensTodayParts.month}-${athensTodayParts.day}`;
+  const athensTodayMs    = new Date(`${athensTodayStr}T00:00:00Z`).getTime();
 
-  // When clamping to today, use current time so dispatch_time >= invoice issue time (Wrapp validation)
-  const now = new Date();
-  const effectiveDispatchTime = isClampedToToday
-    ? `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
-    : (note.dispatch_time ? note.dispatch_time.slice(0, 5) : '08:00');
+  const dispatchDateRaw  = note.dispatch_date || note.issue_date;
+  const dispatchMs       = dispatchDateRaw ? new Date(dispatchDateRaw).getTime() : 0;
+  const isClampedToToday = dispatchMs < athensTodayMs;
+
+  // For the date we want, get its YYYY-MM-DD form in Athens.
+  let dispatchDateFmt;
+  let effectiveDispatchTime;
+  if (isClampedToToday) {
+    // Use Athens "now" + 2 minute forward buffer so we beat the Wrapp issue-time check
+    // even if processing takes a moment, and the time is always > the historical record.
+    const p = athensParts(new Date(), 2);
+    dispatchDateFmt       = `${p.year}-${p.month}-${p.day}`;
+    effectiveDispatchTime = `${p.hour}:${p.minute}`;
+  } else {
+    // For future dispatch dates, format the raw date and keep the user's chosen time.
+    const d = new Date(dispatchDateRaw);
+    dispatchDateFmt       = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+    effectiveDispatchTime = note.dispatch_time ? note.dispatch_time.slice(0, 5) : '08:00';
+  }
 
   const delivery_detail = {
     dispatch_date:       formatDispatchDate(dispatchDateFmt),
@@ -449,6 +488,9 @@ async function transmitDeliveryNote(note, noteLines, biz) {
     lines:             wrappLines.length,
     delivery_detail,
     counterpart,
+    server_utc:        new Date().toISOString(),
+    athens_now:        `${athensParts(new Date()).hour}:${athensParts(new Date()).minute}`,
+    clamped_to_today:  isClampedToToday,
   });
 
   const resp = await wrappRequest({
