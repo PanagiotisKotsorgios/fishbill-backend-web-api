@@ -213,8 +213,21 @@ async function getJwt(businessId) {
 
 /** Create a billing book in Wrapp for the given invoice type */
 async function createBillingBook(baseUrl, jwt, invoiceTypeCode, businessId) {
-  const NAMES = { '9.3': 'Deltia Apostolis', '1.1': 'Timologia Polisis', '2.1': 'Timologia Parochis' };
-  const name = NAMES[invoiceTypeCode] || `Biblio ${invoiceTypeCode}`;
+  const NAMES = {
+    '9.3': 'Deltia Apostolis',
+    '1.1': 'Timologia Polisis',
+    '1.3': 'Pistotika Polisis 13',
+    '1.5': 'Pistotika Polisis 15',
+    '2.1': 'Timologia Parochis',
+    '2.4': 'Pistotika Parochis 24',
+    '5.1': 'Pistotika Correlated',
+    '5.2': 'Pistotika NonCorrelated',
+  };
+  // Wrapp rejects duplicate series across books for the same tenant, so use a
+  // distinct series letter per reversal type.
+  const SERIES = { '1.1': 'A', '1.3': 'C', '1.5': 'E', '2.1': 'P', '2.4': 'Q', '5.1': 'R', '5.2': 'S', '9.3': 'D' };
+  const name   = NAMES[invoiceTypeCode]  || `Biblio ${invoiceTypeCode}`;
+  const series = SERIES[invoiceTypeCode] || 'A';
   wInfo('createBillingBook', `Creating billing book type=${invoiceTypeCode} for business ${businessId}`, { name });
 
   // Required fields confirmed via Wrapp staging API test:
@@ -222,7 +235,7 @@ async function createBillingBook(baseUrl, jwt, invoiceTypeCode, businessId) {
   const resp = await wrappRequest({
     method:  'POST',
     url:     `${baseUrl}/api/v1/billing_books`,
-    data:    { name, series: 'A', invoice_type_code: invoiceTypeCode, number: 1 },
+    data:    { name, series, invoice_type_code: invoiceTypeCode, number: 1 },
     headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/json', 'Content-Type': 'application/json' },
     timeout: 15000,
   });
@@ -252,18 +265,24 @@ async function fetchBillingBookId(baseUrl, jwt, invoiceTypeCode, businessId) {
     books: books.map(b => ({ id: b.id, invoice_type_code: b.invoice_type_code, series: b.series })),
   });
 
-  const prefix = invoiceTypeCode.split('.')[0];
+  const prefix     = invoiceTypeCode.split('.')[0];
+  const isReversal = ['1.3', '1.5', '5.1', '5.2'].includes(invoiceTypeCode);
+
   let book = books.find(b => b.invoice_type_code === invoiceTypeCode);
-  if (!book) {
+  if (book) {
+    wInfo('fetchBillingBookId', `Exact billing book match: type=${book.invoice_type_code} id=${book.id}`);
+  } else if (!isReversal) {
+    // Sales invoices (1.1, 1.2) can fall back to a 1.x book per Wrapp's
+    // universalisation rule; reversal docs cannot, so we skip the prefix
+    // fallback for them and force auto-creation of an exact-type book.
     book = books.find(b => b.invoice_type_code && b.invoice_type_code.startsWith(prefix + '.'));
     if (book) wWarn('fetchBillingBookId', `Exact match for ${invoiceTypeCode} not found — using prefix match: ${book.invoice_type_code} (id=${book.id})`);
-  } else {
-    wInfo('fetchBillingBookId', `Exact billing book match: type=${book.invoice_type_code} id=${book.id}`);
   }
 
   if (!book) {
     wWarn('fetchBillingBookId', `No billing book found for type ${invoiceTypeCode} — auto-creating`, {
       available_types: books.map(b => b.invoice_type_code),
+      isReversal,
     });
     const newId = await createBillingBook(baseUrl, jwt, invoiceTypeCode, businessId);
     return newId;
@@ -271,10 +290,23 @@ async function fetchBillingBookId(baseUrl, jwt, invoiceTypeCode, businessId) {
   return book.id;
 }
 
-/** Get billing book ID — cached in businesses table to avoid repeated API calls */
+/** Get billing book ID — cached in businesses table to avoid repeated API calls.
+ *  Reversal types (1.3/1.5/5.1/5.2) bypass the cache: Wrapp staging rejects
+ *  "1.x covers all" for some of those, so we always look up / auto-create the
+ *  exact-type billing book per call. The few extra GETs are negligible vs the
+ *  "Invoice Type does not match selected Billing Book Invoice Type" failures. */
 async function getBillingBookId(businessId, invoiceTypeCode) {
-  const isDn = invoiceTypeCode === '9.3';
-  const col  = isDn ? 'wrapp_billing_book_dn_id' : 'wrapp_billing_book_inv_id';
+  const isDn       = invoiceTypeCode === '9.3';
+  const isReversal = ['1.3', '1.5', '5.1', '5.2'].includes(invoiceTypeCode);
+
+  if (isReversal) {
+    wInfo('getBillingBookId', `Reversal type ${invoiceTypeCode} — bypassing cache, resolving fresh (business ${businessId})`);
+    const settings = await getSettings();
+    const jwt      = await getJwt(businessId);
+    return await fetchBillingBookId(settings.baseUrl, jwt, invoiceTypeCode, businessId);
+  }
+
+  const col = isDn ? 'wrapp_billing_book_dn_id' : 'wrapp_billing_book_inv_id';
 
   const [[biz]] = await pool.execute(
     `SELECT ${col} AS cached_id FROM businesses WHERE id = ? LIMIT 1`, [businessId]
@@ -524,25 +556,58 @@ async function transmitDeliveryNote(note, noteLines, biz) {
 // ── Transmit invoice (type 1.1, 2.1, etc.) ───────────────────────────────────
 async function transmitInvoice(invoice, invoiceLines, biz, customer) {
   const typeCode = invoice.invoice_type || '1.1';
+  // Credit (πιστωτικό 5.1 / 1.5) and cancellation (ακυρωτικό 5.2 / 1.3) are
+  // "reversal" docs in myDATA: Wrapp/AADE require POSITIVE amounts here and a
+  // `correlated_invoices` array pointing to the original invoice's MARK. Our
+  // internal records store negative values for these — we flip them on the wire.
+  const isReversal = (typeCode === '1.3' || typeCode === '1.5' || typeCode === '5.1' || typeCode === '5.2');
+
   wInfo('transmitInvoice', `START — invoice id=${invoice.id} type=${typeCode} business=${invoice.business_id}`, {
     customer:    customer?.name,
     net:         invoice.net_value,
     total:       invoice.total_value,
     lines_count: invoiceLines.length,
+    isReversal,
+    related_invoice_id: invoice.related_invoice_id || null,
   });
 
   const settings      = await getSettings();
   const jwt           = await getJwt(invoice.business_id);
+  // Wrapp's billing book universalisation: a "1.1" book covers 1.x types, and
+  // a "2.1" book covers 2.x. But 1.3/1.5 sometimes hit "Invoice Type does not
+  // match selected Billing Book Invoice Type" in practice — try the exact type
+  // first, then fall back to the 1.1 / 2.1 universal book on a 422 mismatch.
   const billingBookId = await getBillingBookId(invoice.business_id, typeCode);
+
+  // For reversal docs, look up the original invoice's myDATA MARK so we can
+  // correlate. Tries DB column `related_invoice_id` first (our schema).
+  let correlatedMark = null;
+  if (isReversal && invoice.related_invoice_id) {
+    try {
+      const [[orig]] = await pool.execute(
+        'SELECT mydata_mark, wrapp_mark FROM invoices WHERE id = ? LIMIT 1',
+        [invoice.related_invoice_id]
+      );
+      correlatedMark = orig?.mydata_mark || orig?.wrapp_mark || null;
+      wInfo('transmitInvoice', `reversal correlation — original mark=${correlatedMark || '(none)'}`, {
+        related_invoice_id: invoice.related_invoice_id,
+        has_mark: !!correlatedMark,
+      });
+    } catch (e) {
+      wWarn('transmitInvoice', `could not look up original invoice mark: ${e.message}`);
+    }
+  }
 
   const wrappLines = invoiceLines.map((l, idx) => {
     const vatRate  = l.vat_rate  || 13;
-    const qty      = parseFloat(l.quantity)   || 1;
-    const uPrice   = parseFloat(l.unit_price) || 0;
-    const discount = parseFloat(l.discount_amt || l.discount_amount || 0);
-    const netPric  = parseFloat(l.net_value   || ((qty * uPrice) - discount).toFixed(2));
-    const vatAmt   = parseFloat(l.vat_amount  || ((netPric * vatRate) / 100).toFixed(2));
-    const subtot   = parseFloat(l.total_value || (netPric + vatAmt).toFixed(2));
+    // Reversal docs: flip signs to positive before sending. Internal storage
+    // keeps the negative numbers so balance sheets still subtract correctly.
+    const qty      = Math.abs(parseFloat(l.quantity) || 1);
+    const uPrice   = Math.abs(parseFloat(l.unit_price) || 0);
+    const discount = Math.abs(parseFloat(l.discount_amt || l.discount_amount || 0));
+    const netPric  = Math.abs(parseFloat(l.net_value   || ((qty * uPrice) - discount).toFixed(2)));
+    const vatAmt   = Math.abs(parseFloat(l.vat_amount  || ((netPric * vatRate) / 100).toFixed(2)));
+    const subtot   = Math.abs(parseFloat(l.total_value || (netPric + vatAmt).toFixed(2)));
 
     const line = {
       line_number:             idx + 1,
@@ -561,9 +626,9 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     return line;
   });
 
-  const net   = parseFloat(parseFloat(invoice.net_value   || 0).toFixed(2));
-  const vat   = parseFloat(parseFloat(invoice.vat_amount  || 0).toFixed(2));
-  const total = parseFloat(parseFloat(invoice.total_value || 0).toFixed(2));
+  const net   = Math.abs(parseFloat(parseFloat(invoice.net_value   || 0).toFixed(2)));
+  const vat   = Math.abs(parseFloat(parseFloat(invoice.vat_amount  || 0).toFixed(2)));
+  const total = Math.abs(parseFloat(parseFloat(invoice.total_value || 0).toFixed(2)));
 
   const PM_MAP = { cash: 0, credit_card: 3, card: 3, bank_transfer: 2, check: 4, iris: 7, other: 1 };
   const pm = PM_MAP[invoice.payment_method] ?? 1;
@@ -590,6 +655,10 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     invoice_lines:        wrappLines,
   };
 
+  if (isReversal && correlatedMark) {
+    payload.correlated_invoices = [String(correlatedMark)];
+  }
+
   wInfo('transmitInvoice', `POST ${settings.baseUrl}/api/v1/invoices — invoice payload built`, {
     billing_book_id:   billingBookId,
     invoice_type_code: typeCode,
@@ -598,6 +667,8 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     net, vat, total,
     lines:      wrappLines.length,
     counterpart,
+    isReversal,
+    correlated_mark: correlatedMark,
   });
 
   const resp = await wrappRequest({
