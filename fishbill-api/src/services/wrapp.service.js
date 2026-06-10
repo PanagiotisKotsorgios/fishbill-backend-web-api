@@ -211,7 +211,32 @@ async function getJwt(businessId) {
   return jwt;
 }
 
-/** Fetch all billing books from Wrapp and find the one matching invoiceTypeCode */
+/** Create a billing book in Wrapp for the given invoice type */
+async function createBillingBook(baseUrl, jwt, invoiceTypeCode, businessId) {
+  const NAMES = { '9.3': 'Deltia Apostolis', '1.1': 'Timologia Polisis', '2.1': 'Timologia Parochis' };
+  const name = NAMES[invoiceTypeCode] || `Biblio ${invoiceTypeCode}`;
+  wInfo('createBillingBook', `Creating billing book type=${invoiceTypeCode} for business ${businessId}`, { name });
+
+  // Required fields confirmed via Wrapp staging API test:
+  // series must be Latin (not Greek) and number:1 is required (NOT start_number)
+  const resp = await wrappRequest({
+    method:  'POST',
+    url:     `${baseUrl}/api/v1/billing_books`,
+    data:    { name, series: 'A', invoice_type_code: invoiceTypeCode, number: 1 },
+    headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+    timeout: 15000,
+  });
+
+  const book = resp.data?.id ? resp.data : (resp.data?.data || resp.data);
+  if (!book?.id) {
+    wError('createBillingBook', 'No id in create response', { response: resp.data });
+    throw new Error(`Αποτυχία δημιουργίας billing book τύπου ${invoiceTypeCode} στο Wrapp.`);
+  }
+  wInfo('createBillingBook', `Billing book created`, { id: book.id, type: invoiceTypeCode, series: book.series });
+  return book.id;
+}
+
+/** Fetch all billing books from Wrapp and find the one matching invoiceTypeCode. Auto-creates if missing. */
 async function fetchBillingBookId(baseUrl, jwt, invoiceTypeCode, businessId) {
   wInfo('fetchBillingBookId', `GET ${baseUrl}/api/v1/billing_books — looking for type ${invoiceTypeCode} (business ${businessId})`);
 
@@ -237,10 +262,11 @@ async function fetchBillingBookId(baseUrl, jwt, invoiceTypeCode, businessId) {
   }
 
   if (!book) {
-    wError('fetchBillingBookId', `No billing book found for type ${invoiceTypeCode}`, {
+    wWarn('fetchBillingBookId', `No billing book found for type ${invoiceTypeCode} — auto-creating`, {
       available_types: books.map(b => b.invoice_type_code),
     });
-    throw new Error(`Δεν βρέθηκε billing book για τύπο παραστατικού ${invoiceTypeCode} στο Wrapp.`);
+    const newId = await createBillingBook(baseUrl, jwt, invoiceTypeCode, businessId);
+    return newId;
   }
   return book.id;
 }
@@ -360,9 +386,15 @@ async function transmitDeliveryNote(note, noteLines, biz) {
   const wrappLines = buildLines(noteLines, true);
   const totals     = buildTotals(wrappLines);
 
-  const dispatchDate    = note.dispatch_date || note.issue_date;
+  const dispatchDateRaw = note.dispatch_date || note.issue_date;
+  // Clamp to today if the stored dispatch_date is in the past — Wrapp rejects dates < submission time
+  const dispatchMs  = dispatchDateRaw ? new Date(dispatchDateRaw).getTime() : 0;
+  const todayStart  = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const dispatchDateObj = dispatchMs < todayStart.getTime() ? new Date() : new Date(dispatchDateRaw);
+  const dispatchDateFmt = `${dispatchDateObj.getFullYear()}-${String(dispatchDateObj.getMonth()+1).padStart(2,'0')}-${String(dispatchDateObj.getDate()).padStart(2,'0')}`;
+
   const delivery_detail = {
-    dispatch_date:       formatDispatchDate(dispatchDate),
+    dispatch_date:       formatDispatchDate(dispatchDateFmt),
     dispatch_time:       note.dispatch_time || '08:00',
     vehicle_number:      note.vehicle_plate || 'ΑΓΝΩΣΤΟ',
     purpose_of_movement: movementPurposeCode(note.transport_purpose),

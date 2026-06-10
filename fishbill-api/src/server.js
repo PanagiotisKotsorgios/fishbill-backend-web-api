@@ -50,6 +50,11 @@ async function runMigrations() {
   await addColumnIfMissing('business_settings', 'default_vat_rate',    'TINYINT NOT NULL DEFAULT 13');
   await addColumnIfMissing('businesses', 'billing_cycle_started_at',   'DATE NULL DEFAULT NULL');
   await addColumnIfMissing('businesses', 'wrapp_partner_user_id',      'VARCHAR(255) NULL DEFAULT NULL');
+  await addColumnIfMissing('businesses', 'wrapp_billing_book_inv_id',  'VARCHAR(100) NULL DEFAULT NULL');
+  await addColumnIfMissing('businesses', 'wrapp_billing_book_dn_id',   'VARCHAR(100) NULL DEFAULT NULL');
+  await addColumnIfMissing('invoices',   'wrapp_invoice_id',           'VARCHAR(100) NULL DEFAULT NULL');
+  await addColumnIfMissing('invoices',   'wrapp_qr_url',               'VARCHAR(500) NULL DEFAULT NULL');
+  await addColumnIfMissing('invoices',   'pdf_path',                   'VARCHAR(500) NULL DEFAULT NULL');
   // Price correction: ensure price_pro is 12 (was 15)
   try {
     await pool.execute(

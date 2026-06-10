@@ -161,6 +161,7 @@ async function transmit(invoice) {
       ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
 
       ilog('INFO', 'invoice transmission SUCCESS via Wrapp', { invoice_id: invoice.id, mark: result.mark });
+      autoGeneratePDF(invoice, lineRows, biz, customer);
       return { success: true, mark: result.mark, qrUrl: result.qrUrl };
     }
 
@@ -184,6 +185,7 @@ async function transmit(invoice) {
         [invoice.id, etResult.mark || null]
       ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
       ilog('INFO', 'invoice transmission SUCCESS via e-Timologiera', { invoice_id: invoice.id, mark: etResult.mark });
+      autoGeneratePDF(invoice, lineRows, biz, customer);
       return { success: true, mark: etResult.mark, qrUrl: etResult.qrUrl, uid: etResult.uid, testMode: etResult.testMode };
     } else {
       throw new Error(etResult.errors?.join(', ') || 'No MARK returned from e-timologiera');
@@ -437,6 +439,47 @@ function buildEtimPayload(invoice, lines, biz, customer = {}) {
 async function generatePDF(invoice) {
   const pdfService = require('./pdf.service');
   return pdfService.generateInvoicePDF(invoice);
+}
+
+// Fire-and-forget: generate PDF after transmission and persist at uploads/invoices/{id}.pdf
+function autoGeneratePDF(invoice, lineRows, biz, customer) {
+  setImmediate(async () => {
+    try {
+      const pdfSvc    = require('./pdf.service');
+      const uploadDir = path.join(__dirname, '../../uploads/invoices');
+      fs.mkdirSync(uploadDir, { recursive: true });
+      const permPath  = path.join(uploadDir, `${invoice.id}.pdf`);
+      const pdfInvoice = {
+        ...invoice,
+        business_name:    biz.name,
+        business_afm:     biz.afm,
+        business_address: biz.address,
+        business_city:    biz.city,
+        business_postal:  biz.postal_code,
+        business_phone:   biz.phone   || '',
+        business_email:   biz.email   || '',
+        business_doy:     biz.doy     || '',
+        customer_name:    customer.name        || invoice.customer_name || '',
+        customer_afm:     customer.afm         || invoice.customer_afm  || '',
+        customer_address: customer.address     || '',
+        customer_city:    customer.city        || '',
+        customer_postal:  customer.postal_code || '',
+        customer_phone:   customer.phone       || '',
+        customer_email:   customer.email       || '',
+        lines: lineRows,
+      };
+      const tmpPath = await pdfSvc.generateInvoicePDF(pdfInvoice);
+      fs.copyFileSync(tmpPath, permPath);
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      await pool.execute(
+        `UPDATE invoices SET pdf_path = ?, updated_at = NOW() WHERE id = ?`,
+        [`/uploads/invoices/${invoice.id}.pdf`, invoice.id]
+      );
+      ilog('INFO', 'PDF auto-generated after transmission', { invoice_id: invoice.id });
+    } catch (pdfErr) {
+      ilog('WARN', 'PDF auto-generation failed (non-fatal)', { invoice_id: invoice.id, error: pdfErr.message });
+    }
+  });
 }
 
 module.exports = { getNextNumber, calculateAndSaveInvoice, transmit, generatePDF, buildEtimPayload };

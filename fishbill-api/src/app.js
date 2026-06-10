@@ -46,12 +46,66 @@ app.post('/api/wrapp/webhook',
       });
 
       // Accept both snake_case and camelCase field names from Wrapp
-      const body           = req.body || {};
-      const api_key        = body.api_key        || body.apiKey        || null;
-      const wrapp_user_id  = body.wrapp_user_id  || body.wrappUserId   || null;
-      const partner_user_id = body.partner_user_id || body.partnerUserId || null;
-      _wlog('INFO', 'Parsed webhook fields', { api_key: api_key ? api_key.slice(0,8)+'...' : null, wrapp_user_id, partner_user_id });
+      const body            = req.body || {};
+      const api_key         = body.api_key         || body.apiKey         || null;
+      const wrapp_user_id   = body.wrapp_user_id   || body.wrappUserId    || null;
+      const partner_user_id = body.partner_user_id || body.partnerUserId  || null;
+      const my_data_mark    = body.my_data_mark    || body.myDataMark     || null;
+      const wrapp_invoice_id = body.invoice_id     || body.wrapp_invoice_id || null;
+      _wlog('INFO', 'Parsed webhook fields', {
+        api_key: api_key ? api_key.slice(0,8)+'...' : null,
+        wrapp_user_id, partner_user_id,
+        my_data_mark, wrapp_invoice_id,
+      });
 
+      // ── MARK update webhook: Wrapp resolved myDATA asynchronously ──────────
+      if (my_data_mark && wrapp_invoice_id) {
+        _wlog('INFO', 'MARK update webhook received', { wrapp_invoice_id, my_data_mark });
+        const pool = require('./config/database');
+        const qrUrl = body.my_data_qr_url || body.myDataQrUrl || null;
+        const uid   = body.my_data_uid    || body.myDataUid   || null;
+
+        // Try invoices first
+        const [[inv]] = await pool.execute(
+          'SELECT id, business_id FROM invoices WHERE wrapp_invoice_id = ? LIMIT 1',
+          [wrapp_invoice_id]
+        );
+        if (inv) {
+          await pool.execute(
+            `UPDATE invoices SET mydata_mark=?, mydata_qr=?, status='transmitted',
+             transmitted_at=COALESCE(transmitted_at, NOW()), updated_at=NOW() WHERE id=?`,
+            [my_data_mark, qrUrl, inv.id]
+          );
+          await pool.execute(
+            `INSERT INTO transmission_logs (invoice_id, provider, success, mydata_mark, attempted_at)
+             VALUES (?, 'wrapp', 1, ?, NOW())
+             ON DUPLICATE KEY UPDATE mydata_mark=VALUES(mydata_mark)`,
+            [inv.id, my_data_mark]
+          ).catch(() => {});
+          _wlog('INFO', 'Invoice MARK updated via webhook', { invoice_id: inv.id, mark: my_data_mark });
+          return res.json({ ok: true, updated: 'invoice', invoice_id: inv.id, mark: my_data_mark });
+        }
+
+        // Try delivery notes
+        const [[dn]] = await pool.execute(
+          'SELECT id FROM delivery_notes WHERE wrapp_invoice_id = ? LIMIT 1',
+          [wrapp_invoice_id]
+        );
+        if (dn) {
+          await pool.execute(
+            `UPDATE delivery_notes SET mydata_mark=?, mydata_uid=?, wrapp_qr_url=?, status='transmitted',
+             transmitted_at=COALESCE(transmitted_at, NOW()), updated_at=NOW() WHERE id=?`,
+            [my_data_mark, uid, qrUrl, dn.id]
+          );
+          _wlog('INFO', 'Delivery note MARK updated via webhook', { dn_id: dn.id, mark: my_data_mark });
+          return res.json({ ok: true, updated: 'delivery_note', dn_id: dn.id, mark: my_data_mark });
+        }
+
+        _wlog('WARN', 'MARK webhook: wrapp_invoice_id not found in invoices or delivery_notes', { wrapp_invoice_id });
+        return res.json({ ok: false, error: 'Document not found.', wrapp_invoice_id });
+      }
+
+      // ── Onboarding webhook: no MARK → must have api_key ───────────────────
       if (!api_key) {
         _wlog('ERROR', 'Missing api_key in webhook body — all known field names tried', body);
         // Return 200 so Wrapp doesn't retry indefinitely; log the error
