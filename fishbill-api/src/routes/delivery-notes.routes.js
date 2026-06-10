@@ -759,35 +759,48 @@ router.get('/:id/pdf', async (req, res, next) => {
       }
     }
 
-    // If Wrapp already generated a PDF, redirect to it
+    // ── Wrapp PDF flow (strict for Wrapp-enabled businesses) ────────────────
+    // For Wrapp businesses, the PDF MUST come from Wrapp (compliance). Never
+    // silently fall back to a locally-rendered PDF — return 202/409/502 so the
+    // Android client knows the real state.
+    const [[bizWrapp]] = await pool.execute(
+      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [note.business_id]
+    );
+    const wrappEnabled = bizWrapp?.wrapp_enabled === 1;
+
     if (note.wrapp_pdf_url) {
       return res.redirect(302, note.wrapp_pdf_url);
     }
 
-    // If this DN was transmitted via Wrapp but PDF hasn't been generated yet, request it
     if (note.wrapp_invoice_id) {
       try {
-        const [[biz]] = await pool.execute(
-          'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [note.business_id]
-        );
-        if (biz?.wrapp_enabled) {
-          const wrapp = require('../services/wrapp.service');
-          const result = await wrapp.generatePdf(note.wrapp_invoice_id, note.business_id);
-          if (result.download_url) {
-            await pool.execute(
-              'UPDATE delivery_notes SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
-              [result.download_url, id]
-            );
-            return res.redirect(302, result.download_url);
-          }
-          return res.status(202).json({
-            message: 'Το PDF βρίσκεται σε επεξεργασία. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.',
-            pending: true,
-          });
+        const wrapp = require('../services/wrapp.service');
+        const result = await wrapp.generatePdf(note.wrapp_invoice_id, note.business_id);
+        if (result.download_url) {
+          await pool.execute(
+            'UPDATE delivery_notes SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
+            [result.download_url, id]
+          );
+          return res.redirect(302, result.download_url);
         }
+        return res.status(202).json({
+          message: 'Το PDF βρίσκεται σε επεξεργασία. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.',
+          pending: true,
+        });
       } catch (wrappErr) {
         console.warn(`[wrapp-pdf] DN ${id}: ${wrappErr.message}`);
+        if (wrappEnabled) {
+          return res.status(502).json({
+            error: 'Προσωρινή αδυναμία λήψης PDF από το Wrapp. Δοκιμάστε ξανά σε λίγο.',
+          });
+        }
       }
+    }
+
+    if (wrappEnabled) {
+      return res.status(409).json({
+        error: 'Το δελτίο δεν έχει διαβιβαστεί ακόμα στο Wrapp. Διαβιβάστε το πρώτα για να εκδοθεί το επίσημο PDF.',
+      });
     }
 
     // Fall back to auto-generated PDF

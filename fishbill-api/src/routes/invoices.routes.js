@@ -1173,38 +1173,50 @@ router.get('/:id/pdf', async (req, res, next) => {
       }
     }
 
-    // If Wrapp already generated a PDF, redirect to it
+    // ── Wrapp PDF flow (strict for Wrapp-enabled businesses) ────────────────
+    // For businesses using Wrapp, the PDF MUST come from Wrapp (compliance). We
+    // never silently render our own — if Wrapp isn't ready, we return 202 so
+    // the Android client retries, or 409 if there's no wrapp_invoice_id yet.
+    const [[bizWrapp]] = await pool.execute(
+      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [invoice.business_id]
+    );
+    const wrappEnabled = bizWrapp?.wrapp_enabled === 1;
+
     if (invoice.wrapp_pdf_url) {
       return res.redirect(302, invoice.wrapp_pdf_url);
     }
 
-    // If this invoice was transmitted via Wrapp but PDF hasn't been generated yet, request it
     if (invoice.wrapp_invoice_id) {
       try {
-        const [[biz]] = await pool.execute(
-          'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [invoice.business_id]
-        );
-        if (biz?.wrapp_enabled) {
-          const wrapp = require('../services/wrapp.service');
-          const result = await wrapp.generatePdf(invoice.wrapp_invoice_id, invoice.business_id);
-          if (result.download_url) {
-            // PDF was ready immediately — save and redirect
-            await pool.execute(
-              'UPDATE invoices SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
-              [result.download_url, id]
-            );
-            return res.redirect(302, result.download_url);
-          }
-          // PDF is being generated — return 202 so the client knows to try again shortly
-          return res.status(202).json({
-            message: 'Το PDF βρίσκεται σε επεξεργασία. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.',
-            pending: true,
+        const wrapp = require('../services/wrapp.service');
+        const result = await wrapp.generatePdf(invoice.wrapp_invoice_id, invoice.business_id);
+        if (result.download_url) {
+          await pool.execute(
+            'UPDATE invoices SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
+            [result.download_url, id]
+          );
+          return res.redirect(302, result.download_url);
+        }
+        return res.status(202).json({
+          message: 'Το PDF βρίσκεται σε επεξεργασία. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.',
+          pending: true,
+        });
+      } catch (wrappErr) {
+        console.warn(`[wrapp-pdf] Invoice ${id}: ${wrappErr.message}`);
+        if (wrappEnabled) {
+          return res.status(502).json({
+            error: 'Προσωρινή αδυναμία λήψης PDF από το Wrapp. Δοκιμάστε ξανά σε λίγο.',
           });
         }
-      } catch (wrappErr) {
-        // Fall through to local generation if Wrapp PDF request fails
-        console.warn(`[wrapp-pdf] Invoice ${id}: ${wrappErr.message}`);
+        // else: fall through to local rendering for non-Wrapp businesses
       }
+    }
+
+    // Wrapp-enabled but no wrapp_invoice_id yet → DN/invoice hasn't been transmitted
+    if (wrappEnabled) {
+      return res.status(409).json({
+        error: 'Το παραστατικό δεν έχει διαβιβαστεί ακόμα στο Wrapp. Διαβιβάστε το πρώτα για να εκδοθεί το επίσημο PDF.',
+      });
     }
 
     const [lines] = await pool.execute(
