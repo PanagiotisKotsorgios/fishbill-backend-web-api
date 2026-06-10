@@ -1173,6 +1173,40 @@ router.get('/:id/pdf', async (req, res, next) => {
       }
     }
 
+    // If Wrapp already generated a PDF, redirect to it
+    if (invoice.wrapp_pdf_url) {
+      return res.redirect(302, invoice.wrapp_pdf_url);
+    }
+
+    // If this invoice was transmitted via Wrapp but PDF hasn't been generated yet, request it
+    if (invoice.wrapp_invoice_id) {
+      try {
+        const [[biz]] = await pool.execute(
+          'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [invoice.business_id]
+        );
+        if (biz?.wrapp_enabled) {
+          const wrapp = require('../services/wrapp.service');
+          const result = await wrapp.generatePdf(invoice.wrapp_invoice_id, invoice.business_id);
+          if (result.download_url) {
+            // PDF was ready immediately — save and redirect
+            await pool.execute(
+              'UPDATE invoices SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
+              [result.download_url, id]
+            );
+            return res.redirect(302, result.download_url);
+          }
+          // PDF is being generated — return 202 so the client knows to try again shortly
+          return res.status(202).json({
+            message: 'Το PDF βρίσκεται σε επεξεργασία. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.',
+            pending: true,
+          });
+        }
+      } catch (wrappErr) {
+        // Fall through to local generation if Wrapp PDF request fails
+        console.warn(`[wrapp-pdf] Invoice ${id}: ${wrappErr.message}`);
+      }
+    }
+
     const [lines] = await pool.execute(
       'SELECT * FROM invoice_lines WHERE invoice_id = ? ORDER BY line_number',
       [id]
@@ -1190,7 +1224,6 @@ router.get('/:id/pdf', async (req, res, next) => {
     const stream = fs.createReadStream(filePath);
     stream.pipe(res);
     stream.on('end', () => {
-      // Optionally delete temp file
       fs.unlink(filePath, () => {});
     });
   } catch (err) {

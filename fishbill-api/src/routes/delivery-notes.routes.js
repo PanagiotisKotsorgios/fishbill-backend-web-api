@@ -752,12 +752,41 @@ router.get('/:id/pdf', async (req, res, next) => {
     const note = rows[0];
 
     // Serve admin-uploaded PDF via redirect to the static file URL.
-    // express.static already serves this path correctly; streaming from within
-    // the route handler is unnecessary and risks stream-pipe issues.
     if (note.pdf_path) {
       const uploadedFile = path.join(__dirname, '../../uploads/delivery-notes', `${id}.pdf`);
       if (fs.existsSync(uploadedFile)) {
         return res.redirect(302, `/uploads/delivery-notes/${id}.pdf`);
+      }
+    }
+
+    // If Wrapp already generated a PDF, redirect to it
+    if (note.wrapp_pdf_url) {
+      return res.redirect(302, note.wrapp_pdf_url);
+    }
+
+    // If this DN was transmitted via Wrapp but PDF hasn't been generated yet, request it
+    if (note.wrapp_invoice_id) {
+      try {
+        const [[biz]] = await pool.execute(
+          'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [note.business_id]
+        );
+        if (biz?.wrapp_enabled) {
+          const wrapp = require('../services/wrapp.service');
+          const result = await wrapp.generatePdf(note.wrapp_invoice_id, note.business_id);
+          if (result.download_url) {
+            await pool.execute(
+              'UPDATE delivery_notes SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
+              [result.download_url, id]
+            );
+            return res.redirect(302, result.download_url);
+          }
+          return res.status(202).json({
+            message: 'Το PDF βρίσκεται σε επεξεργασία. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.',
+            pending: true,
+          });
+        }
+      } catch (wrappErr) {
+        console.warn(`[wrapp-pdf] DN ${id}: ${wrappErr.message}`);
       }
     }
 

@@ -722,6 +722,33 @@ async function checkUserStatus(businessId) {
   return result;
 }
 
+// ── Request PDF generation for a Wrapp invoice ───────────────────────────────
+// Returns { download_url } if PDF is already generated, or { pending: true } if
+// Wrapp queued the generation (webhook will deliver download_url when ready).
+async function generatePdf(wrappInvoiceId, businessId) {
+  wInfo('generatePdf', `START — wrapp_invoice_id=${wrappInvoiceId} business=${businessId}`);
+
+  const settings = await getSettings();
+  const jwt      = await getJwt(businessId);
+  const url      = `${settings.baseUrl}/api/v1/invoices/${wrappInvoiceId}/generate_pdf`;
+
+  const resp = await wrappRequest({
+    method:  'GET',
+    url,
+    headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/json' },
+    timeout: 30000,
+  });
+
+  const downloadUrl = resp.data?.download_url || null;
+  if (downloadUrl) {
+    wInfo('generatePdf', `PDF already available — returning download_url`, { wrappInvoiceId, downloadUrl });
+    return { download_url: downloadUrl, pending: false };
+  }
+
+  wInfo('generatePdf', `PDF generation queued — webhook will deliver download_url`, { wrappInvoiceId });
+  return { pending: true };
+}
+
 // ── Invalidate JWT cache (called when api_key changes) ────────────────────────
 function invalidateCache(businessId) {
   if (jwtCache[businessId]) {
@@ -737,4 +764,5 @@ module.exports = {
   initiateOnboarding,
   checkUserStatus,
   invalidateCache,
+  generatePdf,
 };

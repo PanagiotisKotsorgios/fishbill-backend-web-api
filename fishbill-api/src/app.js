@@ -58,6 +58,38 @@ app.post('/api/wrapp/webhook',
         my_data_mark, wrapp_invoice_id,
       });
 
+      // ── PDF ready webhook: Wrapp generated PDF and is delivering the download URL ─
+      const download_url = body.download_url || body.downloadUrl || null;
+      if (download_url && wrapp_invoice_id) {
+        _wlog('INFO', 'PDF ready webhook received', { wrapp_invoice_id, download_url });
+        const pool = require('./config/database');
+        // Try invoices first, then delivery notes
+        const [[invPdf]] = await pool.execute(
+          'SELECT id FROM invoices WHERE wrapp_invoice_id = ? LIMIT 1', [wrapp_invoice_id]
+        );
+        if (invPdf) {
+          await pool.execute(
+            'UPDATE invoices SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
+            [download_url, invPdf.id]
+          );
+          _wlog('INFO', 'Invoice wrapp_pdf_url updated via webhook', { invoice_id: invPdf.id });
+          return res.json({ ok: true, updated: 'invoice_pdf', invoice_id: invPdf.id });
+        }
+        const [[dnPdf]] = await pool.execute(
+          'SELECT id FROM delivery_notes WHERE wrapp_invoice_id = ? LIMIT 1', [wrapp_invoice_id]
+        );
+        if (dnPdf) {
+          await pool.execute(
+            'UPDATE delivery_notes SET wrapp_pdf_url=?, updated_at=NOW() WHERE id=?',
+            [download_url, dnPdf.id]
+          );
+          _wlog('INFO', 'Delivery note wrapp_pdf_url updated via webhook', { dn_id: dnPdf.id });
+          return res.json({ ok: true, updated: 'delivery_note_pdf', dn_id: dnPdf.id });
+        }
+        _wlog('WARN', 'PDF webhook: wrapp_invoice_id not found', { wrapp_invoice_id });
+        return res.json({ ok: false, error: 'Document not found.', wrapp_invoice_id });
+      }
+
       // ── MARK update webhook: Wrapp resolved myDATA asynchronously ──────────
       if (my_data_mark && wrapp_invoice_id) {
         _wlog('INFO', 'MARK update webhook received', { wrapp_invoice_id, my_data_mark });
