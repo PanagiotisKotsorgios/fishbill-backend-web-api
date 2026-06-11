@@ -60,6 +60,8 @@ async function runMigrations() {
   await addColumnIfMissing('invoices',   'pdf_path',                   'VARCHAR(500) NULL DEFAULT NULL');
   await addColumnIfMissing('invoices',   'wrapp_pdf_url',              'VARCHAR(1000) NULL DEFAULT NULL');
   await addColumnIfMissing('delivery_notes', 'wrapp_pdf_url',          'VARCHAR(1000) NULL DEFAULT NULL');
+  await addColumnIfMissing('delivery_notes', 'cancellation_mark',      'VARCHAR(50) NULL DEFAULT NULL');
+  await addColumnIfMissing('delivery_notes', 'cancellation_pending',   'TINYINT(1) NOT NULL DEFAULT 0');
   // Price correction: ensure price_pro is 12 (was 15)
   try {
     await pool.execute(

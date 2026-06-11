@@ -524,8 +524,9 @@ router.patch('/:id/cancel', async (req, res, next) => {
     if (note.status === 'cancelled') return res.status(400).json({ error: 'Ήδη ακυρωμένο.' });
 
     // ── Cancellation: Wrapp or direct AADE ───────────────────────────────────
-    let aadeCancelMark = null;
-    let aadeCancelError = null;
+    let aadeCancelMark   = null;
+    let aadeCancelError  = null;
+    let cancelPending    = false;
     if (note.mydata_mark || note.wrapp_invoice_id) {
       const [[bizRow]] = await pool.execute(
         'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [business_id]
@@ -535,9 +536,14 @@ router.patch('/:id/cancel', async (req, res, next) => {
       try {
         if (useWrapp) {
           const wrapp = require('../services/wrapp.service');
+          // Wrapp returns { id, my_data_mark, cancelled_by_mark, status? }.
+          // cancellationMark is `cancelled_by_mark` per Wrapp Invoice API v1.13.0.
+          // If status === 'pending' (myDATA slow), the real cancellation MARK
+          // arrives later via webhook — handled in app.js webhook receiver.
           const cancelResult = await wrapp.cancelDeliveryNote(note.wrapp_invoice_id, business_id);
-          aadeCancelMark = cancelResult.mark;
-          console.log(`[cancel DN] Wrapp cancellation OK — wrapp_id: ${note.wrapp_invoice_id}, mark: ${aadeCancelMark}`);
+          aadeCancelMark = cancelResult.cancellationMark;
+          cancelPending  = !!cancelResult.pending;
+          console.log(`[cancel DN] Wrapp cancellation ${cancelPending ? 'PENDING' : 'OK'} — wrapp_id: ${note.wrapp_invoice_id}, cancellationMark: ${aadeCancelMark}`);
         } else if (note.mydata_mark) {
           const aadeMydata = require('../services/aade-mydata.service');
           const cancelResult = await aadeMydata.cancelDeliveryNote(
@@ -555,7 +561,9 @@ router.patch('/:id/cancel', async (req, res, next) => {
 
     await pool.execute(
       `UPDATE delivery_notes
-       SET status = 'cancelled',
+       SET status                = 'cancelled',
+           cancellation_mark     = COALESCE(?, cancellation_mark),
+           cancellation_pending  = ?,
            mydata_response = JSON_MERGE_PATCH(COALESCE(mydata_response, '{}'),
              ${aadeCancelMark
                ? `'${JSON.stringify({ cancellationMark: aadeCancelMark })}'`
@@ -565,15 +573,18 @@ router.patch('/:id/cancel', async (req, res, next) => {
              }),
            updated_at = NOW()
        WHERE id = ?`,
-      [note.id]
+      [aadeCancelMark, cancelPending ? 1 : 0, note.id]
     );
 
     res.json({
       data: {
-        message:           'Το Δελτίο Αποστολής ακυρώθηκε.',
-        aade_cancelled:    !!aadeCancelMark,
-        cancellation_mark: aadeCancelMark,
-        aade_error:        aadeCancelError,
+        message:              cancelPending
+                              ? 'Η ακύρωση εστάλη — αναμένεται επιβεβαίωση από myDATA.'
+                              : 'Το Δελτίο Αποστολής ακυρώθηκε.',
+        aade_cancelled:       !!aadeCancelMark,
+        cancellation_mark:    aadeCancelMark,
+        cancellation_pending: cancelPending,
+        aade_error:           aadeCancelError,
       },
     });
 
@@ -751,22 +762,20 @@ router.get('/:id/pdf', async (req, res, next) => {
 
     const note = rows[0];
 
-    // Serve admin-uploaded PDF via redirect to the static file URL.
-    if (note.pdf_path) {
+    // Determine Wrapp mode up front — for Wrapp businesses we never fall back
+    // to a local pdf_path (which would carry no legal weight).
+    const [[bizWrapp]] = await pool.execute(
+      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [note.business_id]
+    );
+    const wrappEnabled = bizWrapp?.wrapp_enabled === 1;
+
+    // Serve admin-uploaded PDF only when Wrapp is not enabled.
+    if (note.pdf_path && !wrappEnabled) {
       const uploadedFile = path.join(__dirname, '../../uploads/delivery-notes', `${id}.pdf`);
       if (fs.existsSync(uploadedFile)) {
         return res.redirect(302, `/uploads/delivery-notes/${id}.pdf`);
       }
     }
-
-    // ── Wrapp PDF flow (strict for Wrapp-enabled businesses) ────────────────
-    // For Wrapp businesses, the PDF MUST come from Wrapp (compliance). Never
-    // silently fall back to a locally-rendered PDF — return 202/409/502 so the
-    // Android client knows the real state.
-    const [[bizWrapp]] = await pool.execute(
-      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [note.business_id]
-    );
-    const wrappEnabled = bizWrapp?.wrapp_enabled === 1;
 
     if (note.wrapp_pdf_url) {
       return res.redirect(302, note.wrapp_pdf_url);

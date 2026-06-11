@@ -90,6 +90,33 @@ app.post('/api/wrapp/webhook',
         return res.json({ ok: false, error: 'Document not found.', wrapp_invoice_id });
       }
 
+      // ── Cancellation MARK webhook: Wrapp completed an async DN cancel ─────
+      // Wrapp posts back the same `issued-invoice` event with cancelled_by_mark
+      // populated once myDATA confirms the cancellation. Capture it on the DN.
+      const cancelled_by_mark = body.cancelled_by_mark || body.cancelledByMark || null;
+      if (cancelled_by_mark && wrapp_invoice_id) {
+        _wlog('INFO', 'Cancellation MARK webhook received', { wrapp_invoice_id, cancelled_by_mark });
+        const pool = require('./config/database');
+        const [[dnCancel]] = await pool.execute(
+          'SELECT id FROM delivery_notes WHERE wrapp_invoice_id = ? LIMIT 1', [wrapp_invoice_id]
+        );
+        if (dnCancel) {
+          await pool.execute(
+            `UPDATE delivery_notes
+             SET cancellation_mark    = ?,
+                 cancellation_pending = 0,
+                 status               = 'cancelled',
+                 updated_at           = NOW()
+             WHERE id = ?`,
+            [cancelled_by_mark, dnCancel.id]
+          );
+          _wlog('INFO', 'Delivery note cancellation_mark updated via webhook', { dn_id: dnCancel.id, mark: cancelled_by_mark });
+          return res.json({ ok: true, updated: 'delivery_note_cancellation', dn_id: dnCancel.id, mark: cancelled_by_mark });
+        }
+        _wlog('WARN', 'Cancellation MARK webhook: wrapp_invoice_id not found', { wrapp_invoice_id });
+        // fall through — maybe other handlers want it too
+      }
+
       // ── MARK update webhook: Wrapp resolved myDATA asynchronously ──────────
       if (my_data_mark && wrapp_invoice_id) {
         _wlog('INFO', 'MARK update webhook received', { wrapp_invoice_id, my_data_mark });

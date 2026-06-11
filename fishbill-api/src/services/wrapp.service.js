@@ -700,6 +700,15 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
 }
 
 // ── Cancel delivery note via Wrapp ────────────────────────────────────────────
+//
+// Wrapp Invoice API v1.13.0 — INVOICES > CANCEL:
+//   DELETE /api/v1/invoices/:id/cancel  (this endpoint is for delivery notes only)
+//   Response body fields:
+//     id                — the cancelled invoice id
+//     my_data_mark      — the ORIGINAL DN's myDATA mark (already in our DB)
+//     cancelled_by_mark — the CANCELLATION mark (this is what we need to store)
+//     status            — present and equal to "pending" when myDATA is slow
+//                         (the real cancelled_by_mark arrives later via webhook)
 async function cancelDeliveryNote(wrappInvoiceId, businessId) {
   wInfo('cancelDeliveryNote', `START — wrapp_invoice_id=${wrappInvoiceId} business=${businessId}`);
 
@@ -716,8 +725,16 @@ async function cancelDeliveryNote(wrappInvoiceId, businessId) {
     timeout: 15000,
   });
 
-  const result = { id: resp.data?.id, mark: resp.data?.my_data_mark || null };
-  wInfo('cancelDeliveryNote', `SUCCESS — cancelled wrapp_invoice_id=${wrappInvoiceId} cancellation_mark=${result.mark}`, result);
+  const isPending = resp.data?.status === 'pending';
+  const result = {
+    id:                resp.data?.id || resp.data?.invoice_id || null,
+    cancellationMark:  resp.data?.cancelled_by_mark || null,
+    originalMark:      resp.data?.my_data_mark      || null,
+    pending:           isPending,
+  };
+  wInfo('cancelDeliveryNote',
+    `${isPending ? 'PENDING' : 'SUCCESS'} — cancelled wrapp_invoice_id=${wrappInvoiceId} cancellationMark=${result.cancellationMark}`,
+    result);
   return result;
 }
 

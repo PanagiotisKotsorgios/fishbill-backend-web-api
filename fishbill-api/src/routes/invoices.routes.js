@@ -1163,8 +1163,18 @@ router.get('/:id/pdf', async (req, res, next) => {
 
     const invoice = rows[0];
 
-    // If admin uploaded a manually-processed PDF, serve that directly
-    if (invoice.pdf_path) {
+    // ── Determine provider mode up front ─────────────────────────────────────
+    // For Wrapp businesses we want STRICT Wrapp PDFs — bypass any local pdf_path
+    // (which may be a stale FishBill-branded PDF left over from before strict
+    // mode was deployed) and never fall back to local rendering.
+    const [[bizWrapp]] = await pool.execute(
+      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [invoice.business_id]
+    );
+    const wrappEnabled = bizWrapp?.wrapp_enabled === 1;
+
+    // Only serve an existing local pdf_path when Wrapp is NOT enabled (or the
+    // file was manually uploaded by an admin and there is no Wrapp counterpart).
+    if (invoice.pdf_path && !wrappEnabled) {
       const uploadedPath = path.join(__dirname, '../../uploads/invoices', `${id}.pdf`);
       if (fs.existsSync(uploadedPath)) {
         res.setHeader('Content-Type', 'application/pdf');
@@ -1172,15 +1182,6 @@ router.get('/:id/pdf', async (req, res, next) => {
         return fs.createReadStream(uploadedPath).pipe(res);
       }
     }
-
-    // ── Wrapp PDF flow (strict for Wrapp-enabled businesses) ────────────────
-    // For businesses using Wrapp, the PDF MUST come from Wrapp (compliance). We
-    // never silently render our own — if Wrapp isn't ready, we return 202 so
-    // the Android client retries, or 409 if there's no wrapp_invoice_id yet.
-    const [[bizWrapp]] = await pool.execute(
-      'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [invoice.business_id]
-    );
-    const wrappEnabled = bizWrapp?.wrapp_enabled === 1;
 
     if (invoice.wrapp_pdf_url) {
       return res.redirect(302, invoice.wrapp_pdf_url);

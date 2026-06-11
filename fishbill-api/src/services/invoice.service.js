@@ -161,7 +161,13 @@ async function transmit(invoice) {
       ).catch((dbErr) => { ilog('WARN', 'transmission_logs insert failed', { error: dbErr.message }); });
 
       ilog('INFO', 'invoice transmission SUCCESS via Wrapp', { invoice_id: invoice.id, mark: result.mark });
-      autoGeneratePDF(invoice, lineRows, biz, customer);
+      // Do NOT auto-render a local PDF after a Wrapp transmission. Wrapp owns
+      // the compliant myDATA-stamped PDF; we receive its download URL via the
+      // `invoice-pdf` webhook and store it in wrapp_pdf_url. Generating our own
+      // FishBill-branded PDF here would: (a) be served by the PDF endpoint
+      // ahead of the Wrapp one because pdf_path takes priority, and (b) carry
+      // no legal weight since it doesn't include the AADE-issued MARK at the
+      // time of generation (MARK arrives later via webhook).
       return { success: true, mark: result.mark, qrUrl: result.qrUrl };
     }
 
