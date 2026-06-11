@@ -564,6 +564,7 @@ router.patch('/:id/cancel', async (req, res, next) => {
        SET status                = 'cancelled',
            cancellation_mark     = COALESCE(?, cancellation_mark),
            cancellation_pending  = ?,
+           wrapp_pdf_url         = NULL,
            mydata_response = JSON_MERGE_PATCH(COALESCE(mydata_response, '{}'),
              ${aadeCancelMark
                ? `'${JSON.stringify({ cancellationMark: aadeCancelMark })}'`
@@ -575,6 +576,9 @@ router.patch('/:id/cancel', async (req, res, next) => {
        WHERE id = ?`,
       [aadeCancelMark, cancelPending ? 1 : 0, note.id]
     );
+    // wrapp_pdf_url cleared so the next /pdf request asks Wrapp again — in case
+    // Wrapp ever delivers a regenerated PDF post-cancellation. Per their docs
+    // they don't, but this costs nothing and is safer than serving a stale URL.
 
     res.json({
       data: {
