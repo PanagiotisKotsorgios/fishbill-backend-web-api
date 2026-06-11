@@ -104,6 +104,21 @@ async function calculateAndSaveInvoice(invoiceId) {
  */
 async function transmit(invoice) {
   ilog('INFO', 'transmit() called', { invoice_id: invoice.id, invoice_number: invoice.invoice_number, type: invoice.invoice_type, business_id: invoice.business_id, status: invoice.status });
+
+  // ── Belt-and-suspenders: correct any lingering 1.3 row in DB ─────────────
+  // Older versions of the credit creation route stored partial credits as
+  // invoice_type='1.3' — but in myDATA 1.3 is for non-EU sales, not credits.
+  // Persist the correction so the UI, PDF copy, and every other consumer
+  // sees 1.5. Idempotent: only fires when the row actually has 1.3.
+  if (invoice.invoice_type === '1.3') {
+    ilog('INFO', 'Self-healing invoice_type 1.3 → 1.5 at transmit() entry', { invoice_id: invoice.id });
+    await pool.execute(
+      `UPDATE invoices SET invoice_type = '1.5', updated_at = NOW() WHERE id = ?`,
+      [invoice.id]
+    ).catch(e => ilog('WARN', '1.3→1.5 self-heal DB update failed', { error: e.message }));
+    invoice.invoice_type = '1.5';
+  }
+
   try {
     const [lineRows] = await pool.execute(
       `SELECT * FROM invoice_lines WHERE invoice_id = ? ORDER BY line_number`,
