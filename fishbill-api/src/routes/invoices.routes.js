@@ -1183,6 +1183,19 @@ router.get('/:id/pdf', async (req, res, next) => {
       }
     }
 
+    // Auto-cleanup: for Wrapp businesses we never serve pdf_path. If a stale one
+    // is still present in the DB (created before strict mode was deployed), purge
+    // it now so the DB row matches reality and the on-disk file stops taking up
+    // space. Best-effort — never blocks the request.
+    if (invoice.pdf_path && wrappEnabled) {
+      pool.execute('UPDATE invoices SET pdf_path = NULL, updated_at = NOW() WHERE id = ?', [id])
+        .catch(() => {});
+      try {
+        const stalePath = path.join(__dirname, '../../uploads/invoices', `${id}.pdf`);
+        if (fs.existsSync(stalePath)) fs.unlinkSync(stalePath);
+      } catch (_) {}
+    }
+
     if (invoice.wrapp_pdf_url) {
       return res.redirect(302, invoice.wrapp_pdf_url);
     }
