@@ -232,13 +232,46 @@ async function createBillingBook(baseUrl, jwt, invoiceTypeCode, businessId) {
 
   // Required fields confirmed via Wrapp staging API test:
   // series must be Latin (not Greek) and number:1 is required (NOT start_number)
-  const resp = await wrappRequest({
-    method:  'POST',
-    url:     `${baseUrl}/api/v1/billing_books`,
-    data:    { name, series, invoice_type_code: invoiceTypeCode, number: 1 },
-    headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/json', 'Content-Type': 'application/json' },
-    timeout: 15000,
-  });
+  let resp;
+  try {
+    resp = await wrappRequest({
+      method:  'POST',
+      url:     `${baseUrl}/api/v1/billing_books`,
+      data:    { name, series, invoice_type_code: invoiceTypeCode, number: 1 },
+      headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+      timeout: 15000,
+    });
+  } catch (err) {
+    // Wrapp returns 422 with "Name το έχουν ήδη χρησιμοποιήσει" / "Series το έχουν
+    // ήδη χρησιμοποιήσει" when a previous run created a book with the same name
+    // and series. That happens after a Wrapp normalisation (e.g. our 1.3 attempt
+    // stored as a 1.1 book) — the row exists but with a different type code. In
+    // that case, look the existing book up and reuse its id instead of failing.
+    const status = err.response?.status;
+    const errors = err.response?.data?.errors || [];
+    const isInUse = status === 422 && errors.some(e =>
+      typeof e.title === 'string' && /ήδη χρησιμοποιήσει|already.*taken|already.*used/i.test(e.title)
+    );
+    if (isInUse) {
+      wWarn('createBillingBook', `Name/series already in use — looking up existing book`, { name, series, invoiceTypeCode });
+      const listResp = await wrappRequest({
+        method:  'GET',
+        url:     `${baseUrl}/api/v1/billing_books`,
+        headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/json' },
+        timeout: 15000,
+      });
+      const books = Array.isArray(listResp.data) ? listResp.data : (listResp.data?.data || []);
+      const existing = books.find(b =>
+        (b.name === name || b.series === series)
+      );
+      if (existing?.id) {
+        wInfo('createBillingBook', `Reusing existing billing book ${existing.id} (type=${existing.invoice_type_code}, series=${existing.series}) for requested type ${invoiceTypeCode}`);
+        return existing.id;
+      }
+      wError('createBillingBook', `Name/series in use but no matching book in list`, { name, series });
+    }
+    throw err;
+  }
 
   const book = resp.data?.id ? resp.data : (resp.data?.data || resp.data);
   if (!book?.id) {
@@ -555,12 +588,28 @@ async function transmitDeliveryNote(note, noteLines, biz) {
 
 // ── Transmit invoice (type 1.1, 2.1, etc.) ───────────────────────────────────
 async function transmitInvoice(invoice, invoiceLines, biz, customer) {
-  const typeCode = invoice.invoice_type || '1.1';
-  // Credit (πιστωτικό 5.1 / 1.5) and cancellation (ακυρωτικό 5.2 / 1.3) are
+  let typeCode = invoice.invoice_type || '1.1';
+
+  // ── myDATA-code correction ─────────────────────────────────────────────────
+  // `1.3` is actually the myDATA code for **non-EU sales invoices** (NOT for
+  // credit invoices). An earlier version of the credit-invoice creation route
+  // assigned 1.3 by mistake, and Wrapp staging then refuses to transmit those
+  // because no billing book of exact type 1.3 exists (when we try to auto-
+  // create one, Wrapp silently normalises it to type 1.1 per its universal
+  // rule, so on the next invoice POST the type mismatch surfaces). The right
+  // code for a non-correlated credit is **1.5** ("Πιστωτικό Τιμολόγιο μη
+  // συσχετιζόμενο"). We remap on the wire so older DB rows stored as 1.3 still
+  // transmit cleanly, and we log it so the correction is visible.
+  if (typeCode === '1.3') {
+    wInfo('transmitInvoice', `Remapping invoice type 1.3 → 1.5 (1.3 is for non-EU sales in myDATA, not credits)`, { invoice_id: invoice.id });
+    typeCode = '1.5';
+  }
+
+  // Credit (πιστωτικό 5.1 / 1.5) and cancellation (ακυρωτικό 5.2 / 1.4) are
   // "reversal" docs in myDATA: Wrapp/AADE require POSITIVE amounts here and a
   // `correlated_invoices` array pointing to the original invoice's MARK. Our
   // internal records store negative values for these — we flip them on the wire.
-  const isReversal = (typeCode === '1.3' || typeCode === '1.5' || typeCode === '5.1' || typeCode === '5.2');
+  const isReversal = (typeCode === '1.4' || typeCode === '1.5' || typeCode === '5.1' || typeCode === '5.2');
 
   wInfo('transmitInvoice', `START — invoice id=${invoice.id} type=${typeCode} business=${invoice.business_id}`, {
     customer:    customer?.name,

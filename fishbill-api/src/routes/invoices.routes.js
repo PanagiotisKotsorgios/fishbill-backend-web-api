@@ -1383,7 +1383,11 @@ router.post(
       const { id } = req.params;
       const businessId = req.user.business_id;
       const { credit_amount, reason, invoice_type: req_invoice_type, full_cancel, customer_name, customer_afm } = req.body || {};
-      const creditInvoiceType = (req_invoice_type === '1.5' || full_cancel) ? '1.5' : '1.3';
+      // Always use 1.5 (Πιστωτικό Τιμολόγιο μη συσχετιζόμενο) for both partial
+      // and full credits/cancellations. The previous code used 1.3 for partials,
+      // but in myDATA 1.3 is for non-EU sales — not credits. Wrapp staging also
+      // refuses to transmit credits against a 1.3 billing book.
+      const creditInvoiceType = '1.5';
 
       // Fetch original invoice
       const [rows] = await pool.execute(

@@ -68,6 +68,20 @@ async function runMigrations() {
       "UPDATE platform_settings SET setting_value = '12' WHERE setting_key = 'price_pro' AND setting_value = '15'"
     );
   } catch (_) {}
+
+  // myDATA-code correction: 1.3 (Τιμολόγιο πώλησης τρίτων χωρών) was being used
+  // incorrectly for partial credit invoices. Migrate any pending/failed 1.3 rows
+  // to the correct 1.5 code so the auto-transmit cron picks them up cleanly.
+  try {
+    const [result] = await pool.execute(
+      "UPDATE invoices SET invoice_type = '1.5', updated_at = NOW() WHERE invoice_type = '1.3' AND status IN ('draft','failed','issued')"
+    );
+    if (result?.affectedRows) {
+      logger.info(`Migration: corrected ${result.affectedRows} pending/failed invoices from type 1.3 → 1.5`);
+    }
+  } catch (e) {
+    logger.warn(`Migration 1.3→1.5 skipped: ${e.message}`);
+  }
   logger.info('DB migrations complete.');
 }
 
