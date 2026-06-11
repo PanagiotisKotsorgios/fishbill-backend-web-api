@@ -51,7 +51,11 @@ app.post('/api/wrapp/webhook',
       const wrapp_user_id   = body.wrapp_user_id   || body.wrappUserId    || null;
       const partner_user_id = body.partner_user_id || body.partnerUserId  || null;
       const my_data_mark    = body.my_data_mark    || body.myDataMark     || null;
-      const wrapp_invoice_id = body.invoice_id     || body.wrapp_invoice_id || null;
+      // Wrapp's `issued-invoice` event delivers the document id in `id`,
+      // the `invoice-pdf` / `invoice-thermal-pdf` events use `invoice_id`.
+      // Our own onboarding webhook may include `wrapp_invoice_id`. Accept
+      // all three so a spec-strict event always lands in the right branch.
+      const wrapp_invoice_id = body.id || body.invoice_id || body.wrapp_invoice_id || null;
       _wlog('INFO', 'Parsed webhook fields', {
         api_key: api_key ? api_key.slice(0,8)+'...' : null,
         wrapp_user_id, partner_user_id,

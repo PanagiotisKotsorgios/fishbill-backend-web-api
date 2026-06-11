@@ -424,6 +424,66 @@ function athensParts(date = new Date(), offsetMinutes = 0) {
   };
 }
 
+// ── myDATA-safe placeholder + address helpers ────────────────────────────────
+// myDATA strictly validates counterpart/delivery_detail fields. An em-dash
+// '—' or a placeholder like '00000' may pass Wrapp's input check but get
+// rejected by AADE on the back-end. These helpers normalise our defaults
+// so we always send myDATA-compliant strings.
+
+const SAFE_TEXT_FALLBACK    = 'ΑΓΝΩΣΤΟ';   // unknown / not set
+const SAFE_POSTAL_FALLBACK  = '00000';     // numeric, 5 chars — accepted by AADE
+
+/** Coerce a value to a non-empty myDATA-safe string. Strips em-dash placeholders
+ *  and trims; if empty after that, returns SAFE_TEXT_FALLBACK. */
+function safeText(value, fallback = SAFE_TEXT_FALLBACK) {
+  if (value == null) return fallback;
+  const s = String(value).trim();
+  if (!s) return fallback;
+  // em-dash / hyphen-only placeholders are not real text
+  if (/^[—–\-]+$/.test(s)) return fallback;
+  return s;
+}
+
+/** Same as safeText but for numeric postal codes (5 digits in GR). */
+function safePostal(value) {
+  if (value == null) return SAFE_POSTAL_FALLBACK;
+  const s = String(value).trim();
+  const digits = s.replace(/\D/g, '');
+  if (digits.length === 5) return digits;
+  // truncate / pad to 5 — never send a postal of unusual length
+  if (digits.length > 5) return digits.slice(0, 5);
+  return SAFE_POSTAL_FALLBACK;
+}
+
+/** Extract a street number from a freeform address string. Handles both
+ *  "Ερμού 7" (trailing digit) and "7 Ερμού" (leading digit), with optional
+ *  fraction (e.g. "Ερμού 7Α", "Ερμού 7-9"). Falls back to '0' if no number
+ *  is found — myDATA requires SOMETHING in this field but accepts '0'. */
+function parseStreetNumber(address) {
+  if (!address) return '0';
+  const s = String(address).trim();
+  // Trailing or leading run of digits (with optional Α/Β/Γ/-)
+  const trailing = s.match(/\b(\d{1,5}[ΑΒΓΔΕA-Z]?(?:[-/]\d{1,5}[ΑΒΓΔΕA-Z]?)?)\s*$/i);
+  if (trailing) return trailing[1].toUpperCase();
+  const leading = s.match(/^(\d{1,5}[ΑΒΓΔΕA-Z]?(?:[-/]\d{1,5}[ΑΒΓΔΕA-Z]?)?)\b/i);
+  if (leading) return leading[1].toUpperCase();
+  return '0';
+}
+
+/** Strip the parsed number out of an address string so we don't send the
+ *  digit in both `street` and `number` fields. Returns the cleaned street.
+ *  Em-dash / hyphen-only placeholders are treated as missing → fallback. */
+function stripStreetNumber(address) {
+  if (!address) return SAFE_TEXT_FALLBACK;
+  const s = String(address).trim();
+  if (/^[—–\-]+$/.test(s)) return SAFE_TEXT_FALLBACK;
+  let cleaned = s
+    .replace(/\b\d{1,5}[ΑΒΓΔΕA-Z]?(?:[-/]\d{1,5}[ΑΒΓΔΕA-Z]?)?\s*$/i, '')
+    .replace(/^\d{1,5}[ΑΒΓΔΕA-Z]?(?:[-/]\d{1,5}[ΑΒΓΔΕA-Z]?)?\b\s*/i, '')
+    .trim();
+  return cleaned || SAFE_TEXT_FALLBACK;
+}
+
 // ── Build invoice_lines array for Wrapp ──────────────────────────────────────
 function buildLines(lines, isDn) {
   return lines.map((l, idx) => {
@@ -504,30 +564,37 @@ async function transmitDeliveryNote(note, noteLines, biz) {
     effectiveDispatchTime = note.dispatch_time ? note.dispatch_time.slice(0, 5) : '08:00';
   }
 
+  // Parse street numbers out of the freeform address strings so we send them
+  // correctly in `from_number` / `to_number` / `counterpart.number`. myDATA
+  // expects the street and the number in separate fields.
+  const fromAddressRaw  = biz.address;
+  const toAddressRaw    = note.delivery_location || note.recipient_address;
+  const recipAddressRaw = note.recipient_address;
+
   const delivery_detail = {
     dispatch_date:       formatDispatchDate(dispatchDateFmt),
     dispatch_time:       effectiveDispatchTime,
-    vehicle_number:      note.vehicle_plate || 'ΑΓΝΩΣΤΟ',
+    vehicle_number:      safeText(note.vehicle_plate, 'ΑΓΝΩΣΤΟ'),
     purpose_of_movement: movementPurposeCode(note.transport_purpose),
-    issuer_of_movement:  biz.name || '',
-    from_address:        biz.address || '—',
-    from_number:         '1',
-    from_city:           biz.city    || '—',
-    from_zipcode:        biz.postal_code || '00000',
-    to_address:          note.delivery_location || note.recipient_address || '—',
-    to_number:           '1',
-    to_city:             note.recipient_city   || '—',
-    to_zipcode:          note.recipient_postal || '00000',
+    issuer_of_movement:  safeText(biz.name),
+    from_address:        safeText(stripStreetNumber(fromAddressRaw)),
+    from_number:         parseStreetNumber(fromAddressRaw),
+    from_city:           safeText(biz.city),
+    from_zipcode:        safePostal(biz.postal_code),
+    to_address:          safeText(stripStreetNumber(toAddressRaw)),
+    to_number:           parseStreetNumber(toAddressRaw),
+    to_city:             safeText(note.recipient_city),
+    to_zipcode:          safePostal(note.recipient_postal),
   };
 
   const counterpart = {
-    name:         note.recipient_name || '—',
+    name:         safeText(note.recipient_name),
     country_code: 'GR',
-    vat:          note.recipient_afm || '000000000',
-    city:         note.recipient_city    || '—',
-    street:       note.recipient_address || '—',
-    number:       '1',
-    postal_code:  note.recipient_postal  || '00000',
+    vat:          safeText(note.recipient_afm, '000000000'),
+    city:         safeText(note.recipient_city),
+    street:       safeText(stripStreetNumber(recipAddressRaw)),
+    number:       parseStreetNumber(recipAddressRaw),
+    postal_code:  safePostal(note.recipient_postal),
   };
 
   const payload = {
@@ -543,6 +610,13 @@ async function transmitDeliveryNote(note, noteLines, biz) {
     payable_total_amount: totals.total,
     invoice_lines:        wrappLines,
   };
+
+  // Forward free-text DN notes (e.g. extra recipient info) into Wrapp's
+  // optional `notes` field.
+  const dnNoteStr = safeText(note.notes, '');
+  if (dnNoteStr && dnNoteStr !== SAFE_TEXT_FALLBACK) {
+    payload.notes = dnNoteStr.slice(0, 1000);
+  }
 
   wInfo('transmitDeliveryNote', `POST ${settings.baseUrl}/api/v1/invoices — DN payload built`, {
     billing_book_id:   billingBookId,
@@ -682,14 +756,15 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
   const PM_MAP = { cash: 0, credit_card: 3, card: 3, bank_transfer: 2, check: 4, iris: 7, other: 1 };
   const pm = PM_MAP[invoice.payment_method] ?? 1;
 
+  const customerAddressRaw = customer.address;
   const counterpart = {
-    name:         customer.name || '—',
+    name:         safeText(customer.name),
     country_code: 'GR',
-    vat:          customer.afm  || '000000000',
-    city:         customer.city || '—',
-    street:       customer.address || '—',
-    number:       '1',
-    postal_code:  customer.postal_code || '00000',
+    vat:          safeText(customer.afm, '000000000'),
+    city:         safeText(customer.city),
+    street:       safeText(stripStreetNumber(customerAddressRaw)),
+    number:       parseStreetNumber(customerAddressRaw),
+    postal_code:  safePostal(customer.postal_code),
   };
 
   const payload = {
@@ -703,6 +778,13 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     payable_total_amount: total,
     invoice_lines:        wrappLines,
   };
+
+  // Forward any free-text notes from our DB into Wrapp's `notes` field — they
+  // show up in the customer-facing Wrapp portal and on the official PDF.
+  const noteStr = safeText(invoice.notes, '');
+  if (noteStr && noteStr !== SAFE_TEXT_FALLBACK) {
+    payload.notes = noteStr.slice(0, 1000); // hard cap to be safe
+  }
 
   if (isReversal && correlatedMark) {
     payload.correlated_invoices = [String(correlatedMark)];
