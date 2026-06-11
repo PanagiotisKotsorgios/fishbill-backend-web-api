@@ -1498,7 +1498,10 @@ router.post(
 
       const fullNumber = `${series}${nextNum}`;
       const newId = require('crypto').randomUUID();
-      const typeLabel = creditInvoiceType === '1.5' ? 'Ακυρωτικό τιμολόγιο' : 'Πιστωτικό τιμολόγιο';
+      // myDATA 1.5 is "Πιστωτικό Τιμολόγιο μη συσχετιζόμενο" — there is no separate
+      // «ακυρωτικό» code. A full credit (full_cancel=true) and a partial credit are
+      // the same document, just with different amounts. Label them consistently.
+      const typeLabel = 'Πιστωτικό τιμολόγιο';
       const creditNotes = reason
         ? `${typeLabel} - ${reason} (Αντιστροφή: ${orig.full_number})`
         : `${typeLabel} - Αντιστροφή: ${orig.full_number}`;
