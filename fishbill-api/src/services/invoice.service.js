@@ -149,10 +149,24 @@ async function transmit(invoice) {
 
       const [updateResult] = await pool.execute(
         `UPDATE invoices SET status='transmitted', mydata_mark=?, mydata_qr=?,
-         wrapp_invoice_id=?, wrapp_qr_url=?, last_error=NULL, updated_at=NOW() WHERE id=?`,
+         wrapp_invoice_id=?, wrapp_qr_url=?,
+         pdf_path=NULL, wrapp_pdf_url=NULL,
+         last_error=NULL, updated_at=NOW() WHERE id=?`,
         [result.mark, result.qrUrl || null, result.wrapp_invoice_id, result.qrUrl || null, invoice.id]
       ).catch((dbErr) => { ilog('ERROR', 'DB update invoices failed', { error: dbErr.message }); return [{}]; });
-      ilog('INFO', 'DB invoices updated to transmitted', { invoice_id: invoice.id, affected: updateResult?.affectedRows });
+      ilog('INFO', 'DB invoices updated to transmitted (pdf_path + wrapp_pdf_url reset)', { invoice_id: invoice.id, affected: updateResult?.affectedRows });
+
+      // Best-effort: physically delete the on-disk PDF so retrieval can't fall back to
+      // a stale FishBill-rendered file even if the DB write got partially out of sync.
+      try {
+        const stalePath = path.join(__dirname, '../../uploads/invoices', `${invoice.id}.pdf`);
+        if (fs.existsSync(stalePath)) {
+          fs.unlinkSync(stalePath);
+          ilog('INFO', 'Removed stale on-disk PDF before Wrapp PDF is delivered', { invoice_id: invoice.id });
+        }
+      } catch (cleanErr) {
+        ilog('WARN', 'stale-PDF cleanup failed (non-fatal)', { invoice_id: invoice.id, error: cleanErr.message });
+      }
 
       await pool.execute(
         `INSERT INTO transmission_logs (invoice_id, provider, success, mydata_mark, attempted_at)
