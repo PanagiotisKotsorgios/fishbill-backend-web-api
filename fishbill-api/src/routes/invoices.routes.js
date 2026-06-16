@@ -1383,11 +1383,6 @@ router.post(
       const { id } = req.params;
       const businessId = req.user.business_id;
       const { credit_amount, reason, invoice_type: req_invoice_type, full_cancel, customer_name, customer_afm } = req.body || {};
-      // Always use 1.5 (Πιστωτικό Τιμολόγιο μη συσχετιζόμενο) for both partial
-      // and full credits/cancellations. The previous code used 1.3 for partials,
-      // but in myDATA 1.3 is for non-EU sales — not credits. Wrapp staging also
-      // refuses to transmit credits against a 1.3 billing book.
-      const creditInvoiceType = '1.5';
 
       // Fetch original invoice
       const [rows] = await pool.execute(
@@ -1409,15 +1404,24 @@ router.post(
         });
       }
 
-      if (orig.invoice_type === '1.3' || orig.invoice_type === '1.5') {
+      // Reject crediting an already-credit document. Includes legacy 1.3/1.5
+      // aliases plus the proper myDATA codes 5.1 (correlated) and 5.2 (non-correlated).
+      if (['1.3', '1.4', '1.5', '5.1', '5.2'].includes(orig.invoice_type)) {
         return res.status(400).json({
           error: 'Δεν είναι δυνατή η έκδοση πιστωτικού/ακυρωτικού για πιστωτικό ή ακυρωτικό παραστατικό.'
         });
       }
 
-      // Check if a credit/cancel invoice already exists for this original
+      // Per Wrapp/AADE docs the proper credit code is 5.1 when we can correlate
+      // to the original's MARK, else 5.2 (non-correlated). 1.5 used to be set
+      // here but in myDATA 1.5 is "Εκκαθάριση Πωλήσεων Τρίτων", not a credit.
+      const origHasMark        = !!(orig.mydata_mark && String(orig.mydata_mark).trim());
+      const creditInvoiceType  = origHasMark ? '5.1' : '5.2';
+
+      // Check if a credit/cancel invoice already exists for this original.
+      // Include legacy codes so we don't double-credit historical rows.
       const [existing] = await pool.execute(
-        "SELECT id FROM invoices WHERE related_invoice_id = ? AND invoice_type IN ('1.3','1.5') LIMIT 1",
+        "SELECT id FROM invoices WHERE related_invoice_id = ? AND invoice_type IN ('1.3','1.4','1.5','5.1','5.2') LIMIT 1",
         [id]
       );
       if (existing.length) {

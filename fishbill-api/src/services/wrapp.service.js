@@ -484,8 +484,19 @@ function stripStreetNumber(address) {
   return cleaned || SAFE_TEXT_FALLBACK;
 }
 
+// ── Classification type by counterpart kind ──────────────────────────────────
+// myDATA classification types per the Wrapp / AADE docs:
+//   E3_561_001 → Πωλήσεις Χονδρικές - Επιτηδευματιών (B2B wholesale)
+//   E3_561_003 → Πωλήσεις Λιανικές - Ιδιωτική Πελατεία (B2C retail)
+// Pick by whether the counterpart has a real (9-digit) AFM.
+function classificationTypeFor(afm) {
+  const digits = String(afm || '').replace(/\D/g, '');
+  return digits.length === 9 ? 'E3_561_001' : 'E3_561_003';
+}
+
 // ── Build invoice_lines array for Wrapp ──────────────────────────────────────
-function buildLines(lines, isDn) {
+function buildLines(lines, counterpartAfm) {
+  const classificationType = classificationTypeFor(counterpartAfm);
   return lines.map((l, idx) => {
     const vatRate = l.vat_rate || 0;
     const qty     = parseFloat(l.quantity) || 1;
@@ -505,7 +516,7 @@ function buildLines(lines, isDn) {
       vat_total:               vatAmt,
       subtotal:                subtot,
       classification_category: 'category1_1',
-      classification_type:     'E3_561_001',
+      classification_type:     classificationType,
     };
     if (vatRate === 0) line.vat_exemption_code = 27;
     return line;
@@ -533,7 +544,7 @@ async function transmitDeliveryNote(note, noteLines, biz) {
   const jwt           = await getJwt(note.business_id);
   const billingBookId = await getBillingBookId(note.business_id, '9.3');
 
-  const wrappLines = buildLines(noteLines, true);
+  const wrappLines = buildLines(noteLines, note.recipient_afm);
   const totals     = buildTotals(wrappLines);
 
   // Wrapp validates dispatch_date + dispatch_time against the invoice's issue time
@@ -662,30 +673,21 @@ async function transmitDeliveryNote(note, noteLines, biz) {
 
 // ── Transmit invoice (type 1.1, 2.1, etc.) ───────────────────────────────────
 async function transmitInvoice(invoice, invoiceLines, biz, customer) {
-  let typeCode = invoice.invoice_type || '1.1';
+  const rawType = invoice.invoice_type || '1.1';
 
-  // ── myDATA-code correction ─────────────────────────────────────────────────
-  // `1.3` is actually the myDATA code for **non-EU sales invoices** (NOT for
-  // credit invoices). An earlier version of the credit-invoice creation route
-  // assigned 1.3 by mistake, and Wrapp staging then refuses to transmit those
-  // because no billing book of exact type 1.3 exists (when we try to auto-
-  // create one, Wrapp silently normalises it to type 1.1 per its universal
-  // rule, so on the next invoice POST the type mismatch surfaces). The right
-  // code for a non-correlated credit is **1.5** ("Πιστωτικό Τιμολόγιο μη
-  // συσχετιζόμενο"). We remap on the wire so older DB rows stored as 1.3 still
-  // transmit cleanly, and we log it so the correction is visible.
-  if (typeCode === '1.3') {
-    wInfo('transmitInvoice', `Remapping invoice type 1.3 → 1.5 (1.3 is for non-EU sales in myDATA, not credits)`, { invoice_id: invoice.id });
-    typeCode = '1.5';
-  }
+  // ── myDATA credit/cancellation code mapping ────────────────────────────────
+  // Per the Wrapp/AADE docs the proper credit codes are:
+  //   5.1 → Πιστωτικό Τιμολόγιο / Συσχετιζόμενο     (we have the original MARK)
+  //   5.2 → Πιστωτικό Τιμολόγιο / Μη Συσχετιζόμενο (we don't)
+  // Earlier versions of this app stored credits as 1.3 (wrong — that's non-EU
+  // sales) or 1.5 (wrong — that's third-party-sales settlement). Both pass
+  // Wrapp's input check because of the 1.x universal billing-book rule, but at
+  // AADE they're filed under the wrong document type. We treat 1.3/1.4/1.5 in
+  // our DB as legacy credit aliases and remap on the wire to 5.1 or 5.2.
+  const isLegacyCreditCode = (rawType === '1.3' || rawType === '1.4' || rawType === '1.5');
+  const isReversal         = isLegacyCreditCode || rawType === '5.1' || rawType === '5.2';
 
-  // Credit (πιστωτικό 5.1 / 1.5) and cancellation (ακυρωτικό 5.2 / 1.4) are
-  // "reversal" docs in myDATA: Wrapp/AADE require POSITIVE amounts here and a
-  // `correlated_invoices` array pointing to the original invoice's MARK. Our
-  // internal records store negative values for these — we flip them on the wire.
-  const isReversal = (typeCode === '1.4' || typeCode === '1.5' || typeCode === '5.1' || typeCode === '5.2');
-
-  wInfo('transmitInvoice', `START — invoice id=${invoice.id} type=${typeCode} business=${invoice.business_id}`, {
+  wInfo('transmitInvoice', `START — invoice id=${invoice.id} rawType=${rawType} business=${invoice.business_id}`, {
     customer:    customer?.name,
     net:         invoice.net_value,
     total:       invoice.total_value,
@@ -694,16 +696,12 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     related_invoice_id: invoice.related_invoice_id || null,
   });
 
-  const settings      = await getSettings();
-  const jwt           = await getJwt(invoice.business_id);
-  // Wrapp's billing book universalisation: a "1.1" book covers 1.x types, and
-  // a "2.1" book covers 2.x. But 1.3/1.5 sometimes hit "Invoice Type does not
-  // match selected Billing Book Invoice Type" in practice — try the exact type
-  // first, then fall back to the 1.1 / 2.1 universal book on a 422 mismatch.
-  const billingBookId = await getBillingBookId(invoice.business_id, typeCode);
+  const settings = await getSettings();
+  const jwt      = await getJwt(invoice.business_id);
 
   // For reversal docs, look up the original invoice's myDATA MARK so we can
-  // correlate. Tries DB column `related_invoice_id` first (our schema).
+  // correlate. This must happen BEFORE we resolve the final typeCode because
+  // 5.1 (correlated) vs 5.2 (non-correlated) depends on whether a MARK exists.
   let correlatedMark = null;
   if (isReversal && invoice.related_invoice_id) {
     try {
@@ -721,6 +719,21 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     }
   }
 
+  // Resolve the final wire type code.
+  let typeCode = rawType;
+  if (isLegacyCreditCode) {
+    typeCode = correlatedMark ? '5.1' : '5.2';
+    wInfo('transmitInvoice', `Remapping legacy credit code ${rawType} → ${typeCode}`, { invoice_id: invoice.id, has_mark: !!correlatedMark });
+  } else if (rawType === '5.1' && !correlatedMark) {
+    // Asked for 5.1 but no MARK is available — fall back to 5.2 (non-correlated)
+    // rather than letting AADE reject the document.
+    typeCode = '5.2';
+    wWarn('transmitInvoice', `Type 5.1 requested but no correlated MARK — falling back to 5.2`, { invoice_id: invoice.id });
+  }
+
+  const billingBookId = await getBillingBookId(invoice.business_id, typeCode);
+
+  const lineClassificationType = classificationTypeFor(customer?.afm);
   const wrappLines = invoiceLines.map((l, idx) => {
     const vatRate  = l.vat_rate  || 13;
     // Reversal docs: flip signs to positive before sending. Internal storage
@@ -743,7 +756,7 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
       vat_total:               vatAmt,
       subtotal:                subtot,
       classification_category: 'category1_1',
-      classification_type:     'E3_561_001',
+      classification_type:     lineClassificationType,
     };
     if (vatRate === 0) line.vat_exemption_code = 27;
     return line;
