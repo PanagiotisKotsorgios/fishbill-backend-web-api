@@ -16,7 +16,8 @@ app.set('trust proxy', 1);
 // Wrapp servers may send an Origin header we don't know in advance; bypassing
 // CORS for this single endpoint avoids HTTP 500 CORS rejections.
 // Body parsers are applied inline so this handler is self-contained.
-const fs   = require('fs');
+const fs     = require('fs');
+const crypto = require('crypto');
 const _wLogFile = path.join(__dirname, '../logs/wrapp.log');
 try { fs.mkdirSync(path.dirname(_wLogFile), { recursive: true }); } catch (_) {}
 function _wlog(level, msg, data) {
@@ -28,6 +29,55 @@ function _wlog(level, msg, data) {
   try { fs.appendFileSync(_wLogFile, line + '\n'); } catch (_) {}
 }
 
+// Per Wrapp docs: X-Webhook-Secret is the HMAC-SHA256 hex digest of the raw
+// request body, computed with the tenant's API key as the secret. Verify it
+// when present so spoofed PDF / MARK / cancellation updates can't poison our DB.
+// Returns 'ok' (matched), 'mismatch' (header present but wrong), or
+// 'missing' (no header — docs allow this but we log it as a warning).
+function _verifyWrappSig(rawBody, apiKey, headerValue) {
+  if (!headerValue) return 'missing';
+  if (!apiKey || !rawBody || !rawBody.length) return 'mismatch';
+  const expected = crypto.createHmac('sha256', apiKey).update(rawBody).digest('hex');
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(String(headerValue), 'utf8');
+  if (a.length !== b.length) return 'mismatch';
+  return crypto.timingSafeEqual(a, b) ? 'ok' : 'mismatch';
+}
+
+// Resolve the tenant's Wrapp API key for a given wrapp_invoice_id. Used to
+// look up the HMAC secret for non-onboarding webhooks (PDF / MARK / cancel),
+// where the api_key is not echoed back in the body.
+async function _apiKeyForWrappInvoice(pool, wrapp_invoice_id) {
+  if (!wrapp_invoice_id) return null;
+  const [[row]] = await pool.execute(
+    `SELECT b.wrapp_api_key
+       FROM businesses b
+      WHERE b.id = (SELECT business_id FROM invoices       WHERE wrapp_invoice_id = ? LIMIT 1)
+         OR b.id = (SELECT business_id FROM delivery_notes WHERE wrapp_invoice_id = ? LIMIT 1)
+      LIMIT 1`,
+    [wrapp_invoice_id, wrapp_invoice_id]
+  );
+  return row?.wrapp_api_key || null;
+}
+
+// Handle the result of _verifyWrappSig uniformly. Returns true to continue,
+// false if the response has already been sent (mismatch → 401).
+function _handleSigStatus(status, res, ctx) {
+  if (status === 'ok') {
+    _wlog('DEBUG', 'Webhook signature verified', ctx);
+    return true;
+  }
+  if (status === 'mismatch') {
+    _wlog('WARN', 'Webhook signature MISMATCH — rejecting request', ctx);
+    res.status(401).json({ ok: false, error: 'Invalid signature' });
+    return false;
+  }
+  // 'missing': header absent. Per Wrapp docs verification is optional, but
+  // we log it loudly so the operator can decide whether to enforce later.
+  _wlog('WARN', 'Webhook arrived without X-Webhook-Secret — accepting (verification optional)', ctx);
+  return true;
+}
+
 // GET probe — lets us verify the webhook URL is publicly reachable
 app.get('/api/wrapp/webhook', (req, res) => {
   _wlog('INFO', 'GET probe on webhook endpoint', { ip: req.ip, ua: req.headers['user-agent'] });
@@ -35,13 +85,17 @@ app.get('/api/wrapp/webhook', (req, res) => {
 });
 
 app.post('/api/wrapp/webhook',
-  express.json(),
-  express.urlencoded({ extended: true }),
+  // Capture the raw request body alongside the parsed JSON so we can recompute
+  // the HMAC-SHA256 signature Wrapp sends in X-Webhook-Secret.
+  express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }),
+  express.urlencoded({ extended: true, verify: (req, _res, buf) => { if (!req.rawBody) req.rawBody = buf; } }),
   async (req, res) => {
     try {
+      const sigHeader = req.headers['x-webhook-secret'] || req.headers['X-Webhook-Secret'] || null;
       _wlog('INFO', 'Incoming webhook request', {
         ip: req.ip,
         origin: req.headers['origin'] || null,
+        has_signature: !!sigHeader,
         body: req.body,
       });
 
@@ -67,6 +121,8 @@ app.post('/api/wrapp/webhook',
       if (download_url && wrapp_invoice_id) {
         _wlog('INFO', 'PDF ready webhook received', { wrapp_invoice_id, download_url });
         const pool = require('./config/database');
+        const sigStatus = _verifyWrappSig(req.rawBody, await _apiKeyForWrappInvoice(pool, wrapp_invoice_id), sigHeader);
+        if (!_handleSigStatus(sigStatus, res, { branch: 'pdf', wrapp_invoice_id })) return;
         // Try invoices first, then delivery notes
         const [[invPdf]] = await pool.execute(
           'SELECT id FROM invoices WHERE wrapp_invoice_id = ? LIMIT 1', [wrapp_invoice_id]
@@ -101,6 +157,8 @@ app.post('/api/wrapp/webhook',
       if (cancelled_by_mark && wrapp_invoice_id) {
         _wlog('INFO', 'Cancellation MARK webhook received', { wrapp_invoice_id, cancelled_by_mark });
         const pool = require('./config/database');
+        const sigStatus = _verifyWrappSig(req.rawBody, await _apiKeyForWrappInvoice(pool, wrapp_invoice_id), sigHeader);
+        if (!_handleSigStatus(sigStatus, res, { branch: 'cancel', wrapp_invoice_id })) return;
         const [[dnCancel]] = await pool.execute(
           'SELECT id FROM delivery_notes WHERE wrapp_invoice_id = ? LIMIT 1', [wrapp_invoice_id]
         );
@@ -125,6 +183,8 @@ app.post('/api/wrapp/webhook',
       if (my_data_mark && wrapp_invoice_id) {
         _wlog('INFO', 'MARK update webhook received', { wrapp_invoice_id, my_data_mark });
         const pool = require('./config/database');
+        const sigStatus = _verifyWrappSig(req.rawBody, await _apiKeyForWrappInvoice(pool, wrapp_invoice_id), sigHeader);
+        if (!_handleSigStatus(sigStatus, res, { branch: 'mark', wrapp_invoice_id })) return;
         const qrUrl = body.my_data_qr_url || body.myDataQrUrl || null;
         const uid   = body.my_data_uid    || body.myDataUid   || null;
 
@@ -173,6 +233,12 @@ app.post('/api/wrapp/webhook',
         _wlog('ERROR', 'Missing api_key in webhook body — all known field names tried', body);
         // Return 200 so Wrapp doesn't retry indefinitely; log the error
         return res.json({ ok: false, error: 'Missing api_key.' });
+      }
+
+      // For onboarding, the HMAC key IS the api_key arriving in this very body.
+      {
+        const sigStatus = _verifyWrappSig(req.rawBody, api_key, sigHeader);
+        if (!_handleSigStatus(sigStatus, res, { branch: 'onboarding', partner_user_id })) return;
       }
 
       const pool  = require('./config/database');

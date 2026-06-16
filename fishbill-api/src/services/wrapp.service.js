@@ -375,18 +375,56 @@ function unitCode(unit) {
 }
 
 // ── Purpose of movement code mapping ─────────────────────────────────────────
+// Maps the user-facing Greek labels (from the Android dropdown) and any other
+// free-text the API might receive to the official myDATA "Σκοπός Διακίνησης"
+// codes per the Wrapp API docs.
+//
+// Valid codes: 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 19, 20
+// Forbidden: 6, 15, 16, 17, 18
+//
+// 1  Πώληση                                          5  Επιστροφή
+// 2  Πώληση για Λογαριασμό Τρίτων                    7  Επεξεργασία/Συναρμολόγηση
+// 3  Δειγματισμός                                    8  Ενδοδιακίνηση
+// 4  Έκθεση                                          9  Αγορά
+// 10 Εφοδιασμός πλοίων και αεροσκαφών                11 Δωρεάν διάθεση
+// 12 Εγγύηση                                         13 Χρησιδανεισμός
+// 14 Αποθήκευση σε Τρίτους                           19 Λοιπές Διακινήσεις
+// 20 Μεταφορές – Ταχυμεταφορές
 function movementPurposeCode(transportPurpose) {
-  const p = (transportPurpose || '').toLowerCase().trim();
-  if (!p || p === '1') return '1';
-  if (/πωλ|sale/.test(p))              return '1';
-  if (/επιστρ|return/.test(p))         return '2';
-  if (/απόδ|apod/.test(p))             return '3';
-  if (/φύλαξ|storage/.test(p))         return '4';
-  if (/μεταφ|transfer|transport/.test(p)) return '7';
-  if (/^[12]?\d$/.test(p)) {
-    const n = parseInt(p);
+  const raw = String(transportPurpose || '').trim();
+  if (!raw) return '1';
+
+  // Numeric input: accept any valid myDATA code, default to 1 otherwise.
+  if (/^\d{1,2}$/.test(raw)) {
+    const n = parseInt(raw, 10);
     if (n >= 1 && n <= 20 && ![6, 15, 16, 17, 18].includes(n)) return String(n);
+    return '1';
   }
+
+  // Strip Greek diacritics so user labels match regardless of accents.
+  const p = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  // Order matters: more specific patterns come first so they don't get
+  // swallowed by broader keyword matches below.
+  if (/δωρε|donat/.test(p))                                          return '11';
+  if (/εφοδιασμ|supply.*(ship|aircraft)/.test(p))                    return '10';
+  if (/εγγυησ|warrant/.test(p))                                      return '12';
+  if (/χρησιδαν|loan/.test(p))                                       return '13';
+  if (/αποθηκευ|φυλαξ|storage|warehous/.test(p))                     return '14';
+  if (/ενδοδιακιν|μεταξυ\s+εγκατασ|internal\s+transfer/.test(p))     return '8';
+  if (/επεξεργ|συναρμολ|αποσυναρμολ|process|assembl/.test(p))        return '7';
+  if (/εκθεσ|exhibit/.test(p))                                       return '4';
+  if (/δειγμα|sample/.test(p))                                       return '3';
+  if (/επιστροφ|return/.test(p))                                     return '5';
+  if (/αγορ|purchas/.test(p))                                        return '9';
+  if (/τριτων\s+λογαρ|λογαρ\s+τριτων|third[\s-]?party\s+sale/.test(p)) return '2';
+  // "Μεταφορά/Διανομή" and "Ενδοκοινοτική Μεταφορά" both belong here (code 20).
+  if (/μεταφορ|μεταφ|διανομ|ταχυμεταφ|courier|delivery|transport|transfer/.test(p)) return '20';
+  if (/πωλησ|sale/.test(p))                                          return '1';
+  // "Ιδιοχρησιμοποίηση", "Παραγωγή", "Ζύγιση" — no exact myDATA codes;
+  // 19 (Λοιπές Διακινήσεις) is the umbrella category per the docs.
+  if (/ιδιοχρησ|αυτοπαραδ|παραγωγ|ζυγισ|λοιπ|other|misc|self/.test(p)) return '19';
+
   return '1';
 }
 
