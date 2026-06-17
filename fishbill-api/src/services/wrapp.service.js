@@ -757,16 +757,21 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     }
   }
 
-  // Resolve the final wire type code.
+  // Resolve the final wire type code. We always pick 5.1 vs 5.2 from what we
+  // know NOW (at transmit time), not what was recorded at create time:
+  //   - MARK known → 5.1 (correlated)
+  //   - MARK absent → 5.2 (non-correlated)
+  // This matters because credits can be created before the original's MARK has
+  // been delivered via webhook. We may have stored 5.2 at creation time, then
+  // the MARK arrived; the document should now go out as 5.1.
   let typeCode = rawType;
-  if (isLegacyCreditCode) {
-    typeCode = correlatedMark ? '5.1' : '5.2';
-    wInfo('transmitInvoice', `Remapping legacy credit code ${rawType} → ${typeCode}`, { invoice_id: invoice.id, has_mark: !!correlatedMark });
-  } else if (rawType === '5.1' && !correlatedMark) {
-    // Asked for 5.1 but no MARK is available — fall back to 5.2 (non-correlated)
-    // rather than letting AADE reject the document.
-    typeCode = '5.2';
-    wWarn('transmitInvoice', `Type 5.1 requested but no correlated MARK — falling back to 5.2`, { invoice_id: invoice.id });
+  if (isReversal) {
+    const desired = correlatedMark ? '5.1' : '5.2';
+    if (desired !== rawType) {
+      const reason = isLegacyCreditCode ? 'legacy credit code' : 'MARK availability changed';
+      wInfo('transmitInvoice', `Resolving credit code ${rawType} → ${desired} (${reason})`, { invoice_id: invoice.id, has_mark: !!correlatedMark });
+    }
+    typeCode = desired;
   }
 
   const billingBookId = await getBillingBookId(invoice.business_id, typeCode);
@@ -837,7 +842,9 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
     payload.notes = noteStr.slice(0, 1000); // hard cap to be safe
   }
 
-  if (isReversal && correlatedMark) {
+  // Only 5.1 (Συσχετιζόμενο) carries correlated_invoices. 5.2 is by definition
+  // non-correlated, so leave the array off the payload entirely there.
+  if (typeCode === '5.1' && correlatedMark) {
     payload.correlated_invoices = [String(correlatedMark)];
   }
 
