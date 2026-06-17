@@ -365,13 +365,33 @@ async function getBillingBookId(businessId, invoiceTypeCode) {
 }
 
 // ── Unit code mapping (myDATA quantity_type) ──────────────────────────────────
+// Valid codes per the Wrapp docs:
+//   1 Τεμάχια   2 Κιλά   3 Λίτρα   4 Μέτρα   5 Τετραγωνικά Μέτρα   6 Κυβικά Μέτρα
+// myDATA has no "γραμμάρια" or "τόνοι" code, so weight values that aren't
+// already in kg get mapped to 2 (Κιλά) — same dimension, total amount stays
+// correct, only the displayed unit on the AADE side reads as kg.
+// "Κιβώτια" (boxes) are countable, so they map to 1 (Τεμάχια).
 function unitCode(unit) {
-  const u = (unit || 'kg').toLowerCase().trim();
-  if (u === 'τεμ' || u === 'τεμάχιο' || u === 'τεμαχιο' || u === 'pcs') return 1;
-  if (u === 'kg' || u === 'κιλό' || u === 'κιλα' || u === 'κιλά') return 2;
-  if (u === 'lt' || u === 'λτ' || u === 'λίτρο' || u === 'litre' || u === 'liter') return 3;
-  if (u === 'gr' || u === 'γρ' || u === 'γραμμάρια') return 4;
-  return 2;
+  // Strip trailing/leading whitespace AND trailing punctuation ("τεμ.", "γρ.")
+  // and accents ("κιλά" → "κιλα") so user labels match regardless of typography.
+  const u = String(unit || 'kg').toLowerCase().trim()
+    .replace(/[.,;:!?·]+$/, '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  // Pieces / boxes / countable units
+  if (/^(τεμ|τεμαχιο|τεμαχια|pcs|piece|item|κιβ|κιβωτιο|κιβωτια|box|boxes)$/.test(u)) return 1;
+  // Weight: kg + grams + tons all collapse to Κιλά (no exact code for gr/ton).
+  if (/^(kg|κιλο|κιλα|kilo|kilogram|γρ|gr|gram|grammar|γραμμαρια|τον|tn|ton|tonn|τονος|τονοι)$/.test(u)) return 2;
+  // Volume: liters + milliliters → Λίτρα (no ml code).
+  if (/^(lt|λτ|λιτρο|λιτρα|litre|liter|ml|μλ|millilit)$/.test(u)) return 3;
+  // Length
+  if (/^(m|μ|μετρο|μετρα|meter|metre)$/.test(u)) return 4;
+  // Area
+  if (/^(m2|μ2|τμ|τετραγωνικα|sq.?m|sqm)$/.test(u)) return 5;
+  // Volume (cubic)
+  if (/^(m3|μ3|κμ|κυβικα|cu.?m|cbm)$/.test(u)) return 6;
+
+  return 2; // Default: kg (most common for fish)
 }
 
 // ── Purpose of movement code mapping ─────────────────────────────────────────
@@ -778,7 +798,10 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
 
   const lineClassificationType = classificationTypeFor(customer?.afm);
   const wrappLines = invoiceLines.map((l, idx) => {
-    const vatRate  = l.vat_rate  || 13;
+    // Use ?? so an explicit 0% VAT is preserved. Without this, a user-selected
+    // 0% line silently gets transmitted as 13% to AADE, and the matching
+    // vat_exemption_code (set below) is never attached.
+    const vatRate  = l.vat_rate ?? 13;
     // Reversal docs: flip signs to positive before sending. Internal storage
     // keeps the negative numbers so balance sheets still subtract correctly.
     const qty      = Math.abs(parseFloat(l.quantity) || 1);
