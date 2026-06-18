@@ -556,7 +556,11 @@ function classificationTypeFor(afm) {
 function buildLines(lines, counterpartAfm) {
   const classificationType = classificationTypeFor(counterpartAfm);
   return lines.map((l, idx) => {
-    const vatRate = l.vat_rate || 0;
+    // MySQL DECIMAL columns come back as strings ("0.00", "13.00"). We coerce
+    // explicitly: any falsy/nullish becomes 0, anything else gets Number()'d
+    // so the wire value is a real number (the docs require Integer here) and
+    // the `vatRate === 0` check below fires for a 0% line.
+    const vatRate = l.vat_rate == null ? 0 : (Number(l.vat_rate) || 0);
     const qty     = parseFloat(l.quantity) || 1;
     const uPrice  = parseFloat(l.unit_price) || 0;
     const netPric = parseFloat(l.net_amount || l.net_value || (qty * uPrice).toFixed(2));
@@ -655,6 +659,19 @@ async function transmitDeliveryNote(note, noteLines, biz) {
     to_city:             safeText(note.recipient_city),
     to_zipcode:          safePostal(note.recipient_postal),
   };
+
+  // myDATA requires purpose_of_movement_custom_title whenever the code is 19
+  // (Λοιπές Διακινήσεις). Wrapp rejects with HTTP 422
+  // "Delivery detail purpose of movement custom title δεν πρέπει να είναι κενό"
+  // when this is missing. Use the user's original Greek label (e.g. "Ζύγιση",
+  // "Παραγωγή", "Ιδιοχρησιμοποίηση") so AADE knows what the "other" reason is,
+  // with a safe fallback when the field was numeric or empty.
+  if (delivery_detail.purpose_of_movement === '19') {
+    const rawLabel = String(note.transport_purpose || '').trim();
+    const isNumeric = /^\d+$/.test(rawLabel);
+    delivery_detail.purpose_of_movement_custom_title =
+      rawLabel && !isNumeric ? rawLabel.slice(0, 100) : 'Λοιπή Διακίνηση';
+  }
 
   const counterpart = {
     name:         safeText(note.recipient_name),
@@ -798,10 +815,11 @@ async function transmitInvoice(invoice, invoiceLines, biz, customer) {
 
   const lineClassificationType = classificationTypeFor(customer?.afm);
   const wrappLines = invoiceLines.map((l, idx) => {
-    // Use ?? so an explicit 0% VAT is preserved. Without this, a user-selected
-    // 0% line silently gets transmitted as 13% to AADE, and the matching
-    // vat_exemption_code (set below) is never attached.
-    const vatRate  = l.vat_rate ?? 13;
+    // MySQL DECIMAL columns come back as strings ("0.00", "13.00"). Coerce to
+    // a real number so (a) the wire value matches the Integer the docs ask for
+    // and (b) the `vatRate === 0` check below actually fires for a 0% line.
+    // Null/undefined → default 13 (standard fish rate).
+    const vatRate = l.vat_rate == null ? 13 : Number(l.vat_rate);
     // Reversal docs: flip signs to positive before sending. Internal storage
     // keeps the negative numbers so balance sheets still subtract correctly.
     const qty      = Math.abs(parseFloat(l.quantity) || 1);
