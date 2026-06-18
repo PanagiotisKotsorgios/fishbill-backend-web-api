@@ -1042,14 +1042,17 @@ router.post(
       // Consume OTP so it cannot be reused
       await pool.execute('DELETE FROM platform_settings WHERE setting_key = ?', [otpKey]);
 
-      // Fire-and-forget: notify admin to create ακυρωτικό in Epsilon Smart
+      // Fire-and-forget admin notification — only for legacy non-Wrapp accounts.
+      // With Wrapp enabled the reversal is issued automatically via the credit
+      // (5.1 / 5.2) flow on next transmission, so no admin action is needed.
       (async () => {
         try {
           const [bizRows] = await pool.execute(
-            `SELECT b.name AS biz_name, b.afm FROM businesses b WHERE b.id = ? LIMIT 1`,
+            `SELECT b.name AS biz_name, b.afm, b.wrapp_enabled FROM businesses b WHERE b.id = ? LIMIT 1`,
             [invoice.business_id]
           );
           const biz = bizRows[0] || {};
+          if (biz.wrapp_enabled === 1) return;
           const adminEmail = await getAdminEmail(invoice.business_id);
           await emailSvc.sendInvoiceCancelledAdminEmail({
             invoice,

@@ -464,14 +464,16 @@ router.post('/', validate(createSchema), async (req, res, next) => {
       },
     });
 
-    // Fire-and-forget: notify admin to process delivery note manually via timologio.aade.gr
+    // Fire-and-forget: notify admin ONLY for legacy non-Wrapp businesses. With
+    // Wrapp enabled the DN is transmitted to myDATA automatically via the
+    // provider — no admin action is required, so we skip the email entirely.
     (async () => {
       try {
         const [[bizRow]] = await pool.execute(
-          'SELECT name, afm FROM businesses WHERE id = ? LIMIT 1',
+          'SELECT name, afm, wrapp_enabled FROM businesses WHERE id = ? LIMIT 1',
           [business_id]
         );
-        if (bizRow) {
+        if (bizRow && bizRow.wrapp_enabled !== 1) {
           await emailSvc.sendAdminDeliveryNoteReadyEmail({
             note:         { full_number: fullNumber, issue_date: created.issue_date, recipient_name: created.recipient_name },
             businessName: bizRow.name,
@@ -592,9 +594,16 @@ router.patch('/:id/cancel', async (req, res, next) => {
       },
     });
 
-    // Fire-and-forget: owner email notification
+    // Fire-and-forget admin notification — only for legacy non-Wrapp accounts.
+    // With Wrapp enabled the cancellation flows automatically to myDATA via
+    // DELETE /invoices/:id/cancel and the cancellation MARK is captured by our
+    // webhook — admin doesn't need to do anything.
     (async () => {
       try {
+        const [[bizRow]] = await pool.execute(
+          'SELECT wrapp_enabled FROM businesses WHERE id = ? LIMIT 1', [business_id]
+        );
+        if (bizRow?.wrapp_enabled === 1) return;
         const cfg = await emailSvc.loadConfig();
         const adminEmail = cfg.admin_notification_email || process.env.ADMIN_EMAIL;
         await emailSvc.sendDeliveryNoteCancelledAdminEmail({

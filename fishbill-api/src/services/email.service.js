@@ -661,26 +661,30 @@ async function sendDeliveryNoteCancelledAdminEmail({ note, businessName, adminEm
     </tr>`).join('');
 
   const bodyHtml = `
-    <h1 style="font-size:20px;font-weight:800;color:#991b1b;margin:0 0 8px">🚫 Ακύρωση Δελτίου Αποστολής — Απαιτείται Ενέργεια</h1>
+    <h1 style="font-size:20px;font-weight:800;color:#991b1b;margin:0 0 8px">🚫 Ακύρωση Δελτίου Αποστολής — Ενημέρωση</h1>
     <p style="font-size:14px;color:#3a5560;margin:0 0 16px">
-      Ένας χρήστης ακύρωσε Δελτίο Αποστολής. Ακυρώστε το αντίστοιχο στο <strong>TIMOLOGIO της ΑΑΔΕ</strong> και διαβιβάστε στο myDATA.
+      Ένας χρήστης ακύρωσε Δελτίο Αποστολής. Η ακύρωση <strong>έχει ήδη διαβιβαστεί αυτόματα στο myDATA</strong>
+      μέσω του παρόχου ΥΠΑΗΕΣ (Wrapp). <strong>Δεν απαιτείται καμία χειροκίνητη ενέργεια από εσάς.</strong>
     </p>
     <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:separate;border-spacing:0 4px;margin-bottom:20px">
       ${rows}
     </table>
-    <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-bottom:12px">
-      <p style="margin:0;font-size:13px;color:#7f1d1d;font-weight:600">
-        ⚡ Ανοίξτε <a href="https://www.timologio.gr" style="color:#991b1b">TIMOLOGIO της ΑΑΔΕ</a> → Βρείτε το ΔΑ ${note.full_number || note.id} → Ακυρώστε το → Διαβιβάστε στο myDATA.
+    <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;padding:12px 16px;margin-bottom:12px">
+      <p style="margin:0;font-size:13px;color:#065f46;font-weight:600">
+        ✅ Η ακύρωση πραγματοποιήθηκε αυτόματα μέσω Wrapp API. Το επίσημο MARK ακύρωσης εμφανίζεται
+        στην εφαρμογή μόλις το επιστρέψει η ΑΑΔΕ (συνήθως εντός λεπτών).
       </p>
     </div>
-    <p style="font-size:12px;color:#6b7280;margin:0 0 16px">Εναλλακτικά μπορείτε να χρησιμοποιήσετε <a href="https://app.epsilonsmart.gr" style="color:#6b7280">Epsilon Smart</a>.</p>
+    <p style="font-size:12px;color:#6b7280;margin:0 0 16px">
+      Αυτό το email είναι μόνο πληροφοριακό — δεν χρειάζεται να ανοίξετε το timologio.gr ή το Epsilon Smart.
+    </p>
     <a href="${buildWebUrl('/admin/delivery-notes-inbox.html', cfg)}"
-       style="display:inline-block;padding:12px 24px;background:#991b1b;color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">
-      Δελτία Αποστολής →
+       style="display:inline-block;padding:12px 24px;background:#374151;color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">
+      Προβολή Δελτίων →
     </a>`;
 
-  const html = baseTemplate('Ακύρωση Δελτίου Αποστολής', bodyHtml);
-  await sendEmail({ to, toName: 'FishBill Admin', subject: `[FishBill] 🚫 Ακύρωση ΔΑ ${note.full_number || ''} — ${businessName}`, html, _type: 'admin_dn_cancelled' });
+  const html = baseTemplate('Ακύρωση Δελτίου Αποστολής (αυτόματη)', bodyHtml);
+  await sendEmail({ to, toName: 'FishBill Admin', subject: `[FishBill] 🚫 Αυτόματη ακύρωση ΔΑ ${note.full_number || ''} — ${businessName}`, html, _type: 'admin_dn_cancelled' });
   trackEmailSent('admin_dn_cancelled');
 }
 
