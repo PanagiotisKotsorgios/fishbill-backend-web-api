@@ -292,7 +292,9 @@ router.get('/', async (req, res, next) => {
     }
 
     // Compute limit status so the app can block the create button proactively
-    const INV_PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
+    // Pro = 125/month = 1500/year, matching the Wrapp production deal
+    // (1.500 παραστατικά/έτος όλων των ειδών, εκτός B2G).
+    const INV_PLAN_LIMITS = { basic: 15, pro: 125, enterprise: -1, trial: -1 };
     let atLimit = false;
     let usedThisMonth = 0;
     let monthlyLimit = -1;
@@ -375,7 +377,7 @@ router.post(
       if (payment_method === 'card') payment_method = 'credit_card';
 
       // Check monthly invoice limit based on subscription plan (super_admin bypasses)
-      const PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
+      const PLAN_LIMITS = { basic: 15, pro: 125, enterprise: -1, trial: -1 };
       const [[bizRow]] = await conn.execute(
         `SELECT plan, trial_ends_at, subscription_active, subscription_ends_at,
                 COALESCE(extra_invoice_credits, 0) AS extra_invoice_credits,

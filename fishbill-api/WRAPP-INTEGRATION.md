@@ -109,10 +109,21 @@ the admin panel) — **no Wrapp values live in `.env`**:
 admin changes take effect immediately. Default fallback for `baseUrl` is `https://wrapp.ai`
 with trailing slash stripped.
 
-### 3.1 Staging basic-auth gate
+### 3.1 Production vs staging base URL
 
-Wrapp's staging environment sits behind an HTTP **basic-auth gate**. Rather than adding
-extra settings, the credentials are **embedded in the base URL** itself:
+**Production (live since 2026-06-19)**
+
+```
+https://wrapp.ai
+```
+
+No basic-auth gate, no embedded credentials. The Partner API key (`X-PARTNER-API-KEY`)
+is the only secret needed.
+
+**Staging (historical, for reference)**
+
+Wrapp's staging environment was behind an HTTP basic-auth gate. The credentials were
+embedded in the base URL:
 
 ```
 https://wrappadmin:****@staging.wrapp.ai
@@ -124,8 +135,18 @@ Both `getJwt()` and `initiateOnboarding()` parse the URL with `new URL(...)`; if
 1. Move the credentials into axios `auth: { username, password }` (with `decodeURIComponent`),
 2. Blank `urlObj.username/password` so the credentials never appear in the request URL or logs.
 
-This means **switching staging → production is a single DB value change** (the base URL),
-with zero code changes.
+When the base URL has no embedded credentials (production), the basic-auth branch is
+simply skipped — same code path works for both environments.
+
+**Switching staging → production is a single DB value change** (the base URL plus the
+Partner API key), with zero code changes:
+
+```sql
+UPDATE platform_settings SET setting_value = 'https://wrapp.ai'
+  WHERE setting_key = 'wrapp_base_url';
+UPDATE platform_settings SET setting_value = '<production partner api key>'
+  WHERE setting_key = 'wrapp_partner_api_key';
+```
 
 ---
 

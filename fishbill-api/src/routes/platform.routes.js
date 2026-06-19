@@ -545,7 +545,7 @@ router.get('/economics', async (req, res, next) => {
 
     const PLAN_PRICING = {
       basic:      { monthly: 8,   semi_annual: 35,  annual: 60  },
-      pro:        { monthly: 12,  semi_annual: 65,  annual: 120 },
+      pro:        { monthly: 12,  semi_annual: 65,  annual: 65  },
       enterprise: { monthly: 30,  semi_annual: 130, annual: 240 },
     };
     const CYCLE_MONTHS = { monthly: 1, semi_annual: 6, annual: 12 };
@@ -1045,7 +1045,7 @@ router.get('/outstanding', async (req, res, next) => {
 
     const PRICING = {
       basic:      { monthly: 8,   semi_annual: 35,  annual: 60  },
-      pro:        { monthly: 12,  semi_annual: 65,  annual: 120 },
+      pro:        { monthly: 12,  semi_annual: 65,  annual: 65  },
       enterprise: { monthly: 30,  semi_annual: 130, annual: 240 },
     };
 

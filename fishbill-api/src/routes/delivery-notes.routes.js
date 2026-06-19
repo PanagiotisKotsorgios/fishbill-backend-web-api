@@ -12,7 +12,9 @@ const pool    = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { validate }     = require('../middleware/validate');
 
-const DN_PLAN_LIMITS = { basic: 15, pro: 30, enterprise: -1, trial: -1 };
+// Pro = 125/month = 1500/year, matching the Wrapp production deal
+// (1.500 παραστατικά/έτος όλων των ειδών, εκτός B2G).
+const DN_PLAN_LIMITS = { basic: 15, pro: 125, enterprise: -1, trial: -1 };
 
 const _dnLogFile = path.join(__dirname, '../../logs/wrapp.log');
 try { fs.mkdirSync(path.dirname(_dnLogFile), { recursive: true }); } catch (_) {}

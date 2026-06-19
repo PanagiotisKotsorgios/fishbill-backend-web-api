@@ -340,11 +340,18 @@ router.get('/pricing', (req, res) => {
           features: ['Έκδοση τιμολογίων', 'Δελτία αποστολής', 'PDF εξαγωγή', 'Email υποστήριξη'],
         },
         {
-          id: 'pro', name: 'Pro', color: '#7C3AED', popular: true,
-          monthly_limit: 50,
-          pricing: { monthly: 15, semi_annual: 65, annual: 120 },
-          savings: { semi_annual: 25, annual: 60 },
-          features: ['Έκδοση τιμολογίων', 'Δελτία αποστολής', 'PDF εξαγωγή', 'Προηγμένα στατιστικά', 'Προτεραιότητα υποστήριξης'],
+          id: 'pro', name: 'FishBill Pro', color: '#7C3AED', popular: true,
+          monthly_limit: 125, // = 1.500/year per Wrapp production package
+          pricing: { monthly: 12, semi_annual: 65, annual: 65 },
+          savings: { semi_annual: 0, annual: 79 },
+          features: [
+            '1.500 παραστατικά/έτος (όλων των ειδών, εκτός B2G)',
+            'Διαβίβαση myDATA μέσω παρόχου ΥΠΑΗΕΣ (Wrapp)',
+            'Δελτία Αποστολής με αυτόματη ακύρωση',
+            'Πιστωτικά / Ακυρωτικά',
+            'Επίσημο PDF από τον πάροχο',
+            'Προτεραιότητα υποστήριξης',
+          ],
         },
         {
           id: 'enterprise', name: 'Enterprise', color: '#D97706',
