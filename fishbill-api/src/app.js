@@ -454,7 +454,10 @@ app.use('/uploads/invoices', express.static(path.join(__dirname, '../uploads/inv
 app.use('/uploads/delivery-notes', express.static(path.join(__dirname, '../uploads/delivery-notes')));
 
 // ── Public PDFs (no auth required — needed for offline caching on devices) ───
-app.use('/pdfs', express.static(path.join(__dirname, '../pdfs'), {
+// Served from public/pdfs/ because /pdfs is gitignored, so files placed there
+// never reach the Coolify deploy. public/pdfs/entipo_b.pdf IS tracked in git
+// and is what the Android EntypoBScreen downloads + caches locally.
+app.use('/pdfs', express.static(path.join(__dirname, '../public/pdfs'), {
   setHeaders: (res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 days
