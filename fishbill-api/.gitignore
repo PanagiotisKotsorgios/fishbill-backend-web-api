@@ -1,7 +1,11 @@
 node_modules/
 .env
 logs/
-pdfs/
+# Ignore generated PDFs but keep the Entipo B template — Coolify`s reverse
+# proxy serves /pdfs/* directly from disk and the Android app needs this file
+# at /pdfs/entipo_b.pdf for offline caching.
+pdfs/*
+!pdfs/entipo_b.pdf
 !public/pdfs/
 public/avatars/
 *.log
