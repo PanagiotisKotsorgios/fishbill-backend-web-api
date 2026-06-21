@@ -35,14 +35,17 @@ function cell(x, y, w, h, text, opts = {}) {
      .text(text, x + pad, topY, { width: w - pad*2, align, lineGap: lineH - fs });
 }
 
-// ── ADA – top right ───────────────────────────────────────────────────────────
-doc.font(FONT).fontSize(7.5).fillColor('#000')
-   .text('ΑΔΑ: ΡΒ604653ΠΓ-ΨΣΨ', ML, 26, { width: CW, align: 'right' });
+// ── Legal-basis reference (top right) ─────────────────────────────────────────
+// Reference the law that defines the form, NOT the circular's ADA (which used
+// to appear here by accident — it was the identifier of the circular document,
+// not of the form itself).
+doc.font(FONT).fontSize(7).fillColor('#444')
+   .text('ΥΑ 65/23344/2024 — ΦΕΚ Β′789  ·  Παράρτημα ΙΙΙ', ML, 26, { width: CW, align: 'right' });
 
 // ── Title ─────────────────────────────────────────────────────────────────────
 let y = 44;
-doc.font(FONT_BOLD).fontSize(10.5).fillColor('#000')
-   .text('ΕΝΤΥΠΟ Β', ML, y, { width: CW, align: 'center', underline: true });
+doc.font(FONT_BOLD).fontSize(11).fillColor('#000')
+   .text('ΕΝΤΥΠΟ Β — Δήλωση Καταγραφής Ζύγισης', ML, y, { width: CW, align: 'center' });
 y += 18;
 
 // ── Table 1: Στοιχεία σκάφους ─────────────────────────────────────────────────
@@ -75,7 +78,7 @@ const T2 = [
   ['Ημερομηνία Ζύγισης (ΕΕΕΕ-ΜΜ-ΗΗ)',                                         RH],
   ['Πενταψήφιος Κωδικός Λιμένα',                                               RH],
   ['Λιμένας ή Σημείο Εκφόρτωσης',                                              RH],
-  ['Επίπεδο κινδύνου (εφόσον υφίσταται)\n– Σταθμισμένη επικινδυνότητα',       26],
+  ['Επίπεδο Κινδύνου (εφόσον υφίσταται)\n– Σταθμισμένη επικινδυνότητα',       26],
 ];
 
 T2.forEach(([label, rh]) => {
@@ -123,7 +126,7 @@ for (let r = 0; r < 6; r++) {
 // ── Signature ─────────────────────────────────────────────────────────────────
 y += 16;
 doc.font(FONT_BOLD).fontSize(8.5).fillColor('#000')
-   .text('ΥΠΟΓΡΑΦΗ ΥΠΕΥΘΥΝΟΥ ΖΥΓΙΣΗΣ :', ML, y, { width: CW, align: 'center' });
+   .text('ΥΠΟΓΡΑΦΗ ΥΠΕΥΘΥΝΟΥ ΖΥΓΙΣΗΣ:', ML, y, { width: CW, align: 'center' });
 
 // ── Finalize (no page-number text at absolute-y — that was causing blank page 2) ──
 doc.end();
