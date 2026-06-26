@@ -395,7 +395,7 @@
       </thead>
       <tbody>
         <tr><td>Παροχή και λειτουργία της Υπηρεσίας FishBill</td><td>Εκτέλεση σύμβασης — άρθρο 6§1β</td></tr>
-        <tr><td>Ηλεκτρονική διαβίβαση τιμολογίων &amp; Δελτίων Αποστολής στην ΑΑΔΕ μέσω myDATA</td><td>Νομική υποχρέωση — άρθρο 6§1γ (Ν. 4308/2014)</td></tr>
+        <tr><td>Ηλεκτρονική έκδοση και διαβίβαση τιμολογίων &amp; Δελτίων Αποστολής στην ΑΑΔΕ μέσω myDATA, από τη WRAPP ως πιστοποιημένο πάροχο ΥΠΑΗΕΣ</td><td>Νομική υποχρέωση — άρθρο 6§1γ (Ν. 4308/2014)</td></tr>
         <tr><td>Τιμολόγηση &amp; διαχείριση συνδρομών</td><td>Εκτέλεση σύμβασης — άρθρο 6§1β</td></tr>
         <tr><td>Ασφάλεια &amp; αντιμετώπιση κακής χρήσης</td><td>Έννομο συμφέρον — άρθρο 6§1στ</td></tr>
         <tr><td>Αποστολή transactional emails (επιβεβαίωση, επαναφορά κωδικού)</td><td>Εκτέλεση σύμβασης — άρθρο 6§1β</td></tr>
@@ -407,7 +407,8 @@
     <h2 id="el-p4">4. Αποδέκτες Δεδομένων</h2>
     <p>Τα δεδομένα σας ενδέχεται να κοινοποιηθούν στους ακόλουθους αποδέκτες, αποκλειστικά για τους σκοπούς που αναφέρονται:</p>
     <ul>
-      <li><strong>ΑΑΔΕ (myDATA):</strong> Διαβίβαση φορολογικών παραστατικών σύμφωνα με την ισχύουσα νομοθεσία. Η FishBill συνδέεται απευθείας με τα επίσημα myAADE API για τη διαβίβαση αυτή.</li>
+      <li><strong>WRAPP (πιστοποιημένος πάροχος ΥΠΑΗΕΣ):</strong> Η WRAPP λαμβάνει μέσω API τα αναγκαία δεδομένα φορολογικών παραστατικών και αντισυμβαλλομένων, προκειμένου να πραγματοποιεί την ηλεκτρονική έκδοση και τη διαβίβαση των παραστατικών στην ΑΑΔΕ/myDATA. Η FishBill δεν διαβιβάζει παραστατικά απευθείας στα myAADE API.</li>
+      <li><strong>ΑΑΔΕ (myDATA):</strong> Η WRAPP διαβιβάζει τα φορολογικά παραστατικά στην Ανεξάρτητη Αρχή Δημοσίων Εσόδων σύμφωνα με την ισχύουσα νομοθεσία.</li>
       <li><strong>Πάροχοι υποδομής (hosting, βάσεις δεδομένων):</strong> Εξυπηρετητές εντός ΕΕ, κατόπιν σύναψης σύμβασης επεξεργασίας δεδομένων (DPA)</li>
       <li><strong>Πάροχοι transactional email:</strong> Για αποστολή επιβεβαιώσεων και ειδοποιήσεων — εντός ΕΕ, κατόπιν DPA</li>
       <li><strong>Λογιστές/Εξουσιοδοτημένα τρίτα πρόσωπα:</strong> Μόνο εφόσον παράσχετε εσείς πρόσβαση μέσω της Πλατφόρμας</li>
@@ -552,7 +553,7 @@
       </thead>
       <tbody>
         <tr><td>Providing and operating the FishBill Service</td><td>Performance of contract — Article 6(1)(b)</td></tr>
-        <tr><td>Electronic transmission of invoices &amp; Delivery Notes to AADE via myDATA</td><td>Legal obligation — Article 6(1)(c) (Law 4308/2014)</td></tr>
+        <tr><td>Electronic issuance and transmission of invoices &amp; Delivery Notes to AADE via myDATA by WRAPP as a certified ΥΠΑΗΕΣ provider</td><td>Legal obligation — Article 6(1)(c) (Law 4308/2014)</td></tr>
         <tr><td>Subscription billing &amp; management</td><td>Performance of contract — Article 6(1)(b)</td></tr>
         <tr><td>Security &amp; misuse prevention</td><td>Legitimate interest — Article 6(1)(f)</td></tr>
         <tr><td>Transactional emails (confirmation, password reset)</td><td>Performance of contract — Article 6(1)(b)</td></tr>
@@ -564,7 +565,8 @@
     <h2 id="en-p4">4. Recipients of Data</h2>
     <p>Your data may be disclosed to the following recipients, solely for the stated purposes:</p>
     <ul>
-      <li><strong>AADE (myDATA):</strong> Transmission of tax documents pursuant to applicable law. FishBill connects directly to the official myAADE APIs for this purpose.</li>
+      <li><strong>WRAPP (certified ΥΠΑΗΕΣ provider):</strong> WRAPP receives, through its APIs, the necessary tax-document and counterparty data in order to perform the electronic issuance and transmission of documents to AADE/myDATA. FishBill does not transmit documents directly to the myAADE APIs.</li>
+      <li><strong>AADE (myDATA):</strong> WRAPP transmits tax documents to the Independent Authority for Public Revenue in accordance with applicable law.</li>
       <li><strong>Infrastructure providers (hosting, databases):</strong> Servers located within the EU, subject to a Data Processing Agreement (DPA)</li>
       <li><strong>Transactional email providers:</strong> For sending confirmations and notifications — within the EU, subject to a DPA</li>
       <li><strong>Accountants / Authorised third parties:</strong> Only if you grant access through the Platform</li>

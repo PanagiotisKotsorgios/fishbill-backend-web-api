@@ -347,16 +347,16 @@
     <p>Το FishBill είναι λογισμικό ηλεκτρονικής τιμολόγησης τύπου SaaS (Software as a Service), σχεδιασμένο αποκλειστικά για επαγγελματίες αλιείς και επιχειρήσεις αλιείας που δραστηριοποιούνται στην Ελλάδα. Η Υπηρεσία παρέχει:</p>
     <ul>
       <li>Έκδοση παραστατικών (Τιμολόγια Πώλησης, Αποδείξεις Λιανικής Πώλησης, Δελτία Αποστολής) σύμφωνα με την ισχύουσα ελληνική νομοθεσία (Ν. 4308/2014 ΕΛΠ)</li>
-      <li>Άμεση ηλεκτρονική διαβίβαση παραστατικών στην ΑΑΔΕ μέσω myDATA (myAADE API), με λήψη αριθμού ΜΑΡΚ</li>
-      <li>Έκδοση και ηλεκτρονική αποστολή Δελτίων Αποστολής (ΔΑ) στο myDATA, σύμφωνα με τις ισχύουσες απαιτήσεις ΑΑΔΕ</li>
+      <li>Ηλεκτρονική έκδοση και διαβίβαση παραστατικών στην ΑΑΔΕ μέσω myDATA, μέσω της WRAPP, πιστοποιημένου παρόχου ΥΠΑΗΕΣ, με λήψη αριθμού ΜΑΡΚ</li>
+      <li>Έκδοση και ηλεκτρονική διαβίβαση Δελτίων Αποστολής (ΔΑ) στο myDATA μέσω της WRAPP, σύμφωνα με τις ισχύουσες απαιτήσεις ΑΑΔΕ</li>
       <li>Διαχείριση πελατολογίου, προϊόντων και τιμολογιακής ιστορίας</li>
       <li>Αποστολή παραστατικών μέσω email στους αντισυμβαλλόμενους</li>
       <li>Αναφορές, στατιστικά και εξαγωγή δεδομένων για λογιστική χρήση</li>
       <li>Διαχείριση αποστολής και παρακολούθηση κατάστασης ΜΑΡΚ</li>
-      <li>Ηλεκτρονική τιμολόγηση μέσω εγκεκριμένου παρόχου ΥΠΑΗΕΣ (myDATA) — αυτόματη διαβίβαση χωρίς επιπλέον ενέργειες (διαθέσιμο στο Pro πλάνο)</li>
+      <li>Ηλεκτρονική τιμολόγηση μέσω της WRAPP, πιστοποιημένου παρόχου ΥΠΑΗΕΣ — αυτόματη διαβίβαση χωρίς επιπλέον ενέργειες από τον Χρήστη (διαθέσιμο στο Pro πλάνο)</li>
     </ul>
     <p>Η Υπηρεσία παρέχεται «ως έχει» (as-is) και «ως διατίθεται» (as-available). Η FishBill διατηρεί το δικαίωμα να τροποποιεί, αναστέλλει ή διακόπτει μέρος ή το σύνολο της Υπηρεσίας οποτεδήποτε, με ή χωρίς προηγούμενη ειδοποίηση, χωρίς να φέρει ευθύνη έναντι του Χρήστη ή οποιουδήποτε τρίτου για τέτοια τροποποίηση, αναστολή ή διακοπή.</p>
-    <p><strong>Η FishBill δεν αποτελεί αδειοδοτημένο Πάροχο Ηλεκτρονικής Τιμολόγησης (ΠΗΤ)</strong> κατά την έννοια της ελληνικής φορολογικής νομοθεσίας. Η διαβίβαση των παραστατικών στην ΑΑΔΕ γίνεται μέσω των επίσημων myDATA API της ΑΑΔΕ, σύμφωνα με τις τεχνικές προδιαγραφές της Αρχής.</p>
+    <p><strong>Η FishBill δεν αποτελεί αδειοδοτημένο Πάροχο Ηλεκτρονικής Τιμολόγησης (ΠΗΤ/ΥΠΑΗΕΣ)</strong> κατά την έννοια της ελληνικής φορολογικής νομοθεσίας. Η FishBill λειτουργεί ως τεχνική πλατφόρμα SaaS και, στο πλαίσιο της συμβατικής συνεργασίας της με τη WRAPP, διασυνδέει το backend της με τα API της WRAPP. Η WRAPP είναι ο πιστοποιημένος πάροχος ΥΠΑΗΕΣ που αναλαμβάνει την ηλεκτρονική έκδοση και τη διαβίβαση των παραστατικών στην ΑΑΔΕ/myDATA. Η FishBill δεν διαβιβάζει παραστατικά απευθείας στα myAADE API.</p>
 
     <h2 id="el-s3">3. Δημιουργία Λογαριασμού</h2>
     <p>Για τη χρήση του FishBill απαιτείται δημιουργία λογαριασμού με έγκυρη διεύθυνση email και κωδικό πρόσβασης. Ο Χρήστης αναλαμβάνει ανεπιφύλακτα:</p>
@@ -379,18 +379,18 @@
     <p><strong>ΦΠΑ:</strong> Οι αναφερόμενες τιμές δεν περιλαμβάνουν ΦΠΑ. Ο εκάστοτε ισχύων συντελεστής ΦΠΑ προστίθεται στο τελικό ποσό του τιμολογίου σύμφωνα με την κείμενη ελληνική νομοθεσία.</p>
 
     <h2 id="el-s5">5. Νομική Συμμόρφωση – myDATA &amp; ΑΑΔΕ</h2>
-    <p>Η Υπηρεσία FishBill υποστηρίζει την ηλεκτρονική διαβίβαση παραστατικών (τιμολόγια και Δελτία Αποστολής) στο myDATA της Ανεξάρτητης Αρχής Δημοσίων Εσόδων (ΑΑΔΕ) μέσω των επίσημων myAADE API. Κάθε παραστατικό που διαβιβάζεται λαμβάνει μοναδικό αριθμό ΜΑΡΚ από την ΑΑΔΕ.</p>
+    <p>Η Υπηρεσία FishBill υποστηρίζει την ηλεκτρονική έκδοση και διαβίβαση παραστατικών (τιμολόγια και Δελτία Αποστολής) στο myDATA της Ανεξάρτητης Αρχής Δημοσίων Εσόδων (ΑΑΔΕ) αποκλειστικά μέσω της WRAPP, πιστοποιημένου παρόχου ΥΠΑΗΕΣ, και των API της. Η εφαρμογή FishBill (web και κινητή) επικοινωνεί μόνο με το backend της FishBill. Το backend διαβιβάζει τα αναγκαία δεδομένα στη WRAPP μέσω API και η WRAPP πραγματοποιεί τη διαβίβαση προς την ΑΑΔΕ/myDATA και επιστρέφει την κατάσταση και, όπου εκδίδεται, τον αριθμό ΜΑΡΚ. Η εφαρμογή FishBill δεν καλεί απευθείας ούτε τα API της WRAPP ούτε τα myAADE API και δεν αποθηκεύει κλειδιά API της WRAPP στη συσκευή του Χρήστη.</p>
     <p><strong>Σαφής οριοθέτηση ευθύνης:</strong> Η FishBill παρέχει τεχνικό εργαλείο έκδοσης και διαβίβασης παραστατικών. Η νομική και φορολογική ευθύνη για την ορθότητα, πληρότητα και νομιμότητα των παραστατικών βαρύνει <strong>αποκλειστικά τον Χρήστη</strong>. Ο Χρήστης φέρει αποκλειστική ευθύνη για:</p>
     <ul>
       <li>Την ακρίβεια και πληρότητα των δεδομένων που εισάγει (ΑΦΜ πελατών, ποσά, συντελεστές ΦΠΑ, είδος παραστατικού, ποσότητες, τιμές)</li>
       <li>Την επιλογή του ορθού τύπου παραστατικού (Τιμολόγιο Πώλησης, ΑΛΠ, Δελτίο Αποστολής κ.λπ.) σύμφωνα με τις εκάστοτε ισχύουσες φορολογικές διατάξεις</li>
       <li>Την τήρηση των φορολογικών υποχρεώσεών του έναντι της ΑΑΔΕ</li>
-      <li>Τη διαχείριση και ασφαλή φύλαξη των διαπιστευτηρίων ΑΑΔΕ που χρησιμοποιεί για τη διασύνδεση</li>
-      <li>Την επαλήθευση της επιτυχούς διαβίβασης παραστατικών μέσω του επίσημου portal myDATA της ΑΑΔΕ</li>
+      <li>Τη διατήρηση της απαιτούμενης ενεργής σχέσης και εξουσιοδότησης με τη WRAPP, όπου αυτή απαιτείται για την παροχή της υπηρεσίας ΥΠΑΗΕΣ</li>
+      <li>Την επαλήθευση της επιτυχούς διαβίβασης παραστατικών από την κατάσταση που επιστρέφει η WRAPP και, όπου απαιτείται, μέσω του επίσημου portal myDATA της ΑΑΔΕ</li>
       <li>Οποιεσδήποτε φορολογικές κυρώσεις, πρόστιμα ή συνέπειες προκύψουν από εσφαλμένη έκδοση ή μη διαβίβαση παραστατικών</li>
     </ul>
     <p>Η FishBill <strong>δεν παρέχει φορολογικές, λογιστικές ή νομικές συμβουλές</strong>. Το περιεχόμενο της Πλατφόρμας έχει αποκλειστικά ενημερωτικό χαρακτήρα. Για φορολογικά ή νομικά ζητήματα ο Χρήστης οφείλει να συμβουλεύεται αδειοδοτημένο λογιστή ή νομικό σύμβουλο.</p>
-    <p>Η FishBill δεν φέρει καμία ευθύνη για αποτυχίες διαβίβασης που οφείλονται σε μη διαθεσιμότητα ή βλάβη των συστημάτων ΑΑΔΕ/myDATA, τα οποία δεν ελέγχονται από τη FishBill.</p>
+    <p>Η FishBill δεν φέρει καμία ευθύνη για αποτυχίες ή καθυστερήσεις διαβίβασης που οφείλονται σε μη διαθεσιμότητα ή βλάβη των συστημάτων της WRAPP ή της ΑΑΔΕ/myDATA, τα οποία δεν ελέγχονται από τη FishBill.</p>
 
     <h2 id="el-s6">6. Υποχρεώσεις Χρήστη</h2>
     <p>Ο Χρήστης αναλαμβάνει να χρησιμοποιεί την Υπηρεσία αποκλειστικά σύμφωνα με τους παρόντες Όρους, την ισχύουσα νομοθεσία και τα χρηστά ήθη. Ρητώς απαγορεύεται:</p>
@@ -418,10 +418,10 @@
       <li>Αδυναμία χρήσης της Υπηρεσίας ή διακοπές λειτουργίας, ανεξάρτητα από αιτία</li>
       <li>Λάθη, παραλείψεις ή ανακρίβειες στα δεδομένα που εισάγει ο Χρήστης</li>
       <li>Φορολογικές κυρώσεις, πρόστιμα ή άλλες συνέπειες από εσφαλμένη έκδοση παραστατικών</li>
-      <li>Αποτυχία ή καθυστέρηση διαβίβασης παραστατικών στην ΑΑΔΕ/myDATA λόγω μη διαθεσιμότητας συστημάτων ΑΑΔΕ ή άλλων παραγόντων εκτός ελέγχου της FishBill</li>
+      <li>Αποτυχία ή καθυστέρηση ηλεκτρονικής έκδοσης ή διαβίβασης παραστατικών από τη WRAPP ή προς την ΑΑΔΕ/myDATA λόγω μη διαθεσιμότητας των αντίστοιχων συστημάτων ή άλλων παραγόντων εκτός ελέγχου της FishBill</li>
       <li>Μη εξουσιοδοτημένη πρόσβαση τρίτων στον λογαριασμό του Χρήστη λόγω αμέλειας ή παράλειψης του ιδίου του Χρήστη</li>
       <li>Βλάβες προκαλούμενες από ανωτέρα βία, κυβερνοεπιθέσεις τρίτων, φυσικές καταστροφές, πράξεις κρατικών αρχών</li>
-      <li>Οποιεσδήποτε ζημίες που προκύπτουν από τη χρήση ή την αδυναμία χρήσης υπηρεσιών τρίτων (ΑΑΔΕ, τράπεζες, πάροχοι hosting κ.λπ.)</li>
+      <li>Οποιεσδήποτε ζημίες που προκύπτουν από τη χρήση ή την αδυναμία χρήσης υπηρεσιών τρίτων (συμπεριλαμβανομένης της WRAPP, της ΑΑΔΕ, τραπεζών και παρόχων hosting)</li>
     </ul>
     <p>Σε κάθε περίπτωση, η συνολική αθροιστική ευθύνη της FishBill έναντι του Χρήστη για οποιαδήποτε αιτία περιορίζεται <strong>στο ποσό που κατέβαλε ο Χρήστης για τη συνδρομή του κατά τους τρεις (3) μήνες αμέσως πριν από το γεγονός που γέννησε την αξίωση</strong>. Ο περιορισμός αυτός ισχύει ανεξάρτητα από τη νομική βάση της αξίωσης (σύμβαση, αδικοπραξία, αδικαιολόγητος πλουτισμός κ.λπ.).</p>
     <p>Η Υπηρεσία παρέχεται χωρίς εγγύηση κάθε είδους, ρητή ή σιωπηρή. Η FishBill δεν εγγυάται ότι η Υπηρεσία θα λειτουργεί αδιαλείπτως, αλάνθαστα ή ότι τα αποτελέσματα χρήσης θα είναι ακριβή ή αξιόπιστα.</p>
@@ -496,15 +496,15 @@
     <p>FishBill is a SaaS (Software as a Service) electronic invoicing solution designed exclusively for professional fishermen and fishing businesses operating in Greece. The Service provides:</p>
     <ul>
       <li>Issuance of documents (Sales Invoices, Retail Receipts, Delivery Notes) in accordance with Greek law (Law 4308/2014 Greek Accounting Standards)</li>
-      <li>Direct electronic transmission of documents to AADE via myDATA (myAADE API), with receipt of a MARK number</li>
-      <li>Issuance and electronic submission of Delivery Notes to myDATA, per AADE requirements</li>
+      <li>Electronic issuance and transmission of documents to AADE via myDATA through WRAPP, a certified ΥΠΑΗΕΣ provider, with receipt of a MARK number</li>
+      <li>Issuance and electronic transmission of Delivery Notes to myDATA through WRAPP, in accordance with AADE requirements</li>
       <li>Customer, product and invoice history management</li>
       <li>Email delivery of documents to counterparties</li>
       <li>Reports, statistics and data export for accounting purposes</li>
-      <li>Electronic invoicing via an approved ΥΠΑΗΕΣ (myDATA) provider — automatic transmission with no extra steps (available in Pro plan)</li>
+      <li>Electronic invoicing through WRAPP, a certified ΥΠΑΗΕΣ provider — automatic transmission with no additional action by the User (available in the Pro plan)</li>
     </ul>
     <p>The Service is provided "as-is" and "as-available." FishBill reserves the right to modify, suspend or discontinue part or all of the Service at any time, with or without notice, without liability to the User or any third party.</p>
-    <p><strong>FishBill is not a licensed Electronic Invoicing Provider (EIP)</strong> under Greek tax legislation. Transmission of documents to AADE is carried out directly via the official myDATA APIs of AADE.</p>
+    <p><strong>FishBill is not a licensed Electronic Invoicing Provider (EIP/ΥΠΑΗΕΣ)</strong> under Greek tax legislation. FishBill operates as a technical SaaS platform and, under its contractual cooperation with WRAPP, connects its backend to WRAPP's APIs. WRAPP is the certified ΥΠΑΗΕΣ provider that undertakes the electronic issuance and transmission of documents to AADE/myDATA. FishBill does not transmit documents directly to the myAADE APIs.</p>
 
     <h2 id="en-s3">3. Account Creation</h2>
     <p>Using FishBill requires creating an account with a valid email address and password. The User irrevocably undertakes to:</p>
@@ -527,18 +527,18 @@
     <p><strong>VAT:</strong> Published prices are exclusive of VAT. The applicable VAT rate is added to the final invoice amount in accordance with current Greek legislation.</p>
 
     <h2 id="en-s5">5. Legal Compliance – myDATA &amp; AADE</h2>
-    <p>FishBill supports the electronic transmission of documents (invoices and Delivery Notes) to the myDATA system of the Independent Authority for Public Revenue (AADE) via the official myAADE APIs. Each successfully transmitted document receives a unique MARK number from AADE.</p>
+    <p>FishBill supports the electronic issuance and transmission of documents (invoices and Delivery Notes) to the myDATA system of the Independent Authority for Public Revenue (AADE) exclusively through WRAPP, a certified ΥΠΑΗΕΣ provider, and its APIs. The FishBill application (web and mobile) communicates only with the FishBill backend. The backend sends the necessary data to WRAPP through its APIs, and WRAPP performs the transmission to AADE/myDATA and returns the status and, where issued, the MARK number. The FishBill application does not call WRAPP's APIs or the myAADE APIs directly and does not store WRAPP API keys on the User's device.</p>
     <p><strong>Clear delineation of responsibility:</strong> FishBill provides a technical tool for document creation and transmission. Legal and tax responsibility for the correctness, completeness and lawfulness of documents rests <strong>exclusively with the User</strong>. The User bears sole responsibility for:</p>
     <ul>
       <li>The accuracy and completeness of data entered (customer VAT numbers, amounts, VAT rates, document type, quantities, prices)</li>
       <li>Selecting the correct document type (Sales Invoice, Retail Receipt, Delivery Note, etc.) in accordance with applicable tax regulations</li>
       <li>Meeting all tax obligations to AADE</li>
-      <li>Managing and securely keeping AADE credentials used for the connection</li>
-      <li>Verifying successful transmission of documents through the official myDATA portal of AADE</li>
+      <li>Maintaining the active relationship and authorisation with WRAPP required to provide the ΥΠΑΗΕΣ service, where applicable</li>
+      <li>Verifying successful transmission from the status returned by WRAPP and, where required, through AADE's official myDATA portal</li>
       <li>Any tax penalties, fines or consequences arising from incorrect issuance or failure to transmit documents</li>
     </ul>
     <p>FishBill <strong>does not provide tax, accounting or legal advice</strong>. All Platform content is for informational purposes only. For tax or legal matters the User must consult a licensed accountant or legal adviser.</p>
-    <p>FishBill bears no liability for transmission failures attributable to unavailability or malfunction of AADE/myDATA systems, which are outside FishBill's control.</p>
+    <p>FishBill bears no liability for transmission failures or delays attributable to unavailability or malfunction of WRAPP or AADE/myDATA systems, which are outside FishBill's control.</p>
 
     <h2 id="en-s6">6. User Obligations</h2>
     <p>The User undertakes to use the Service solely in accordance with these Terms, applicable law and good faith. The following are expressly prohibited:</p>
@@ -566,10 +566,10 @@
       <li>Inability to use the Service or operational interruptions, regardless of cause</li>
       <li>Errors, omissions or inaccuracies in data entered by the User</li>
       <li>Tax penalties, fines or other consequences arising from incorrect document issuance</li>
-      <li>Failure or delay in transmitting documents to AADE/myDATA due to AADE systems unavailability or other factors outside FishBill's control</li>
+      <li>Failure or delay in the electronic issuance or transmission of documents by WRAPP or to AADE/myDATA due to the unavailability of the relevant systems or other factors outside FishBill's control</li>
       <li>Unauthorised access by third parties to the User's account resulting from the User's own negligence or omission</li>
       <li>Damage caused by force majeure, third-party cyberattacks, natural disasters or acts of public authorities</li>
-      <li>Any damages arising from the use or inability to use third-party services (AADE, banks, hosting providers, etc.)</li>
+      <li>Any damages arising from the use or inability to use third-party services (including WRAPP, AADE, banks and hosting providers)</li>
     </ul>
     <p>In any event, FishBill's total cumulative liability to the User for any cause shall be limited to <strong>the amount paid by the User for their subscription in the three (3) months immediately preceding the event giving rise to the claim</strong>. This limitation applies regardless of the legal basis of the claim (contract, tort, unjust enrichment, etc.).</p>
     <p>The Service is provided without warranty of any kind, express or implied. FishBill does not warrant that the Service will operate uninterruptedly, error-free, or that results of use will be accurate or reliable.</p>
