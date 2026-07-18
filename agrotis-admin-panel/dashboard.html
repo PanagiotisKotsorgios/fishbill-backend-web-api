@@ -59,7 +59,11 @@
           `<div class="empty">Αδυναμία σύνδεσης με το API: ${e.message}</div>`;
       }
       try {
-        const h = await fetch(CONFIG.API_URL + '/health').then(r => r.json());
+        const base = new URL(
+          CONFIG.API_URL.endsWith('/') ? CONFIG.API_URL : CONFIG.API_URL + '/',
+          location.origin
+        );
+        const h = await fetch(new URL('health', base)).then(r => r.json());
         wrapp_env.textContent = h.wrapp || 'unknown';
       } catch { wrapp_env.textContent = 'unreachable'; }
     })();

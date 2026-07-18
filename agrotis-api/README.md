@@ -38,8 +38,20 @@ npm start           # or `npm run dev` for hot-reload
 
 ## API routes
 
-All routes rooted at the server URL (e.g. `https://agrotis-api.master-app.gr/`
-or `https://master-app.gr/agrotis-api/` behind a reverse proxy).
+All routes are exposed at the server root. Behind a reverse proxy the
+recommended layout uses a path prefix on the existing `master-app.gr`
+domain — no new subdomain or DNS record needed:
+
+```
+https://master-app.gr/agrotis/api/*   → agrotis-api  (this service)
+https://master-app.gr/agrotis/admin/  → agrotis-admin-panel (static)
+https://master-app.gr/api/*           → fishbill-api  (unchanged)
+https://master-app.gr/admin/          → fishbill admin (unchanged)
+```
+
+The Express app itself is prefix-agnostic — nginx/Coolify strips
+`/agrotis/api` before forwarding, so internally routes stay clean
+(`/health`, `/auth/login`, …).
 
 | Path | Purpose |
 | --- | --- |
@@ -65,16 +77,44 @@ or `https://master-app.gr/agrotis-api/` behind a reverse proxy).
 | `GET  /admin/invoices` | list all invoices |
 | `PATCH /admin/subscriptions/:business_id` | manage a business' subscription |
 
-## Deployment (Coolify or plain Docker)
+## Deployment (Coolify — path prefix, no new DNS)
 
 ```bash
 docker build -t agrotis-api .
 docker run --rm -p 4001:4001 --env-file .env agrotis-api
 ```
 
-Behind nginx/Coolify, route either a subdomain
-(e.g. `agrotis-api.master-app.gr`) or a path prefix (`/agrotis-api/*`) to
-this container. FishBill (`fishbill-api/`) stays on its own port and route.
+Add the container to Coolify alongside the existing `fishbill-api`
+service and route it via a path prefix on the same domain — no new DNS,
+no extra SSL cert:
+
+**nginx snippet** (Coolify custom directive or standalone):
+```nginx
+# Existing FishBill routes stay untouched — nothing to change.
+
+# Αγρότης API — strip the /agrotis/api prefix before forwarding.
+location /agrotis/api/ {
+    proxy_pass         http://agrotis-api:4001/;
+    proxy_http_version 1.1;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    client_max_body_size 10M;
+}
+
+# Αγρότης admin panel — static files.
+location /agrotis/admin/ {
+    alias /srv/agrotis-admin-panel/;
+    index index.html;
+    try_files $uri $uri/ /agrotis/admin/index.html;
+}
+```
+
+The trailing slash on `proxy_pass http://agrotis-api:4001/` is what
+makes nginx strip the `/agrotis/api` prefix before forwarding. Express
+then sees requests like `/health`, `/auth/login` — no code change
+needed inside the app.
 
 ## What is NOT shared with FishBill
 

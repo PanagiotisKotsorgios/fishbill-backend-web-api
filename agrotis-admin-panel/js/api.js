@@ -17,7 +17,13 @@ function getCurrentUser() {
 }
 
 async function request(method, path, body = null, params = null) {
-  const url = new URL(path.replace(/^\//, ''), CONFIG.API_URL + '/');
+  // Resolve CONFIG.API_URL against location.origin so both absolute
+  // (https://…) and path-relative (/agrotis/api) forms work.
+  const base = new URL(
+    CONFIG.API_URL.endsWith('/') ? CONFIG.API_URL : CONFIG.API_URL + '/',
+    location.origin
+  );
+  const url = new URL(path.replace(/^\//, ''), base);
   if (params) for (const k of Object.keys(params)) {
     if (params[k] != null && params[k] !== '') url.searchParams.set(k, params[k]);
   }
