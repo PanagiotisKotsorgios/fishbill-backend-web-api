@@ -1,5 +1,4 @@
 // Renders the shared sidebar/topbar for authenticated pages.
-// Distinct from the FishBill admin — different structure, colors, icons.
 
 function requireLogin() {
   if (!getToken()) {
@@ -12,11 +11,15 @@ function requireLogin() {
 function renderShell(activePath) {
   const user = getCurrentUser() || {};
   const nav = [
-    { path: 'dashboard.html',    label: 'Επισκόπηση',    icon: '📊' },
-    { path: 'users.html',        label: 'Χρήστες',       icon: '👤' },
-    { path: 'businesses.html',   label: 'Επιχειρήσεις',  icon: '🌾' },
-    { path: 'invoices.html',     label: 'Τιμολόγια',     icon: '📄' },
-    { path: 'subscriptions.html', label: 'Συνδρομές',    icon: '💳' },
+    { path: 'dashboard.html',     label: 'Επισκόπηση',    icon: '📊' },
+    { path: 'businesses.html',    label: 'Επιχειρήσεις',  icon: '🌾' },
+    { path: 'users.html',         label: 'Χρήστες',       icon: '👤' },
+    { path: 'invoices.html',      label: 'Τιμολόγια',     icon: '📄' },
+    { path: 'delivery-notes.html', label: 'Δελτία Αποστολής', icon: '🚚' },
+    { path: 'weighing-slips.html', label: 'Δελτία Ζύγισης',   icon: '⚖️' },
+    { path: 'subscriptions.html', label: 'Συνδρομές',     icon: '💳' },
+    { path: 'wrapp-logs.html',    label: 'Wrapp Logs',    icon: '🔗' },
+    { path: 'settings.html',      label: 'Ρυθμίσεις',     icon: '⚙️' },
   ];
   const items = nav.map(n => `
     <a href="${n.path}" class="nav-item ${n.path === activePath ? 'active' : ''}">
@@ -51,5 +54,24 @@ function renderShell(activePath) {
   `);
 }
 
+// Helpers used across pages
+function fmtDate(d, withTime = false) {
+  if (!d) return '—';
+  const opts = withTime
+    ? { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+    : { day: '2-digit', month: '2-digit', year: 'numeric' };
+  return new Date(d).toLocaleString('el-GR', opts);
+}
+function fmtEuro(v) {
+  return '€' + Number(v || 0).toLocaleString('el-GR', { minimumFractionDigits: 2 });
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
 window.requireLogin = requireLogin;
 window.renderShell  = renderShell;
+window.fmtDate      = fmtDate;
+window.fmtEuro      = fmtEuro;
+window.escapeHtml   = escapeHtml;

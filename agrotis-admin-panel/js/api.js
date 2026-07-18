@@ -52,11 +52,24 @@ async function request(method, path, body = null, params = null) {
 }
 
 const api = {
-  login: (email, password) => request('POST', '/admin/login', { email, password }),
-  stats:      () => request('GET', '/admin/stats'),
-  users:      (p = {}) => request('GET', '/admin/users', null, p),
-  businesses: (p = {}) => request('GET', '/admin/businesses', null, p),
-  invoices:   (p = {}) => request('GET', '/admin/invoices', null, p),
+  login:          (email, password) => request('POST', '/admin/login', { email, password }),
+  changePassword: (currentPw, newPw) =>
+    request('POST', '/admin/change-password', { current_password: currentPw, new_password: newPw }),
+
+  stats:          ()      => request('GET', '/admin/stats'),
+  users:          (p={})  => request('GET', '/admin/users', null, p),
+  deleteUser:     (id)    => request('DELETE', `/admin/users/${id}`),
+  businesses:     (p={})  => request('GET', '/admin/businesses', null, p),
+  business:       (id)    => request('GET', `/admin/businesses/${id}`),
+  invoices:       (p={})  => request('GET', '/admin/invoices', null, p),
+  invoice:        (id)    => request('GET', `/admin/invoices/${id}`),
+  deliveryNotes:  (p={})  => request('GET', '/admin/delivery-notes', null, p),
+  deliveryNote:   (id)    => request('GET', `/admin/delivery-notes/${id}`),
+  weighingSlips:  (p={})  => request('GET', '/admin/weighing-slips', null, p),
+  wrappLogs:      (p={})  => request('GET', '/admin/wrapp-logs', null, p),
+  wrappLog:       (id)    => request('GET', `/admin/wrapp-logs/${id}`),
+  purgeWrappLogs: (days)  => request('DELETE', '/admin/wrapp-logs/purge', null, { days }),
+
   updateSubscription: (businessId, body) =>
     request('PATCH', `/admin/subscriptions/${businessId}`, body),
 };

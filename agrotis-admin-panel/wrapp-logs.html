@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wrapp Logs · Αγρότης Superadmin</title>
+  <link rel="stylesheet" href="css/shell.css" />
+  <style>
+    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .toolbar label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .drawer {
+      position: fixed; right: 0; top: 0; bottom: 0; width: min(720px, 90vw);
+      background: #fff; box-shadow: -8px 0 20px rgba(0,0,0,.12);
+      padding: 24px; overflow-y: auto; z-index: 100;
+      transform: translateX(100%); transition: transform .2s ease;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer h2 { font-size: 18px; margin-bottom: 8px; }
+    .drawer pre { background: #F1F8F0; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 12px; max-height: 40vh; }
+    .drawer .close { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+    .kv { font-size: 13px; margin: 6px 0; }
+    .kv b { color: var(--primary-dark); margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('wrapp-logs.html');
+  </script>
+
+  <template id="mainTpl">
+    <h1>Wrapp API Logs</h1>
+    <div class="page-subtitle">Ιστορικό κλήσεων προς το Wrapp staging — χρήσιμο για troubleshooting</div>
+    <div class="toolbar">
+      <label><input type="checkbox" id="onlyErr" onchange="reload()" /> Μόνο σφάλματα</label>
+      <span id="totalCount" class="stat-hint"></span>
+      <button style="margin-left: auto; background: #C62828; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px;"
+              onclick="purge()">Καθαρισμός > 30 ημερών</button>
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Ώρα</th><th>Event</th><th>Endpoint</th>
+          <th>Επιχείρηση</th><th>Status</th><th>Σφάλμα</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="7" class="empty">Φόρτωση…</td></tr></tbody>
+    </table>
+
+    <aside class="drawer" id="drawer">
+      <button class="close" onclick="closeDrawer()">×</button>
+      <div id="drawerContent"></div>
+    </aside>
+  </template>
+
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+
+    function badgeForStatus(s, err) {
+      if (err)               return `<span class="badge red">ERR</span>`;
+      if (!s)                return `<span class="badge grey">—</span>`;
+      if (s >= 500)          return `<span class="badge red">${s}</span>`;
+      if (s >= 400)          return `<span class="badge red">${s}</span>`;
+      if (s >= 300)          return `<span class="badge blue">${s}</span>`;
+      return `<span class="badge green">${s}</span>`;
+    }
+
+    async function reload() {
+      const only = document.getElementById('onlyErr').checked ? '1' : '';
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">Φόρτωση…</td></tr>`;
+      try {
+        const resp = await api.wrappLogs({ page: 1, limit: 100, only_errors: only });
+        document.getElementById('totalCount').textContent = `${resp.meta.total} συνολικά`;
+        if (!resp.data.length) {
+          tbody.innerHTML = `<tr><td colspan="7" class="empty">Καμία εγγραφή</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = resp.data.map(l => `
+          <tr>
+            <td>${fmtDate(l.created_at, true)}</td>
+            <td><code style="font-size:11px;">${escapeHtml(l.event_type)}</code></td>
+            <td style="font-size:12px;">${escapeHtml(l.endpoint || '')}</td>
+            <td>${escapeHtml(l.business_name || '—')}</td>
+            <td>${badgeForStatus(l.status_code, l.error_message)}</td>
+            <td style="color:#C62828; font-size:12px;">${escapeHtml(l.error_message || '')}</td>
+            <td><button onclick="openLog('${l.id}')" style="border:none;background:#F1F8F0;color:#2E7D32;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">Άνοιγμα</button></td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">Σφάλμα: ${escapeHtml(e.message)}</td></tr>`;
+      }
+    }
+
+    async function openLog(id) {
+      try {
+        const log = (await api.wrappLog(id)).data;
+        const content = document.getElementById('drawerContent');
+        let req = log.request_body || '';
+        let resp = log.response_body || '';
+        try { req  = JSON.stringify(JSON.parse(req), null, 2); } catch {}
+        try { resp = JSON.stringify(JSON.parse(resp), null, 2); } catch {}
+        content.innerHTML = `
+          <h2>${escapeHtml(log.event_type)}</h2>
+          <div class="kv"><b>Endpoint:</b>${escapeHtml(log.endpoint || '—')}</div>
+          <div class="kv"><b>Ώρα:</b>${fmtDate(log.created_at, true)}</div>
+          <div class="kv"><b>Business:</b>${escapeHtml(log.business_name || log.business_id || '—')}</div>
+          <div class="kv"><b>Status:</b>${badgeForStatus(log.status_code, log.error_message)}</div>
+          ${log.error_message ? `<div class="kv" style="color:#C62828;"><b>Σφάλμα:</b>${escapeHtml(log.error_message)}</div>` : ''}
+          <h3 style="margin:16px 0 6px; font-size:14px;">Request Body</h3>
+          <pre>${escapeHtml(req) || '(κενό)'}</pre>
+          <h3 style="margin:16px 0 6px; font-size:14px;">Response Body</h3>
+          <pre>${escapeHtml(resp) || '(κενό)'}</pre>
+        `;
+        document.getElementById('drawer').classList.add('open');
+      } catch (e) {
+        alert('Σφάλμα: ' + e.message);
+      }
+    }
+    function closeDrawer() { document.getElementById('drawer').classList.remove('open'); }
+
+    async function purge() {
+      if (!confirm('Διαγραφή όλων των logs παλαιότερων των 30 ημερών;')) return;
+      try {
+        const r = await api.purgeWrappLogs(30);
+        alert(`Διαγράφηκαν ${r.deleted} εγγραφές`);
+        reload();
+      } catch (e) { alert('Σφάλμα: ' + e.message); }
+    }
+
+    reload();
+  </script>
+</body>
+</html>

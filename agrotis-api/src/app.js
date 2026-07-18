@@ -16,6 +16,10 @@ const adminRoutes         = require('./routes/admin.routes');
 
 const app = express();
 
+// Behind the Coolify/nginx reverse proxy — required so req.ip and
+// express-rate-limit read X-Forwarded-For properly instead of the socket IP.
+app.set('trust proxy', 1);
+
 // ── Middleware ─────────────────────────────────────────────────────────────
 app.disable('x-powered-by');
 app.use(helmet());
@@ -70,11 +74,19 @@ app.use('/admin',           adminRoutes);
 app.use((req, res) => res.status(404).json({ error: 'Not found', path: req.path }));
 
 app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', err);
+  logger.error(`Unhandled error on ${req.method} ${req.originalUrl}: ${err.stack || err}`);
   const status = err.status || 500;
-  res.status(status).json({
+  const payload = {
     error: err.publicMessage || (status === 500 ? 'Internal server error' : err.message),
-  });
+  };
+  // In non-production, include stack trace so debugging is easier from the browser.
+  if (process.env.NODE_ENV !== 'production') {
+    payload.stack = String(err.stack || err);
+  } else if (status >= 500) {
+    // In prod, at least include a short message to help identify the failing query.
+    payload.detail = String(err.message || err);
+  }
+  res.status(status).json(payload);
 });
 
 module.exports = app;

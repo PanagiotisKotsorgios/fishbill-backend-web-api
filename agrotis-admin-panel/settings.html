@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ρυθμίσεις · Αγρότης Superadmin</title>
+  <link rel="stylesheet" href="css/shell.css" />
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('settings.html');
+  </script>
+
+  <template id="mainTpl">
+    <h1>Ρυθμίσεις Λογαριασμού</h1>
+    <div class="page-subtitle">Αλλαγή κωδικού πρόσβασης του υπερδιαχειριστή</div>
+
+    <div class="card" style="max-width: 480px;">
+      <form onsubmit="return changePassword(event)">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#4A5C4F;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">
+              Τρέχων Κωδικός
+            </label>
+            <input type="password" id="cur" required autocomplete="current-password"
+                   style="width:100%;padding:11px 14px;border:1px solid #C8E6C9;border-radius:8px;font-size:14px;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#4A5C4F;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">
+              Νέος Κωδικός (τουλάχιστον 8 χαρακτήρες)
+            </label>
+            <input type="password" id="new1" required minlength="8" autocomplete="new-password"
+                   style="width:100%;padding:11px 14px;border:1px solid #C8E6C9;border-radius:8px;font-size:14px;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#4A5C4F;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">
+              Επιβεβαίωση Νέου Κωδικού
+            </label>
+            <input type="password" id="new2" required minlength="8" autocomplete="new-password"
+                   style="width:100%;padding:11px 14px;border:1px solid #C8E6C9;border-radius:8px;font-size:14px;" />
+          </div>
+          <button type="submit" id="submitBtn"
+                  style="padding:12px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;">
+            Αποθήκευση
+          </button>
+          <div id="msg" style="min-height:20px;font-size:13px;"></div>
+        </div>
+      </form>
+    </div>
+  </template>
+
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+
+    async function changePassword(ev) {
+      ev.preventDefault();
+      const cur = document.getElementById('cur').value;
+      const n1  = document.getElementById('new1').value;
+      const n2  = document.getElementById('new2').value;
+      const msg = document.getElementById('msg');
+      const btn = document.getElementById('submitBtn');
+      msg.style.color = '#C62828';
+      msg.textContent = '';
+      if (n1 !== n2) { msg.textContent = 'Οι νέοι κωδικοί δεν ταιριάζουν'; return false; }
+      btn.disabled = true; btn.textContent = 'Αποθήκευση…';
+      try {
+        await api.changePassword(cur, n1);
+        msg.style.color = '#2E7D32';
+        msg.textContent = 'Ο κωδικός άλλαξε ✓';
+        document.getElementById('cur').value = '';
+        document.getElementById('new1').value = '';
+        document.getElementById('new2').value = '';
+      } catch (e) {
+        msg.textContent = e.message || 'Σφάλμα';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Αποθήκευση';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>

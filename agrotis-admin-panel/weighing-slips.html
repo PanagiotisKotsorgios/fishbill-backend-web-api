@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Δελτία Ζύγισης · Αγρότης Superadmin</title>
+  <link rel="stylesheet" href="css/shell.css" />
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('weighing-slips.html');
+  </script>
+
+  <template id="mainTpl">
+    <h1>Δελτία Ζύγισης</h1>
+    <div class="page-subtitle">Φωτογραφημένα ζύγια προϊόντων (Έντυπο Β) από όλες τις επιχειρήσεις</div>
+    <div class="pill-bar">
+      <input id="q" placeholder="Αναζήτηση (προϊόν / αγοραστής / επιχείρηση)…" oninput="applyFilter()" />
+      <span id="totalCount" class="stat-hint">—</span>
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Ημ/νία</th><th>Επιχείρηση</th><th>Προϊόν</th>
+          <th>Κωδ. FAO</th><th>Βάρος (kg)</th><th>Αγοραστής</th><th>Φωτο</th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="7" class="empty">Φόρτωση…</td></tr></tbody>
+    </table>
+  </template>
+
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+    let allRows = [];
+    function renderRows(rows) {
+      const tbody = document.getElementById('rows');
+      if (!rows.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty">Κανένα δελτίο ζύγισης</td></tr>`; return; }
+      tbody.innerHTML = rows.map(s => `
+        <tr>
+          <td>${fmtDate(s.created_at)}</td>
+          <td>${escapeHtml(s.business_name || '—')}</td>
+          <td><b>${escapeHtml(s.product_type)}</b></td>
+          <td><code style="font-size:11px;">${escapeHtml(s.fao_code || '—')}</code></td>
+          <td>${Number(s.weight_kg).toLocaleString('el-GR', {minimumFractionDigits:2})}</td>
+          <td>${escapeHtml(s.buyer_name || '—')}</td>
+          <td>${s.photo_url ? `<a href="${escapeHtml(s.photo_url)}" target="_blank" style="color:#2E7D32;">▸ Άνοιγμα</a>` : '—'}</td>
+        </tr>`).join('');
+    }
+    function applyFilter() {
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      if (!q) return renderRows(allRows);
+      renderRows(allRows.filter(s =>
+        (s.product_type   || '').toLowerCase().includes(q) ||
+        (s.business_name  || '').toLowerCase().includes(q) ||
+        (s.buyer_name     || '').toLowerCase().includes(q)
+      ));
+    }
+    (async () => {
+      try {
+        const resp = await api.weighingSlips({ page: 1, limit: 100 });
+        allRows = resp.data;
+        document.getElementById('totalCount').textContent = `${resp.meta.total} συνολικά`;
+        renderRows(allRows);
+      } catch (e) {
+        document.getElementById('rows').innerHTML =
+          `<tr><td colspan="7" class="empty">Σφάλμα: ${escapeHtml(e.message)}</td></tr>`;
+      }
+    })();
+  </script>
+</body>
+</html>
