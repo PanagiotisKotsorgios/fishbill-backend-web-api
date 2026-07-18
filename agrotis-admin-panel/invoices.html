@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Τιμολόγια · Αγρότης Superadmin</title>
+  <link rel="stylesheet" href="css/shell.css" />
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('invoices.html');
+  </script>
+
+  <template id="mainTpl">
+    <h1>Τιμολόγια</h1>
+    <div class="page-subtitle">Όλα τα εκδοθέντα παραστατικά από όλες τις επιχειρήσεις (staging)</div>
+    <div class="pill-bar">
+      <input id="q" placeholder="Αναζήτηση (πελάτης / επιχείρηση / σειρά)…" oninput="applyFilter()" />
+      <span id="totalCount" class="stat-hint">—</span>
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Ημ/νία</th><th>Επιχείρηση</th><th>Πελάτης</th><th>Τύπος</th>
+          <th>Σειρά</th><th>Αρ.</th><th>Ποσό</th><th>myDATA MARK</th><th>Κατάσταση</th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="9" class="empty">Φόρτωση…</td></tr></tbody>
+    </table>
+  </template>
+
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+    let allRows = [];
+    function fmt(d) { return d ? new Date(d).toLocaleDateString('el-GR') : '—'; }
+    function statusBadge(i) {
+      if (i.cancelled_by_mark) return '<span class="badge red">Ακυρώθηκε</span>';
+      if (i.my_data_mark)      return '<span class="badge green">Εκδοθέν</span>';
+      return '<span class="badge grey">Draft</span>';
+    }
+    function renderRows(rows) {
+      const tbody = document.getElementById('rows');
+      if (!rows.length) { tbody.innerHTML = `<tr><td colspan="9" class="empty">Κανένα τιμολόγιο</td></tr>`; return; }
+      tbody.innerHTML = rows.map(i => `
+        <tr>
+          <td>${fmt(i.created_at)}</td>
+          <td>${i.business_name || '—'}</td>
+          <td>${i.customer_name || '—'}</td>
+          <td><span class="badge blue">${i.invoice_type}</span></td>
+          <td>${i.series || '—'}</td><td>${i.num || '—'}</td>
+          <td><b>€${Number(i.total_amount).toLocaleString('el-GR', { minimumFractionDigits: 2 })}</b></td>
+          <td><code style="font-size:11px;">${i.my_data_mark || '—'}</code></td>
+          <td>${statusBadge(i)}</td>
+        </tr>`).join('');
+    }
+    function applyFilter() {
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      if (!q) return renderRows(allRows);
+      renderRows(allRows.filter(i =>
+        (i.customer_name || '').toLowerCase().includes(q) ||
+        (i.business_name || '').toLowerCase().includes(q) ||
+        (i.series || '').toLowerCase().includes(q)
+      ));
+    }
+    (async () => {
+      try {
+        const resp = await api.invoices({ page: 1, limit: 100 });
+        allRows = resp.data;
+        document.getElementById('totalCount').textContent = `${resp.meta.total} συνολικά`;
+        renderRows(allRows);
+      } catch (e) {
+        document.getElementById('rows').innerHTML =
+          `<tr><td colspan="9" class="empty">Σφάλμα: ${e.message}</td></tr>`;
+      }
+    })();
+  </script>
+</body>
+</html>

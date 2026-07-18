@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Χρήστες · Αγρότης Superadmin</title>
+  <link rel="stylesheet" href="css/shell.css" />
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('users.html');
+  </script>
+
+  <template id="mainTpl">
+    <h1>Χρήστες</h1>
+    <div class="page-subtitle">Όλοι οι λογαριασμοί που έχουν εγγραφεί στην εφαρμογή Αγρότης</div>
+    <div class="pill-bar">
+      <input id="q" placeholder="Αναζήτηση (email ή όνομα)…" oninput="applyFilter()" />
+      <span id="totalCount" class="stat-hint">—</span>
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Όνομα</th><th>Email</th><th>Επιχείρηση</th><th>ΑΦΜ</th>
+          <th>Ρόλος</th><th>Εγγραφή</th><th>Τελευταία σύνδεση</th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="7" class="empty">Φόρτωση…</td></tr></tbody>
+    </table>
+  </template>
+
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+
+    let allRows = [];
+    function fmt(d) { return d ? new Date(d).toLocaleString('el-GR') : '—'; }
+    function renderRows(rows) {
+      const tbody = document.getElementById('rows');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">Κανένας χρήστης</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(u => `
+        <tr>
+          <td>${u.name || '—'}</td>
+          <td>${u.email}</td>
+          <td>${u.business_name || '—'}</td>
+          <td>${u.business_afm || '—'}</td>
+          <td><span class="badge green">${u.role}</span></td>
+          <td>${fmt(u.created_at)}</td>
+          <td>${fmt(u.last_login_at)}</td>
+        </tr>`).join('');
+    }
+    function applyFilter() {
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      if (!q) return renderRows(allRows);
+      renderRows(allRows.filter(u =>
+        (u.name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.business_name || '').toLowerCase().includes(q)
+      ));
+    }
+
+    (async () => {
+      try {
+        const resp = await api.users({ page: 1, limit: 100 });
+        allRows = resp.data;
+        document.getElementById('totalCount').textContent = `${resp.meta.total} συνολικά`;
+        renderRows(allRows);
+      } catch (e) {
+        document.getElementById('rows').innerHTML =
+          `<tr><td colspan="7" class="empty">Σφάλμα: ${e.message}</td></tr>`;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Συνδρομές · Αγρότης Superadmin</title>
+  <link rel="stylesheet" href="css/shell.css" />
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('subscriptions.html');
+  </script>
+  <template id="mainTpl">
+    <h1>Συνδρομές</h1>
+    <div class="page-subtitle">Διαχείριση Pro συνδρομής ανά επιχείρηση</div>
+    <div class="pill-bar">
+      <input id="q" placeholder="Αναζήτηση επιχείρησης…" oninput="applyFilter()" />
+    </div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Επιχείρηση</th><th>ΑΦΜ</th>
+          <th>Πλάνο</th><th>Κατάσταση</th>
+          <th>Παραστατικά (χρήση/όριο)</th>
+          <th>Ενέργειες</th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="6" class="empty">Φόρτωση…</td></tr></tbody>
+    </table>
+  </template>
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+    let allRows = [];
+    function renderRows(rows) {
+      const tbody = document.getElementById('rows');
+      if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty">Καμία εγγραφή</td></tr>`; return; }
+      tbody.innerHTML = rows.map(b => {
+        const plan = b.plan || 'trial';
+        const status = b.status || 'trial';
+        const used  = b.docs_used_this_period ?? 0;
+        const limit = b.docs_limit_this_period ?? 50;
+        const badge = status === 'active' ? 'green' : status === 'trial' ? 'blue' : 'grey';
+        return `<tr>
+          <td><b>${b.name}</b></td><td>${b.afm}</td>
+          <td>${plan}</td>
+          <td><span class="badge ${badge}">${status}</span></td>
+          <td>${used} / ${limit}</td>
+          <td><button class="primary" style="padding:6px 12px;font-size:12px;background:#2E7D32;color:#fff;border:none;border-radius:6px;cursor:pointer;"
+                     onclick="activate('${b.id}')">Ενεργοποίηση Pro</button></td>
+        </tr>`;
+      }).join('');
+    }
+    function applyFilter() {
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      if (!q) return renderRows(allRows);
+      renderRows(allRows.filter(b =>
+        (b.name || '').toLowerCase().includes(q) ||
+        (b.afm  || '').toLowerCase().includes(q)
+      ));
+    }
+    async function activate(businessId) {
+      if (!confirm('Ενεργοποίηση Αγρότης Pro (1.500 έγγραφα/έτος) για αυτή την επιχείρηση;')) return;
+      try {
+        const oneYear = new Date(); oneYear.setFullYear(oneYear.getFullYear() + 1);
+        await api.updateSubscription(businessId, {
+          plan: 'agrotis-pro',
+          status: 'active',
+          current_period_end: oneYear.toISOString(),
+          docs_limit_this_period: 1500,
+        });
+        location.reload();
+      } catch (e) {
+        alert('Σφάλμα: ' + e.message);
+      }
+    }
+    (async () => {
+      try {
+        const resp = await api.businesses({ page: 1, limit: 100 });
+        allRows = resp.data;
+        renderRows(allRows);
+      } catch (e) {
+        document.getElementById('rows').innerHTML =
+          `<tr><td colspan="6" class="empty">Σφάλμα: ${e.message}</td></tr>`;
+      }
+    })();
+  </script>
+</body>
+</html>

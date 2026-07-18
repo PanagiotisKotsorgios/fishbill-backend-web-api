@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Αγρότης · Πύλη Superadmin</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'><path d='M 36,85.18 A 36,36 0 0,1 72,22.82' fill='none' stroke='%232E7D32' stroke-width='6' stroke-linecap='round'/><path d='M 85.18,36 A 36,36 0 0,1 22.82,72' fill='none' stroke='%232E7D32' stroke-width='6' stroke-linecap='round'/><path d='M 50,55 C 42,44 32,32 32,30 C 36,36 44,50 50,55 Z' fill='%232E7D32'/><path d='M 58,55 C 66,44 76,32 76,30 C 72,36 64,50 58,55 Z' fill='%232E7D32'/></svg>" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #66BB6A 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      color: #14290F;
+    }
+    .card {
+      background: #fff;
+      width: 100%; max-width: 420px;
+      padding: 40px 34px;
+      border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+      text-align: center;
+    }
+    .logo-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+    .logo-wrap svg { width: 72px; height: 72px; }
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; color: #1B5E20; margin-bottom: 4px; }
+    .subtitle { color: #66766A; font-size: 13px; margin-bottom: 26px; text-transform: uppercase; letter-spacing: 1.5px; }
+    .field { text-align: left; margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: #4A5C4F; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field input {
+      width: 100%; padding: 12px 14px;
+      border: 1px solid #C8E6C9; border-radius: 10px;
+      font-size: 15px; background: #F8FBF5;
+      transition: border-color .15s, background .15s;
+    }
+    .field input:focus { outline: none; border-color: #2E7D32; background: #fff; }
+    button.primary {
+      width: 100%; padding: 13px;
+      background: #2E7D32; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background .15s;
+    }
+    button.primary:hover { background: #1B5E20; }
+    button.primary:disabled { opacity: .5; cursor: not-allowed; }
+    .error { color: #C62828; font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .env-note { margin-top: 24px; padding-top: 20px; border-top: 1px solid #E0E7DC; font-size: 11px; color: #66766A; }
+  </style>
+</head>
+<body>
+  <form class="card" id="loginForm" onsubmit="return doLogin(event)">
+    <div class="logo-wrap">
+      <svg viewBox="0 0 108 108">
+        <path d="M 36,85.18 A 36,36 0 0,1 72,22.82" fill="none" stroke="#2E7D32" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 85.18,36 A 36,36 0 0,1 22.82,72" fill="none" stroke="#2E7D32" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 80.66,27.82 L 75,17.62 L 69,28 Z" fill="#2E7D32"/>
+        <path d="M 14.16,67 L 19.82,77.2 L 25.82,66.8 Z" fill="#2E7D32"/>
+        <path d="M 50,55 C 42,44 32,32 32,30 C 36,36 44,50 50,55 Z" fill="#2E7D32"/>
+        <path d="M 58,55 C 66,44 76,32 76,30 C 72,36 64,50 58,55 Z" fill="#2E7D32"/>
+        <path d="M 54,76 L 54,60" stroke="#2E7D32" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1>Αγρότης</h1>
+    <div class="subtitle">Πύλη Superadmin</div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="email" />
+    </div>
+    <div class="field">
+      <label for="password">Κωδικός</label>
+      <input id="password" type="password" required autocomplete="current-password" />
+    </div>
+    <button class="primary" id="submitBtn" type="submit">Είσοδος</button>
+    <div class="error" id="errBox"></div>
+    <div class="env-note">
+      Περιβάλλον <b>Wrapp Staging</b> ·
+      Ξεχωριστό από FishBill · v1.0.0
+    </div>
+  </form>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    if (new URLSearchParams(location.search).get('expired') === '1') {
+      document.getElementById('errBox').textContent = 'Η συνεδρία σας έληξε — συνδεθείτε ξανά.';
+    }
+    async function doLogin(ev) {
+      ev.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const err = document.getElementById('errBox');
+      err.textContent = '';
+      btn.disabled = true; btn.textContent = 'Είσοδος…';
+      try {
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const resp = await api.login(email, password);
+        setToken(resp.data.access_token);
+        setCurrentUser(resp.data.user);
+        location.href = 'dashboard.html';
+      } catch (e) {
+        err.textContent = e.message || 'Σφάλμα σύνδεσης';
+        btn.disabled = false; btn.textContent = 'Είσοδος';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Επισκόπηση · Αγρότης Superadmin</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'><path d='M 50,55 C 42,44 32,32 32,30 C 36,36 44,50 50,55 Z' fill='%232E7D32'/><path d='M 58,55 C 66,44 76,32 76,30 C 72,36 64,50 58,55 Z' fill='%232E7D32'/></svg>" />
+  <link rel="stylesheet" href="css/shell.css" />
+</head>
+<body>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireLogin()) throw new Error('no session');
+    renderShell('dashboard.html');
+  </script>
+
+  <template id="mainTpl">
+    <h1>Επισκόπηση Πλατφόρμας</h1>
+    <div class="page-subtitle">Live μετρήσεις από το Wrapp staging περιβάλλον</div>
+
+    <div class="grid cols-4" id="statsGrid">
+      <div class="card stat-card"><div class="stat-label">Επιχειρήσεις</div><div class="stat-value" id="s_biz">—</div></div>
+      <div class="card stat-card"><div class="stat-label">Χρήστες</div>       <div class="stat-value" id="s_users">—</div></div>
+      <div class="card stat-card"><div class="stat-label">Τιμολόγια</div>     <div class="stat-value" id="s_inv">—</div><div class="stat-hint" id="s_rev">—</div></div>
+      <div class="card stat-card"><div class="stat-label">Δελτία Αποστολής</div><div class="stat-value" id="s_dn">—</div></div>
+    </div>
+
+    <div style="margin-top: 24px;" class="grid cols-2">
+      <div class="card">
+        <div class="stat-label" style="margin-bottom: 12px;">Ενεργές Συνδρομές</div>
+        <div class="stat-value" id="s_subs">—</div>
+        <div class="stat-hint">από όλες τις επιχειρήσεις</div>
+      </div>
+      <div class="card">
+        <div class="stat-label" style="margin-bottom: 12px;">Wrapp Περιβάλλον</div>
+        <div class="stat-value" style="font-size: 22px;">🌱 Staging</div>
+        <div class="stat-hint" id="wrapp_env">—</div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    document.querySelector('main.content').innerHTML =
+      document.getElementById('mainTpl').innerHTML;
+
+    (async () => {
+      try {
+        const stats = (await api.stats()).data;
+        s_biz.textContent   = stats.businesses ?? 0;
+        s_users.textContent = stats.users ?? 0;
+        s_inv.textContent   = stats.invoices ?? 0;
+        s_rev.textContent   = `€${Number(stats.revenue || 0).toLocaleString('el-GR', { minimumFractionDigits: 2 })} τζίρος`;
+        s_dn.textContent    = stats.delivery_notes ?? 0;
+        s_subs.textContent  = stats.active_subs ?? 0;
+      } catch (e) {
+        document.getElementById('statsGrid').innerHTML =
+          `<div class="empty">Αδυναμία σύνδεσης με το API: ${e.message}</div>`;
+      }
+      try {
+        const h = await fetch(CONFIG.API_URL + '/health').then(r => r.json());
+        wrapp_env.textContent = h.wrapp || 'unknown';
+      } catch { wrapp_env.textContent = 'unreachable'; }
+    })();
+  </script>
+</body>
+</html>
