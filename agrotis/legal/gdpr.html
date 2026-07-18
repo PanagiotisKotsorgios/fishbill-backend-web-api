@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'><path fill='%231B5E20' d='M38,60 L5,32 L18,60 L5,88 Z'/><path fill='%232E7D32' d='M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z'/><path fill='%2366BB6A' d='M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z'/><circle cx='138' cy='60' r='10' fill='%23FFFFFF'/><circle cx='138' cy='60' r='5' fill='%231B5E20'/><circle cx='136' cy='57' r='2.2' fill='%23FFFFFF'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Αγρότης – Πολιτική Προστασίας Δεδομένων (GDPR)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(180deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%);
+      padding: 40px 0 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 32px;
+      background: #f0f4f8;
+      border-radius: 32px 32px 0 0;
+    }
+    .header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      margin-bottom: 28px;
+    }
+    .logo-svg { flex-shrink: 0; }
+    .logo-name {
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 99px;
+      padding: 5px 14px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,.9);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .page-title {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .page-sub { color: rgba(255,255,255,.65); font-size: 0.88rem; }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+    .legal-card {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 40px rgba(13,71,161,.08), 0 1px 4px rgba(0,0,0,.04);
+      padding: clamp(24px, 5vw, 52px);
+    }
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #1B5E20;
+      margin-top: 36px;
+      margin-bottom: 12px;
+      padding-left: 14px;
+      border-left: 4px solid #388E3C;
+      line-height: 1.3;
+    }
+    h2:first-of-type { margin-top: 0; }
+    h3 {
+      font-size: 0.97rem;
+      font-weight: 700;
+      color: #1E40AF;
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+    p { margin-bottom: 14px; font-size: 0.96rem; color: #374151; line-height: 1.8; }
+    ul, ol { margin: 0 0 14px 22px; }
+    li { margin-bottom: 7px; font-size: 0.96rem; color: #374151; line-height: 1.7; }
+    strong { color: #111827; }
+    a { color: #388E3C; }
+
+    .toc {
+      background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+      border: 1px solid #BFDBFE;
+      border-radius: 16px;
+      padding: 22px 26px;
+      margin-bottom: 36px;
+    }
+    .toc-title {
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: #1E40AF;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 12px;
+    }
+    .toc ol { margin-left: 18px; margin-bottom: 0; }
+    .toc li { font-size: 0.875rem; color: #1D4ED8; margin-bottom: 5px; }
+    .toc a { color: #1D4ED8; text-decoration: none; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+
+    .info-box {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: #92400E;
+      line-height: 1.6;
+    }
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      margin: 18px 0 24px;
+    }
+    .right-card {
+      background: #F0F9FF;
+      border: 1px solid #BAE6FD;
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .right-card .right-title {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #0369A1;
+      margin-bottom: 6px;
+    }
+    .right-card p { font-size: 0.85rem; color: #374151; margin-bottom: 0; }
+
+    .contact-box {
+      background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+      border: 1px solid #93C5FD;
+      border-radius: 16px;
+      padding: 22px 26px;
+      margin: 28px 0;
+    }
+    .contact-box p { margin-bottom: 6px; font-size: 0.9rem; }
+
+    .update-date {
+      font-size: 0.82rem;
+      color: #9CA3AF;
+      text-align: right;
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid #F3F4F6;
+    }
+    .footer {
+      text-align: center;
+      padding: 28px 24px 40px;
+      font-size: 0.82rem;
+      color: #9CA3AF;
+    }
+    .footer a { color: #6B7280; text-decoration: none; font-weight: 500; transition: color .15s; }
+    .footer a:hover { color: #388E3C; }
+    .footer .sep { margin: 0 8px; opacity: .4; }
+    .footer .copy { margin-top: 10px; font-size: 0.78rem; }
+
+    @media (max-width: 600px) {
+      .legal-card { border-radius: 18px; }
+      h2 { font-size: 1rem; }
+      .rights-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── ENTRANCE ANIMATIONS ─────────────────────────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(32px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .header        { animation: fadeDown .6s ease-out both; }
+    .legal-card    { animation: fadeUp  .7s ease-out .25s both; }
+    .footer        { animation: fadeIn  .6s ease-out .55s both; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a href="../index.html" class="logo">
+      <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="64" height="43">
+        <path fill="#1B5E20" d="M38,60 L5,32 L18,60 L5,88 Z"/>
+        <path fill="#388E3C" d="M38,60 C48,25 155,28 168,60 C155,92 48,95 38,60 Z"/>
+        <path fill="#66BB6A" d="M55,60 C65,42 145,44 155,60 C145,76 65,78 55,60 Z"/>
+        <path stroke="#2E7D32" stroke-width="1.5" fill="none" d="M85,38 C88,55 85,65 82,82"/>
+        <path stroke="#2E7D32" stroke-width="1.5" fill="none" d="M110,33 C113,50 110,65 107,87"/>
+        <path fill="#1B5E20" d="M70,38 C80,8 110,8 120,35 L105,40 L90,38 Z"/>
+        <path fill="#1B5E20" d="M80,88 C88,108 102,108 110,86 Z"/>
+        <circle cx="138" cy="60" r="10" fill="#FFFFFF"/>
+        <circle cx="138" cy="60" r="5" fill="#1A237E"/>
+        <circle cx="136" cy="57" r="2.2" fill="#FFFFFF"/>
+        <path stroke="#1B5E20" stroke-width="2" fill="none" stroke-linecap="round" d="M160,63 C163,67 163,70 160,72"/>
+      </svg>
+      <span class="logo-name">Αγρότης</span>
+    </a>
+    <div class="page-badge">GDPR &amp; Προστασία Δεδομένων</div>
+    <h1 class="page-title">Πολιτική Προστασίας<br/>Προσωπικών Δεδομένων</h1>
+    <p class="page-sub">Κανονισμός (ΕΕ) 2016/679 · Τελευταία ενημέρωση: Ιούνιος 2026</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="legal-card">
+
+    <div class="toc">
+      <div class="toc-title">Περιεχόμενα</div>
+      <ol>
+        <li><a href="#s1">Υπεύθυνος Επεξεργασίας</a></li>
+        <li><a href="#s2">Δεδομένα που Συλλέγουμε</a></li>
+        <li><a href="#s3">Νομική Βάση Επεξεργασίας</a></li>
+        <li><a href="#s4">Σκοπός &amp; Χρήση Δεδομένων</a></li>
+        <li><a href="#s5">Αποθήκευση &amp; Διατήρηση</a></li>
+        <li><a href="#s6">Κοινοποίηση σε Τρίτους</a></li>
+        <li><a href="#s7">Δικαιώματά σας (GDPR)</a></li>
+        <li><a href="#s8">Ασφάλεια Δεδομένων</a></li>
+        <li><a href="#s9">Cookies</a></li>
+        <li><a href="#s10">Επικοινωνία &amp; Καταγγελίες</a></li>
+      </ol>
+    </div>
+
+    <div class="info-box">
+      <strong>Σημαντικό:</strong> Η Ατομική Επιχείρηση ΚΟΤΣΟΡΓΙΟΣ ΠΑΝΑΓΙΩΤΗΣ (Αγρότης) επεξεργάζεται τα δεδομένα σας αποκλειστικά για τη λειτουργία της υπηρεσίας ηλεκτρονικής τιμολόγησης. Δεν πουλάμε, δεν ενοικιάζουμε και δεν εκχωρούμε τα προσωπικά σας δεδομένα σε τρίτους για εμπορικούς σκοπούς.
+    </div>
+
+    <h2 id="s1">1. Υπεύθυνος Επεξεργασίας</h2>
+    <p>Υπεύθυνος επεξεργασίας των προσωπικών σας δεδομένων είναι η <strong>Ατομική Επιχείρηση ΚΟΤΣΟΡΓΙΟΣ ΠΑΝΑΓΙΩΤΗΣ</strong> (Αγρότης), η οποία παρέχει λογισμικό ηλεκτρονικής τιμολόγησης για αλιείς μέσω της πλατφόρμας master-app.gr.</p>
+    <p><strong>Στοιχεία επικοινωνίας:</strong><br/>
+    Email: <a href="mailto:pkotsorgios654@gmail.com">pkotsorgios654@gmail.com</a></p>
+
+    <h2 id="s2">2. Δεδομένα που Συλλέγουμε</h2>
+    <h3>2.1 Δεδομένα Λογαριασμού</h3>
+    <ul>
+      <li>Ονοματεπώνυμο και email ιδιοκτήτη/χρήστη</li>
+      <li>Κρυπτογραφημένος κωδικός πρόσβασης (bcrypt, δεν αποθηκεύεται σε απλό κείμενο)</li>
+      <li>Ρόλος χρήστη (ιδιοκτήτης, υπάλληλος, λογιστής)</li>
+      <li>Ημερομηνία &amp; IP τελευταίας σύνδεσης</li>
+    </ul>
+    <h3>2.2 Δεδομένα Επιχείρησης</h3>
+    <ul>
+      <li>Επωνυμία επιχείρησης, ΑΦΜ, ΔΟΥ</li>
+      <li>Διεύθυνση, πόλη, τηλέφωνο, email επιχείρησης</li>
+      <li>Πληροφορίες συνδρομής &amp; χρέωσης</li>
+    </ul>
+    <h3>2.3 Δεδομένα Παραστατικών (Τιμολόγια &amp; Δελτία Αποστολής)</h3>
+    <ul>
+      <li>Στοιχεία πελατών (ονοματεπώνυμο/επωνυμία, ΑΦΜ, διεύθυνση)</li>
+      <li>Λεπτομέρειες συναλλαγών (ποσά, ΦΠΑ, περιγραφές, ποσότητες αλιευμάτων)</li>
+      <li>Αριθμοί τιμολογίων και δελτίων αποστολής, ημερομηνίες, κατάσταση μετάδοσης myDATA, αριθμοί ΜΑΡΚ</li>
+    </ul>
+    <h3>2.4 Τεχνικά Δεδομένα</h3>
+    <ul>
+      <li>Αρχεία καταγραφής (logs) πρόσβασης στο API</li>
+      <li>Διεύθυνση IP κατά τη σύνδεση</li>
+      <li>Τύπος browser &amp; λειτουργικού συστήματος (User-Agent)</li>
+    </ul>
+
+    <h2 id="s3">3. Νομική Βάση Επεξεργασίας (Άρθρο 6 GDPR)</h2>
+    <ul>
+      <li><strong>Εκτέλεση σύμβασης (Άρθρο 6§1β):</strong> Η επεξεργασία των δεδομένων λογαριασμού και τιμολογίων είναι απαραίτητη για την παροχή της υπηρεσίας που έχετε συμφωνήσει.</li>
+      <li><strong>Έννομη υποχρέωση (Άρθρο 6§1γ):</strong> Η αποστολή δεδομένων στο myDATA της ΑΑΔΕ αποτελεί νομική υποχρέωση βάσει ελληνικής φορολογικής νομοθεσίας.</li>
+      <li><strong>Έννομα συμφέροντα (Άρθρο 6§1στ):</strong> Αρχεία καταγραφής για ασφάλεια, αποτροπή απάτης και σταθερότητα υπηρεσίας.</li>
+      <li><strong>Συγκατάθεση (Άρθρο 6§1α):</strong> Για προαιρετικές ειδοποιήσεις (marketing), εάν το αιτηθείτε.</li>
+    </ul>
+
+    <h2 id="s4">4. Σκοπός &amp; Χρήση Δεδομένων</h2>
+    <p>Τα δεδομένα σας χρησιμοποιούνται αποκλειστικά για:</p>
+    <ul>
+      <li>Δημιουργία και διαχείριση του λογαριασμού σας</li>
+      <li>Έκδοση, αποθήκευση και μετάδοση παραστατικών (τιμολόγια &amp; <strong>δελτία αποστολής</strong>) απευθείας στο <strong>myDATA (ΑΑΔΕ)</strong> μέσω των επίσημων myAADE API</li>
+      <li>Αποστολή transactional emails (επιβεβαίωση λογαριασμού, επαναφορά κωδικού)</li>
+      <li>Τεχνική υποστήριξη &amp; επίλυση προβλημάτων</li>
+      <li>Συμμόρφωση με φορολογικές &amp; λογιστικές υποχρεώσεις</li>
+      <li>Βελτίωση &amp; ανάπτυξη της υπηρεσίας (ανωνυμοποιημένες στατιστικές)</li>
+    </ul>
+    <p>Δεν χρησιμοποιούμε τα δεδομένα σας για αυτοματοποιημένη λήψη αποφάσεων ή για profiling χωρίς τη συγκατάθεσή σας.</p>
+
+    <h2 id="s5">5. Αποθήκευση &amp; Διατήρηση Δεδομένων</h2>
+    <p>Τα δεδομένα αποθηκεύονται σε εξυπηρετητές εντός της Ευρωπαϊκής Ένωσης. Εφαρμόζουμε τα ακόλουθα χρονικά πλαίσια διατήρησης:</p>
+    <ul>
+      <li><strong>Δεδομένα λογαριασμού:</strong> Για όσο διαρκεί η ενεργή συνδρομή + 5 έτη μετά τη λήξη (φορολογική υποχρέωση)</li>
+      <li><strong>Παραστατικά &amp; τιμολόγια:</strong> 10 έτη (βάσει ελληνικής φορολογικής νομοθεσίας, Ν. 4308/2014)</li>
+      <li><strong>Αρχεία καταγραφής (logs):</strong> 90 ημέρες</li>
+      <li><strong>Tokens επαναφοράς κωδικού:</strong> 1 ώρα από τη δημιουργία (αυτόματη διαγραφή)</li>
+      <li><strong>Δεδομένα διαγραμμένου λογαριασμού:</strong> Εντός 30 ημερών από αίτημα διαγραφής, με εξαίρεση δεδομένα που απαιτεί ο νόμος</li>
+    </ul>
+
+    <h2 id="s6">6. Κοινοποίηση σε Τρίτους</h2>
+    <p>Τα δεδομένα σας κοινοποιούνται μόνο στους παρακάτω εκτελούντες επεξεργασία, κατόπιν σύναψης σχετικών συμβάσεων (DPA):</p>
+    <ul>
+      <li><strong>ΑΑΔΕ myDATA:</strong> Μετάδοση παραστατικών απευθείας στα επίσημα API της ΑΑΔΕ (νομική υποχρέωση)</li>
+      <li><strong>Brevo (Sendinblue):</strong> Αποστολή transactional emails (επιβεβαιώσεις, ειδοποιήσεις) — εδρεύει στη Γαλλία, εντός ΕΕ</li>
+      <li><strong>Πάροχος hosting:</strong> Φιλοξενία βάσης δεδομένων και εξυπηρετητών εντός ΕΕ</li>
+      <li><strong>ΑΑΔΕ / myDATA:</strong> Δεδομένα παραστατικών βάσει νομικής υποχρέωσης</li>
+    </ul>
+    <p>Δεν πουλάμε, δεν εκχωρούμε και δεν μοιραζόμαστε τα δεδομένα σας με εμπορικούς εταίρους για διαφημιστικούς σκοπούς.</p>
+
+    <h2 id="s7">7. Δικαιώματά σας (GDPR Άρθρα 15-22)</h2>
+    <div class="rights-grid">
+      <div class="right-card">
+        <div class="right-title">Δικαίωμα Πρόσβασης (Άρθρο 15)</div>
+        <p>Δικαιούστε να λάβετε αντίγραφο των προσωπικών σας δεδομένων που διατηρούμε.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-title">Δικαίωμα Διόρθωσης (Άρθρο 16)</div>
+        <p>Μπορείτε να ζητήσετε διόρθωση ανακριβών ή ελλιπών δεδομένων.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-title">Δικαίωμα Διαγραφής (Άρθρο 17)</div>
+        <p>«Δικαίωμα στη λήθη» — διαγραφή δεδομένων εφόσον δεν υπάρχει νομική υποχρέωση τήρησής τους.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-title">Δικαίωμα Περιορισμού (Άρθρο 18)</div>
+        <p>Περιορισμός επεξεργασίας όταν αμφισβητείτε την ακρίβεια ή τη νομιμότητα.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-title">Δικαίωμα Φορητότητας (Άρθρο 20)</div>
+        <p>Λήψη των δεδομένων σας σε δομημένο, μηχαναγνώσιμο μορφότυπο (JSON/CSV).</p>
+      </div>
+      <div class="right-card">
+        <div class="right-title">Δικαίωμα Εναντίωσης (Άρθρο 21)</div>
+        <p>Εναντίωση στην επεξεργασία για λόγους έννομου συμφέροντος ή για σκοπούς marketing.</p>
+      </div>
+    </div>
+    <p>Για άσκηση οποιουδήποτε δικαιώματος αποστείλτε αίτημα στο <a href="mailto:pkotsorgios654@gmail.com">pkotsorgios654@gmail.com</a>. Απαντάμε εντός <strong>30 ημερών</strong> (παρατάσιμο σε 60 ημέρες σε πολύπλοκες περιπτώσεις κατόπιν ενημέρωσής σας).</p>
+
+    <h2 id="s8">8. Ασφάλεια Δεδομένων</h2>
+    <p>Εφαρμόζουμε τεχνικά και οργανωτικά μέτρα ασφαλείας:</p>
+    <ul>
+      <li>Κρυπτογράφηση κωδικών πρόσβασης με <strong>bcrypt</strong> (salt rounds: 12)</li>
+      <li>Επικοινωνία μέσω <strong>HTTPS/TLS</strong> σε όλες τις συνδέσεις</li>
+      <li>Έλεγχος πρόσβασης βάσει ρόλου (RBAC) — κάθε χρήστης βλέπει μόνο τα δεδομένα της επιχείρησής του</li>
+      <li>JWT tokens με χρόνο λήξης (access: 7 ημέρες, refresh: 30 ημέρες)</li>
+      <li>Tokens επαναφοράς κωδικού: μίας χρήσης, λήγουν σε 1 ώρα</li>
+      <li>Περιοδικά αντίγραφα ασφαλείας (backups) κρυπτογραφημένα</li>
+      <li>Καταγραφή (audit log) κρίσιμων ενεργειών</li>
+    </ul>
+    <p>Σε περίπτωση παραβίασης δεδομένων που θέτει σε κίνδυνο τα δικαιώματά σας, θα σας ειδοποιήσουμε εντός <strong>72 ωρών</strong> σύμφωνα με το Άρθρο 33 GDPR.</p>
+
+    <h2 id="s9">9. Cookies</h2>
+    <p>Η πλατφόρμα Αγρότης χρησιμοποιεί:</p>
+    <ul>
+      <li><strong>Απαραίτητα cookies / localStorage:</strong> JWT access token &amp; refresh token για τη διατήρηση σύνδεσης. Αυτά είναι απαραίτητα για τη λειτουργία της εφαρμογής και δεν απαιτούν συγκατάθεση.</li>
+      <li><strong>Αναλυτικά cookies:</strong> Δεν χρησιμοποιούμε cookies τρίτων ή tracking pixels.</li>
+    </ul>
+    <p>Για λεπτομέρειες, δείτε την <a href="cookies.html">Πολιτική Cookies</a>.</p>
+
+    <h2 id="s10">10. Επικοινωνία, Υπεύθυνος Προστασίας Δεδομένων &amp; Καταγγελίες</h2>
+    <div class="contact-box">
+      <p><strong>Αιτήματα GDPR &amp; Προστασία Δεδομένων:</strong></p>
+      <p><a href="mailto:pkotsorgios654@gmail.com">pkotsorgios654@gmail.com</a></p>
+      <p style="margin-top:14px"><strong>Αρχή Προστασίας Δεδομένων Προσωπικού Χαρακτήρα (ΑΠΔΠΧ):</strong></p>
+      <p>Εάν πιστεύετε ότι τα δικαιώματά σας παραβιάζονται, έχετε δικαίωμα υποβολής καταγγελίας στην ΑΠΔΠΧ:<br/>
+      <a href="https://www.dpa.gr" target="_blank" rel="noopener">www.dpa.gr</a> · Κηφισίας 1-3, 115 23 Αθήνα · Τηλ: 210 6475600</p>
+    </div>
+
+    <p>Η παρούσα Πολιτική Προστασίας Δεδομένων ενημερώνεται όποτε υπάρχουν ουσιαστικές αλλαγές. Η συνέχιση χρήσης της υπηρεσίας μετά από ειδοποίηση για αλλαγές συνιστά αποδοχή τους.</p>
+
+    <div class="update-date">Τελευταία ενημέρωση: Ιούνιος 2026 · Έκδοση 1.0</div>
+  </div>
+</div>
+
+<div class="footer">
+  <a href="../index.html">Αρχική</a>
+  <span class="sep">·</span>
+  <a href="terms.html">Όροι Χρήσης</a>
+  <span class="sep">·</span>
+  <a href="privacy.html">Απόρρητο</a>
+  <span class="sep">·</span>
+  <a href="gdpr.html">GDPR</a>
+  <span class="sep">·</span>
+  <a href="disclaimer.html">Αποποίηση</a>
+  <span class="sep">·</span>
+  <a href="cookies.html">Cookies</a>
+  <div class="copy">&copy; 2026 Αγρότης · Ηλεκτρονική Τιμολόγηση myDATA για Αλιείς</div>
+</div>
+
+</body>
+</html>
