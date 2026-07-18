@@ -1,0 +1,7 @@
+# Force LF for shell scripts and Dockerfiles so they run correctly inside
+# the Alpine containers, regardless of what platform the commit was made on.
+*.sh              text eol=lf
+entrypoint.sh     text eol=lf
+Dockerfile*       text eol=lf
+docker-compose.yml text eol=lf
+*.conf            text eol=lf
