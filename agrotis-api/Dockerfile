@@ -9,10 +9,11 @@ RUN npm ci --omit=dev
 # Copy source
 COPY . .
 
+RUN chmod +x entrypoint.sh
+
 ENV NODE_ENV=production
 ENV PORT=4001
 
 EXPOSE 4001
 
-# Run migrations then start the server
-CMD ["sh", "-c", "node scripts/run-migrations.js && node src/server.js"]
+CMD ["./entrypoint.sh"]

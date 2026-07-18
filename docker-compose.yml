@@ -15,7 +15,7 @@ services:
     healthcheck:
       disable: true
 
-  # ── Node.js API ────────────────────────────────────────────────────────────
+  # ── FishBill Node.js API (production) ─────────────────────────────────────
   api:
     build:
       context: ./fishbill-api
@@ -54,7 +54,41 @@ services:
       - api_apk:/app/public/apk
       - api_backups:/app/backups
 
-  # ── Nginx (static web + reverse proxy) ────────────────────────────────────
+  # ── Αγρότης Node.js API (STAGING Wrapp — completely separate) ─────────────
+  # Shares the MySQL container but uses `ag_*` prefixed tables so it never
+  # collides with FishBill data. Own JWT secret, own admin table, own Wrapp
+  # partner key that MUST point at Wrapp staging.
+  agrotis-api:
+    build:
+      context: ./agrotis-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV:               ${NODE_ENV:-production}
+      PORT:                   "4001"
+      DB_HOST:                db
+      DB_PORT:                "3306"
+      DB_NAME:                ${DB_NAME:-fishbill_db}
+      DB_USER:                ${DB_USER:-fishbill_user}
+      DB_PASSWORD:            ${DB_PASSWORD}
+      # ── Own JWT secret — MUST be a different value from JWT_SECRET above ─
+      JWT_SECRET:             ${AGROTIS_JWT_SECRET}
+      JWT_ACCESS_TTL:         ${AGROTIS_JWT_ACCESS_TTL:-1d}
+      JWT_REFRESH_TTL:        ${AGROTIS_JWT_REFRESH_TTL:-30d}
+      # ── Wrapp STAGING sandbox — never production ─────────────────────────
+      WRAPP_BASE_URL:         ${AGROTIS_WRAPP_BASE_URL:-https://staging.wrapp.ai/api/v1}
+      WRAPP_PARTNER_API_KEY:  ${AGROTIS_WRAPP_PARTNER_API_KEY}
+      WRAPP_WEBHOOK_SECRET:   ${AGROTIS_WRAPP_WEBHOOK_SECRET:-}
+      # ── Super-admin bootstrap (only used on first migrate) ──────────────
+      BOOTSTRAP_ADMIN_EMAIL:    ${AGROTIS_BOOTSTRAP_ADMIN_EMAIL:-admin@agrotis.gr}
+      BOOTSTRAP_ADMIN_PASSWORD: ${AGROTIS_BOOTSTRAP_ADMIN_PASSWORD}
+    depends_on:
+      db:
+        condition: service_started
+    volumes:
+      - agrotis_uploads:/app/uploads
+      - agrotis_pdfs:/app/pdfs
+
+  # ── Nginx (static web + reverse proxy for BOTH APIs) ──────────────────────
   web:
     build:
       context: .
@@ -66,6 +100,7 @@ services:
       disable: true
     depends_on:
       - api
+      - agrotis-api
 
 volumes:
   db_data:
@@ -75,3 +110,5 @@ volumes:
   api_weighing_slips:
   api_apk:
   api_backups:
+  agrotis_uploads:
+  agrotis_pdfs:
