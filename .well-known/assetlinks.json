@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fishbill.app",
+      "sha256_cert_fingerprints": [
+        "3F:B3:63:51:1C:0E:4C:72:BD:FF:A5:A6:A1:39:99:DD:A2:3B:B4:12:62:DC:DD:D5:62:7B:D1:0B:C4:2E:E4:F2"
+      ]
+    }
+  }
+]
